@@ -1,9 +1,9 @@
 ---
-name: anti-claude-check
+name: claude-shield
 description: Audit a local Windows proxy and system setup, with limited macOS/Linux environment collection, for routing, DNS, IPv6, IP reputation, timezone, language, and documented Claude Code privacy controls. Use for Clash Verge/Mihomo or other proxy-leak diagnosis and minimal privacy hardening without fingerprint spoofing or platform-evasion guidance.
 ---
 
-# 反 Claude 检查
+# Claude Shield
 
 Audit privacy leaks, contradictory network signals, and documented Claude Code privacy controls without trying to defeat platform safeguards. Prefer stable, ordinary system behavior and the smallest defensible configuration change.
 
@@ -30,8 +30,8 @@ Keep the bundled collector and live network checks as the primary workflow. Do n
 
 Use the directory containing this `SKILL.md` as `<skill-root>`. Resolve bundled files from that directory rather than from the current project or shell working directory.
 
-- **Codex:** install the folder as `$CODEX_HOME/skills/anti-claude-check` or `~/.codex/skills/anti-claude-check`, then invoke `$anti-claude-check` or ask a matching audit question.
-- **Claude Code:** install the folder as `~/.claude/skills/anti-claude-check` for personal use or `.claude/skills/anti-claude-check` for a project, then invoke `/anti-claude-check` or ask a matching question. Claude Code may resolve bundled files through `${CLAUDE_SKILL_DIR}`.
+- **Codex:** install the folder as `$CODEX_HOME/skills/claude-shield` or `~/.codex/skills/claude-shield`, then invoke `$claude-shield` or ask a matching audit question.
+- **Claude Code:** install the folder as `~/.claude/skills/claude-shield` for personal use or `.claude/skills/claude-shield` for a project, then invoke `/claude-shield` or ask a matching question. Claude Code may resolve bundled files through `${CLAUDE_SKILL_DIR}`.
 - **Other Agent Skills hosts:** preserve `SKILL.md`, `scripts/`, and their relative layout. Ignore `agents/openai.yaml` when the host does not use OpenAI interface metadata.
 - **Other LLM agents:** load `SKILL.md` as instructions and run `<skill-root>/scripts/collect_windows_network.ps1`. On macOS/Linux, `scripts/collect_posix_network.sh` supplies only OS, proxy-environment presence, and Claude Code privacy-control state; mark DNS, routing, IPv6, and proxy-client details as manual checks. If the agent cannot execute local commands, ask the user to run the collector and provide its JSON output.
 

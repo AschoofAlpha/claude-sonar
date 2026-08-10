@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-base_dir="${HOME}/.anti-claude-check"
+base_dir="${HOME}/.claude-shield"
 env_file="${base_dir}/claude-code-privacy.env"
 
 usage() {

@@ -8,7 +8,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/AschoofAlpha/claude-shield/ci.yml?style=flat-square&label=CI" alt="CI">
-  <img src="https://img.shields.io/badge/version-1.2.1-2DD4BF?style=flat-square" alt="v1.2.1">
+  <img src="https://img.shields.io/badge/version-1.2.2-2DD4BF?style=flat-square" alt="v1.2.2">
   <img src="https://img.shields.io/badge/default-read--only-2DD4BF?style=flat-square" alt="Read-only by default">
   <img src="https://img.shields.io/badge/platform-Windows-4F7CFF?style=flat-square" alt="Windows">
   <img src="https://img.shields.io/badge/license-MIT-64748B?style=flat-square" alt="MIT License">
@@ -52,10 +52,10 @@ pip install claude-shield
 As an agent skill (Codex / Claude Code):
 
 ```powershell
-git clone https://github.com/AschoofAlpha/claude-shield.git "$HOME/.codex/skills/anti-claude-check"
+git clone https://github.com/AschoofAlpha/claude-shield.git "$HOME/.codex/skills/claude-shield"
 ```
 
-Invoke `$anti-claude-check` in Codex. For Claude Code, install the same folder as `~/.claude/skills/anti-claude-check` and invoke `/anti-claude-check`.
+Invoke `$claude-shield` in Codex. For Claude Code, install the same folder as `~/.claude/skills/claude-shield` and invoke `/claude-shield`.
 
 ## What you get
 

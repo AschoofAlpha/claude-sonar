@@ -15,7 +15,7 @@ The publish workflow also requires `[project].name == claude-shield`.
 - **Current:** `claude-shield` → https://pypi.org/project/claude-shield/
 - **Legacy:** `anti-claude-check` (older uploads; do not publish new versions there)
 
-Agent Skill folder names (`anti-claude-check` under Codex/Claude Code) are separate from the PyPI project name and may stay as-is for invoke compatibility.
+Agent Skill folder name matches the product: `claude-shield` (invoke `$claude-shield` / `/claude-shield`).
 
 ## PyPI Trusted Publisher (OIDC)
 

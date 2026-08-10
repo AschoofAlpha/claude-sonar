@@ -8,7 +8,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/AschoofAlpha/claude-shield/ci.yml?style=flat-square&label=CI" alt="CI">
-  <img src="https://img.shields.io/badge/version-1.2.1-2DD4BF?style=flat-square" alt="v1.2.1">
+  <img src="https://img.shields.io/badge/version-1.2.2-2DD4BF?style=flat-square" alt="v1.2.2">
   <img src="https://img.shields.io/badge/default-read--only-2DD4BF?style=flat-square" alt="默认只读">
   <img src="https://img.shields.io/badge/platform-Windows-4F7CFF?style=flat-square" alt="Windows">
   <img src="https://img.shields.io/badge/license-MIT-64748B?style=flat-square" alt="MIT License">
@@ -52,10 +52,10 @@ pip install claude-shield
 作为 Agent Skill（Codex / Claude Code）：
 
 ```powershell
-git clone https://github.com/AschoofAlpha/claude-shield.git "$HOME/.codex/skills/anti-claude-check"
+git clone https://github.com/AschoofAlpha/claude-shield.git "$HOME/.codex/skills/claude-shield"
 ```
 
-在 Codex 中调用 `$anti-claude-check`。Claude Code 用户将同一目录安装到 `~/.claude/skills/anti-claude-check`，调用 `/anti-claude-check`。
+在 Codex 中调用 `$claude-shield`。Claude Code 用户将同一目录安装到 `~/.claude/skills/claude-shield`，调用 `/claude-shield`。
 
 ## 你会得到什么
 

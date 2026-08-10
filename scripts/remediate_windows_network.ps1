@@ -13,7 +13,7 @@ $variables = @(
     'DISABLE_ERROR_REPORTING',
     'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC'
 )
-$backupDir = Join-Path $env:USERPROFILE '.anti-claude-check\backups'
+$backupDir = Join-Path $env:USERPROFILE '.claude-shield\backups'
 
 if ($SelfTest) {
     if ($variables.Count -ne 3 -or $variables -notcontains 'DISABLE_TELEMETRY' -or $variables -notcontains 'DISABLE_ERROR_REPORTING' -or $variables -notcontains 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC') {
