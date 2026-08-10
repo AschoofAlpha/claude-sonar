@@ -8,7 +8,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/AschoofAlpha/claude-shield/ci.yml?style=flat-square&label=CI" alt="CI">
-  <img src="https://img.shields.io/badge/version-1.3.0-2DD4BF?style=flat-square" alt="v1.3.0">
+  <img src="https://img.shields.io/badge/version-1.3.1-2DD4BF?style=flat-square" alt="v1.3.1">
   <img src="https://img.shields.io/badge/default-read--only-2DD4BF?style=flat-square" alt="Read-only by default">
   <img src="https://img.shields.io/badge/platform-Windows-4F7CFF?style=flat-square" alt="Windows">
   <img src="https://img.shields.io/badge/license-MIT-64748B?style=flat-square" alt="MIT License">
@@ -98,7 +98,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\collect_window
 macOS or Linux:
 
 ```bash
-bash ./scripts/collect_posix_network.sh
+python ./scripts/collect_posix_network.py
 ```
 
 Collector output can contain local identifiers. Keep raw output local and let the Skill redact it before sharing.

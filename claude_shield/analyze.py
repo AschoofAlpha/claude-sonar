@@ -59,23 +59,25 @@ def run_legacy_collector(timeout=30):
                 "-File",
                 str(script_path),
             ]
-        else:
-            script_path = resource_path("scripts", "collect_posix_network.sh")
-            executable = shutil.which("bash")
-            if not executable:
-                raise CollectorError("bash is not available.")
-            command = [executable, str(script_path)]
+            result = subprocess.run(command, capture_output=True, timeout=timeout)
+            if result.returncode != 0:
+                error = Redactor().scan_and_redact(result.stderr.decode("utf-8", errors="replace").strip())
+                raise CollectorError(f"collector exited with code {result.returncode}: {error}")
+            stdout = result.stdout.decode("utf-8-sig", errors="replace")
+            start = stdout.find("{")
+            if start < 0:
+                raise CollectorError("collector returned no JSON object")
+            return json.loads(stdout[start:])
 
-        result = subprocess.run(command, capture_output=True, timeout=timeout)
-        if result.returncode != 0:
-            error = Redactor().scan_and_redact(result.stderr.decode("utf-8", errors="replace").strip())
-            raise CollectorError(f"collector exited with code {result.returncode}: {error}")
-        stdout = result.stdout.decode("utf-8-sig", errors="replace")
-        start = stdout.find("{")
-        if start < 0:
-            raise CollectorError("collector returned no JSON object")
-        return json.loads(stdout[start:])
+        # POSIX / macOS / Linux: pure-Python limited collector (no bash).
+        from .collectors.posix import collect_posix_snapshot
+
+        return collect_posix_snapshot()
+    except CollectorError:
+        raise
     except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
+        raise CollectorError(Redactor().scan_and_redact(str(exc))) from exc
+    except Exception as exc:  # pragma: no cover - unexpected collector failures
         raise CollectorError(Redactor().scan_and_redact(str(exc))) from exc
 
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-shield"
-version = "1.3.0"
+version = "1.3.1"
 description = "Local privacy and proxy consistency audit for Claude Code and agent skills"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -37,8 +37,8 @@ include = ["claude_shield*"]
 "share/claude-shield" = ["SKILL.md", "README.md", "README.zh-CN.md", "LICENSE"]
 "share/claude-shield/assets" = ["assets/social-preview.en.jpg", "assets/social-preview.jpg"]
 "share/claude-shield/scripts" = [
-    "scripts/collect_posix_network.sh",
+    "scripts/collect_posix_network.py",
     "scripts/collect_windows_network.ps1",
-    "scripts/remediate_posix_network.sh",
+    "scripts/remediate_posix_network.py",
     "scripts/remediate_windows_network.ps1",
 ]

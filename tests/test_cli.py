@@ -1,4 +1,4 @@
-"""CLI tests for python -m claude_shield (1.3.0)."""
+"""CLI tests for python -m claude_shield (1.3.1)."""
 
 import io
 import json
@@ -159,7 +159,7 @@ class TestCliMain(unittest.TestCase):
             self.assertIn("collector error", err.getvalue())
 
     def test_module_version(self):
-        self.assertEqual(__version__, "1.3.0")
+        self.assertEqual(__version__, "1.3.1")
 
 
 if __name__ == "__main__":
