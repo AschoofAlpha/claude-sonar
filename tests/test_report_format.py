@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from claude_shield.analyze import analyze_snapshot
 from claude_shield.models import AuditCheck, Evidence
-from claude_shield.report import classify_action, format_report, group_checks, status_reason
+from claude_shield.report import classify_action, format_report, group_checks, score_checks, status_reason
 
 
 def _check(**kwargs):
@@ -197,6 +197,26 @@ class TestReportFormat(unittest.TestCase):
         tun = next(c for c in checks if c.id == "network.tun")
         self.assertEqual(classify_action(tun), "optional_consistency")
         self.assertIn(tun, groups["optional_consistency"])
+
+
+    def test_score_perfect_and_must_fix(self):
+        perfect = [_check(id="network.mode", status="pass", explanation="ok")]
+        s = score_checks(perfect)
+        self.assertEqual(s["score"], 100)
+        self.assertEqual(s["grade"], "A")
+        bad = [_check(
+            id="network.allow_lan",
+            status="warning",
+            severity="low",
+            confidence="probable",
+            explanation="AllowLan true",
+        )]
+        s2 = score_checks(bad)
+        self.assertLess(s2["score"], 100)
+        self.assertGreaterEqual(s2["score"], 0)
+        md = format_report(bad, lang="zh")
+        self.assertIn("## 评分", md)
+        self.assertIn("/ 100", md)
 
 
 if __name__ == "__main__":

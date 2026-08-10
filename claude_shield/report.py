@@ -337,6 +337,94 @@ def group_checks(checks: Iterable[Any]) -> Dict[str, List[Any]]:
     return groups
 
 
+
+def score_checks(checks: Iterable[Any]) -> Dict[str, Any]:
+    """Compute a 0-100 audit score from classified checks.
+
+    Starts at 100 and subtracts weighted penalties. Floor 0, ceiling 100.
+    """
+    checks = list(checks or [])
+    score = 100
+    breakdown = {
+        "must_fix_penalty": 0,
+        "optional_penalty": 0,
+        "incomplete_penalty": 0,
+        "must_fix": 0,
+        "optional_consistency": 0,
+        "leave_alone": 0,
+    }
+    deductions = []
+
+    for check in checks:
+        action = classify_action(check)
+        status = str(_field(check, "status", "") or "").lower()
+        severity = str(_field(check, "severity", "info") or "info").lower()
+        check_id = str(_field(check, "id", "") or "")
+        reason = status_reason(check)
+        breakdown[action] = breakdown.get(action, 0) + 1
+
+        penalty = 0
+        if action == "must_fix":
+            if status == "fail":
+                penalty = 18
+            elif status == "warning":
+                penalty = 14
+            else:
+                penalty = 10
+            if severity == "medium":
+                penalty += 2
+            elif severity == "high":
+                penalty += 4
+            elif severity == "critical":
+                penalty += 6
+            breakdown["must_fix_penalty"] += penalty
+        elif action == "optional_consistency":
+            if reason == "not_configured" or check_id.startswith("privacy.otel") or check_id in (
+                "privacy.prompt_history",
+                "privacy.subprocess_scrub",
+            ):
+                penalty = 1
+            elif status == "warning":
+                penalty = 3
+            elif status == "unknown":
+                penalty = 2
+            else:
+                penalty = 1
+            breakdown["optional_penalty"] += penalty
+        elif action == "leave_alone" and status == "unknown" and check_id in _LEAKISH_IDS:
+            penalty = 1
+            breakdown["incomplete_penalty"] += penalty
+
+        if penalty:
+            score -= penalty
+            deductions.append({
+                "id": check_id,
+                "action": action,
+                "status": status,
+                "penalty": penalty,
+            })
+
+    score = max(0, min(100, int(score)))
+    if score >= 90:
+        grade, label_zh, label_en = "A", "优秀", "Excellent"
+    elif score >= 75:
+        grade, label_zh, label_en = "B", "良好", "Good"
+    elif score >= 60:
+        grade, label_zh, label_en = "C", "一般", "Fair"
+    else:
+        grade, label_zh, label_en = "D", "较差", "Poor"
+
+    return {
+        "score": score,
+        "max_score": 100,
+        "grade": grade,
+        "label_zh": label_zh,
+        "label_en": label_en,
+        "breakdown": breakdown,
+        "deductions": deductions,
+    }
+
+
 def _evidence_cell(check: Any) -> str:
     items = _field(check, "evidence", None) or []
     if not items:
@@ -434,6 +522,38 @@ def format_report(
     lines.extend(_intro_lines(lang))
 
     groups = group_checks(checks)
+    scored = score_checks(checks)
+    if lang == "zh":
+        lines.extend([
+            "## 评分",
+            "",
+            "| 项目 | 值 |",
+            "| --- | --- |",
+            f"| 得分 | **{scored['score']}** / {scored['max_score']} |",
+            f"| 等级 | {scored['grade']}（{scored['label_zh']}） |",
+            f"| 必须处理扣分 | -{scored['breakdown']['must_fix_penalty']}（{scored['breakdown']['must_fix']} 项） |",
+            f"| 可选一致性扣分 | -{scored['breakdown']['optional_penalty']}（{scored['breakdown']['optional_consistency']} 项） |",
+            f"| 证据不足扣分 | -{scored['breakdown']['incomplete_penalty']} |",
+            "",
+            "_满分 100。必须处理扣得多，可选一致性扣得少；未配置的补充隐私项只扣 1 分。_",
+            "",
+        ])
+    else:
+        lines.extend([
+            "## Score",
+            "",
+            "| item | value |",
+            "| --- | --- |",
+            f"| score | **{scored['score']}** / {scored['max_score']} |",
+            f"| grade | {scored['grade']} ({scored['label_en']}) |",
+            f"| must-fix penalty | -{scored['breakdown']['must_fix_penalty']} ({scored['breakdown']['must_fix']} items) |",
+            f"| optional penalty | -{scored['breakdown']['optional_penalty']} ({scored['breakdown']['optional_consistency']} items) |",
+            f"| incomplete evidence | -{scored['breakdown']['incomplete_penalty']} |",
+            "",
+            "_Out of 100. Must-fix costs more than optional consistency; not_configured privacy add-ons cost 1 each._",
+            "",
+        ])
+
 
     if lang == "zh":
         lines.extend(
@@ -533,6 +653,7 @@ __all__ = [
     "classify_action",
     "format_report",
     "group_checks",
+    "score_checks",
     "plain_action",
     "plain_check",
     "plain_status",
