@@ -40,42 +40,59 @@ After explicit approval, use the remediation scripts only for the documented Cla
 
 ## Analysis Library
 
-The bundled `claude_shield/analyze.py` package provides the standard analysis layer. Import it instead of hand-writing checks from the raw snapshot, so results stay consistent across runs:
+The bundled `claude_shield` package (skill name **`claude-shield`**) provides the standard analysis layer. Import it instead of hand-writing checks from the raw snapshot, so results stay consistent across runs:
 
 ```python
 import sys
 sys.path.insert(0, "<skill-root>")
-from claude_shield.analyze import run_legacy_collector, analyze_snapshot, summarize
+from claude_shield.analyze import run_legacy_collector, analyze_snapshot, summarize, run_full_audit
+from claude_shield.report import format_report
 from claude_shield.redaction import Redactor
 
 snapshot = run_legacy_collector()          # runs scripts/collect_windows_network.ps1
 redactor = Redactor()
-checks = analyze_snapshot(snapshot, redactor=redactor)  # analyze raw evidence, return redacted checks
+checks = analyze_snapshot(snapshot, redactor=redactor)  # recommendations included by default
 redacted = redactor.scan_and_redact(snapshot)
-summary = summarize(checks)                # severity counts
+summary = summarize(checks)
+markdown = format_report(checks)           # evidence table + Must fix / Optional / Leave alone
 ```
 
-For the default local-only audit (collector, redaction, and analysis):
+For the default local-only audit (collector, redaction, analysis, markdown):
 
 ```python
 from claude_shield.analyze import run_full_audit
-result = run_full_audit(probe_timeout=5, include_recommendations=False, online=False)
+result = run_full_audit(probe_timeout=5)   # include_recommendations=True, online=False
 checks, summary, snapshot = result["checks"], result["summary"], result["snapshot"]
+report_md = result["report_markdown"]      # same shape as format_report(checks)
+```
+
+CLI (never enables online unless `--online`):
+
+```bash
+python -m claude_shield
+python -m claude_shield --json
+python -m claude_shield --online --timeout 5 --intended-region US
 ```
 
 Use online probes only after explicit approval:
 
 ```python
-result = run_full_audit(probe_timeout=5, include_recommendations=False, online=True)
+result = run_full_audit(
+    probe_timeout=5,
+    online=True,
+    intended_region="US",          # optional ISO region hint for reputation soft-check
+    # cross_site_urls=["https://..."],  # optional override list
+)
 ```
 
 - `run_legacy_collector()` raises `CollectorError` on failure; it never prints or exits.
-- `analyze_snapshot()` returns `AuditCheck` objects; system-level checks run even when no Mihomo config is present.
-- Coverage includes privacy controls, service mode, system proxy, Teredo, classified IPv6 bindings and DNS resolvers, proxy environment-variable presence, Windows locale, browser WebRTC-policy presence, rule-mode routing, DNS configuration, TUN stack, and aggregate policy-selection types.
-- `online=False` is the default. With `online=True`, `run_full_audit()` contacts Cloudflare Trace (`https://1.1.1.1/cdn-cgi/trace`) and ipify (`https://api.ipify.org`) to observe egress. This discloses the public IP and request metadata to those providers; obtain approval and never treat a failed or skipped probe as a leak or pass.
-- Browser collection reads installation presence and managed WebRTC policy settings only. It does not read browser profiles, exercise WebRTC, or prove runtime behavior.
-- Feed the same `checks` into the Report Format section below. Do not re-derive the checks from raw JSON unless the library cannot run (then label every result `manual check required`).
-- The package has no CLI or browser automation component; it is a library plus read-only platform collectors.
+- `analyze_snapshot()` returns `AuditCheck` objects; system-level checks run even when no Mihomo config is present. Default `include_recommendations=True`.
+- `run_full_audit()` defaults: `include_recommendations=True`, `online=False`. Returns `checks`, `summary`, `snapshot`, `report`, `report_dict`, and `report_markdown`.
+- Coverage includes privacy controls, service mode, system proxy, Teredo, classified IPv6 bindings and DNS resolvers, proxy environment-variable presence, Windows locale, browser WebRTC-policy presence (Chrome, Edge, **Firefox** best-effort), rule-mode routing, DNS configuration, TUN stack, and aggregate policy-selection types.
+- `online=False` is the default. With `online=True`, probes may contact Cloudflare Trace / ipify (egress), a lightweight IP reputation observer, and a small cross-site exit set. This discloses the public IP and request metadata to those providers; obtain approval and never treat a failed or skipped probe as a leak or pass. Reputation labels are vendor opinions; cross-site results compare redacted egress tokens only.
+- Browser collection reads installation presence and managed WebRTC policy settings only (Firefox: Mozilla policy registry + `distribution/policies.json`). It does not read browser profiles, exercise WebRTC, or prove runtime behavior.
+- Feed the same `checks` into `format_report` or the Report Format section below. Do not re-derive the checks from raw JSON unless the library cannot run (then label every result `manual check required`).
+- Package CLI: `python -m claude_shield`. Online stays off without `--online`.
 
 ## Audit Workflow
 

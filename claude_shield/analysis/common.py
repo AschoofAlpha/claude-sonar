@@ -1,7 +1,7 @@
 import ipaddress
 from dataclasses import replace
 
-from ..models import AuditCheck
+from ..models import AuditCheck, Evidence
 from ..redaction import Redactor
 
 
@@ -12,7 +12,28 @@ class CheckBuilder:
         self.include_recommendations = include_recommendations
         self.checks = []
 
-    def add(self, check_id, title, category, status, severity, explanation, recommendation=""):
+    def add(
+        self,
+        check_id,
+        title,
+        category,
+        status,
+        severity,
+        explanation,
+        recommendation="",
+        evidence=None,
+    ):
+        items = []
+        if evidence:
+            for item in evidence:
+                if isinstance(item, Evidence):
+                    items.append(item)
+                elif isinstance(item, dict):
+                    items.append(Evidence(
+                        type=str(item.get("type", "observation")),
+                        description=str(item.get("description", "")),
+                        data=item.get("data"),
+                    ))
         self.checks.append(AuditCheck(
             id=check_id,
             title=title,
@@ -24,9 +45,15 @@ class CheckBuilder:
                 else "confirmed" if status in ("pass", "fail")
                 else "unknown"
             ),
+            evidence=items,
             explanation=explanation,
             recommendation=recommendation if self.include_recommendations else "",
         ))
+
+
+def evidence(type_, description, data=None):
+    """Shorthand Evidence factory for analysis modules."""
+    return Evidence(type=type_, description=description, data=data)
 
 
 def is_local_or_fake_dns(server):

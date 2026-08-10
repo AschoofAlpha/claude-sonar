@@ -8,7 +8,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/AschoofAlpha/claude-shield/ci.yml?style=flat-square&label=CI" alt="CI">
-  <img src="https://img.shields.io/badge/version-1.2.2-2DD4BF?style=flat-square" alt="v1.2.2">
+  <img src="https://img.shields.io/badge/version-1.3.0-2DD4BF?style=flat-square" alt="v1.3.0">
   <img src="https://img.shields.io/badge/default-read--only-2DD4BF?style=flat-square" alt="Read-only by default">
   <img src="https://img.shields.io/badge/platform-Windows-4F7CFF?style=flat-square" alt="Windows">
   <img src="https://img.shields.io/badge/license-MIT-64748B?style=flat-square" alt="MIT License">
@@ -56,6 +56,19 @@ git clone https://github.com/AschoofAlpha/claude-shield.git "$HOME/.codex/skills
 ```
 
 Invoke `$claude-shield` in Codex. For Claude Code, install the same folder as `~/.claude/skills/claude-shield` and invoke `/claude-shield`.
+
+## CLI (1.3)
+
+```bash
+python -m claude_shield                 # markdown report (offline)
+python -m claude_shield --json          # report_dict + summary as JSON
+python -m claude_shield --online --timeout 5
+python -m claude_shield --online --intended-region US
+```
+
+Online probes (egress, DNS observation, IP reputation, cross-site exits) stay **off** unless you pass `--online`.
+
+Library defaults: `run_full_audit(include_recommendations=True)` returns `report_markdown` via `format_report`. Windows collector also reports Firefox WebRTC policy presence when detectable.
 
 ## What you get
 

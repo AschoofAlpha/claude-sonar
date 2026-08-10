@@ -8,7 +8,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/AschoofAlpha/claude-shield/ci.yml?style=flat-square&label=CI" alt="CI">
-  <img src="https://img.shields.io/badge/version-1.2.2-2DD4BF?style=flat-square" alt="v1.2.2">
+  <img src="https://img.shields.io/badge/version-1.3.0-2DD4BF?style=flat-square" alt="v1.3.0">
   <img src="https://img.shields.io/badge/default-read--only-2DD4BF?style=flat-square" alt="默认只读">
   <img src="https://img.shields.io/badge/platform-Windows-4F7CFF?style=flat-square" alt="Windows">
   <img src="https://img.shields.io/badge/license-MIT-64748B?style=flat-square" alt="MIT License">
@@ -56,6 +56,17 @@ git clone https://github.com/AschoofAlpha/claude-shield.git "$HOME/.codex/skills
 ```
 
 在 Codex 中调用 `$claude-shield`。Claude Code 用户将同一目录安装到 `~/.claude/skills/claude-shield`，调用 `/claude-shield`。
+
+## CLI（1.3）
+
+```bash
+python -m claude_shield                 # 默认 Markdown 报告（离线）
+python -m claude_shield --json          # 输出 report_dict + summary
+python -m claude_shield --online --timeout 5
+python -m claude_shield --online --intended-region US
+```
+
+除非传入 `--online`，否则不会启用在线探测（出口、DNS、IP 声誉、跨站出口）。库默认 `run_full_audit(include_recommendations=True)`，并返回 `report_markdown`。Windows 采集器在可检测时也会报告 Firefox WebRTC 策略。
 
 ## 你会得到什么
 

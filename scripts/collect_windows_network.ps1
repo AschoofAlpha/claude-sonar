@@ -148,6 +148,129 @@ function Get-BrowserWebRtcAudit {
     }
 }
 
+function Test-FirefoxRestrictivePreference {
+    param([AllowNull()][string]$Name, [AllowNull()]$Value)
+
+    if (-not $Name) { return $false }
+    $normalized = [string]$Name
+    $text = if ($null -eq $Value) { '' } else { [string]$Value }
+
+    if ($normalized -match '(?i)^media\.peerconnection\.enabled$' -and $text -match '^(?i:false|0)$') {
+        return $true
+    }
+    if ($normalized -match '(?i)^media\.peerconnection\.ice\.(?:proxy_only|default_address_only|no_host)$' -and $text -match '^(?i:true|1)$') {
+        return $true
+    }
+    if ($normalized -match '(?i)DisableWebRTC' -and $text -match '^(?i:true|1)$') {
+        return $true
+    }
+    return $false
+}
+
+function Get-FirefoxWebRtcAudit {
+    # Best-effort Firefox WebRTC policy detection (registry + distribution policies.json).
+    # Does not read user profiles. Same JSON shape as Chromium browser audits.
+    $executablePaths = @(
+        (Join-Path $env:ProgramFiles 'Mozilla Firefox\firefox.exe'),
+        (Join-Path ${env:ProgramFiles(x86)} 'Mozilla Firefox\firefox.exe'),
+        (Join-Path $env:LOCALAPPDATA 'Mozilla Firefox\firefox.exe')
+    )
+    $userDataPath = Join-Path $env:APPDATA 'Mozilla\Firefox'
+    $installed = Test-Path -LiteralPath $userDataPath -PathType Container
+    foreach ($path in $executablePaths) {
+        if ($path -and (Test-Path -LiteralPath $path -PathType Leaf)) {
+            $installed = $true
+            break
+        }
+    }
+
+    $managedWebRtcPolicyPresent = $false
+    $restrictiveWebRtcPolicyDetected = $false
+
+    foreach ($scope in @('HKCU', 'HKLM')) {
+        $basePath = "${scope}:\SOFTWARE\Policies\Mozilla\Firefox"
+        $policy = Get-ItemProperty -LiteralPath $basePath -ErrorAction SilentlyContinue
+        if ($null -ne $policy) {
+            $disableWebRtc = Get-PropertyValue -Object $policy -Name 'DisableWebRTC'
+            if ($null -ne $disableWebRtc) {
+                $managedWebRtcPolicyPresent = $true
+                if ("$disableWebRtc" -match '^(?i:true|1)$') {
+                    $restrictiveWebRtcPolicyDetected = $true
+                }
+            }
+        }
+
+        # Preferences may be nested under Preferences\ or Preferences subkeys.
+        $prefRoot = Join-Path $basePath 'Preferences'
+        if (Test-Path -LiteralPath $prefRoot) {
+            $prefItem = Get-ItemProperty -LiteralPath $prefRoot -ErrorAction SilentlyContinue
+            if ($null -ne $prefItem) {
+                foreach ($prop in $prefItem.PSObject.Properties) {
+                    if ($prop.Name -match '^(?:PSPath|PSParentPath|PSChildName|PSDrive|PSProvider)$') { continue }
+                    if ($prop.Name -match '(?i)peerconnection|webrtc|DisableWebRTC') {
+                        $managedWebRtcPolicyPresent = $true
+                        if (Test-FirefoxRestrictivePreference -Name $prop.Name -Value $prop.Value) {
+                            $restrictiveWebRtcPolicyDetected = $true
+                        }
+                    }
+                }
+            }
+            Get-ChildItem -LiteralPath $prefRoot -ErrorAction SilentlyContinue | ForEach-Object {
+                $name = $_.PSChildName
+                $valueObj = Get-ItemProperty -LiteralPath $_.PSPath -ErrorAction SilentlyContinue
+                $value = if ($null -ne $valueObj) {
+                    @(
+                        (Get-PropertyValue -Object $valueObj -Name 'Value'),
+                        (Get-PropertyValue -Object $valueObj -Name '(default)'),
+                        (Get-PropertyValue -Object $valueObj -Name $name)
+                    ) | Where-Object { $null -ne $_ } | Select-Object -First 1
+                } else { $null }
+                if ($name -match '(?i)peerconnection|webrtc|DisableWebRTC') {
+                    $managedWebRtcPolicyPresent = $true
+                    if (Test-FirefoxRestrictivePreference -Name $name -Value $value) {
+                        $restrictiveWebRtcPolicyDetected = $true
+                    }
+                }
+            }
+        }
+    }
+
+    # distribution/policies.json next to install (enterprise policy file)
+    $policyJsonCandidates = @(
+        (Join-Path $env:ProgramFiles 'Mozilla Firefox\distribution\policies.json'),
+        (Join-Path ${env:ProgramFiles(x86)} 'Mozilla Firefox\distribution\policies.json'),
+        (Join-Path $env:LOCALAPPDATA 'Mozilla Firefox\distribution\policies.json')
+    )
+    foreach ($jsonPath in $policyJsonCandidates) {
+        if (-not $jsonPath -or -not (Test-Path -LiteralPath $jsonPath -PathType Leaf)) { continue }
+        try {
+            $raw = [System.IO.File]::ReadAllText($jsonPath)
+            if ($raw -match '(?i)DisableWebRTC\s*"?\s*:\s*"?true') {
+                $managedWebRtcPolicyPresent = $true
+                $restrictiveWebRtcPolicyDetected = $true
+            }
+            if ($raw -match '(?i)media\.peerconnection') {
+                $managedWebRtcPolicyPresent = $true
+            }
+            if ($raw -match '(?i)media\.peerconnection\.enabled["\s:]+false' -or
+                $raw -match '(?i)media\.peerconnection\.ice\.(?:proxy_only|default_address_only|no_host)["\s:]+true') {
+                $restrictiveWebRtcPolicyDetected = $true
+            }
+        }
+        catch {
+            # Best-effort only; leave flags unchanged on parse failures.
+        }
+    }
+
+    # When Firefox is installed but no policy evidence exists, report false (not null)
+    # so the schema stays boolean-compatible with Chrome/Edge audits.
+    return [pscustomobject][ordered]@{
+        Installed = $installed
+        ManagedWebRtcPolicyPresent = $managedWebRtcPolicyPresent
+        RestrictiveWebRtcPolicyDetected = if ($installed) { $restrictiveWebRtcPolicyDetected } else { $null }
+    }
+}
+
 function Get-DnsUpstreamAudit {
     param([AllowEmptyString()][string]$DnsConfig)
 
@@ -650,6 +773,7 @@ $edgeAudit = Get-BrowserWebRtcAudit -UserDataPath (Join-Path $env:LOCALAPPDATA '
     (Join-Path $env:ProgramFiles 'Microsoft\Edge\Application\msedge.exe'),
     (Join-Path ${env:ProgramFiles(x86)} 'Microsoft\Edge\Application\msedge.exe')
 )
+$firefoxAudit = Get-FirefoxWebRtcAudit
 $policyAudit = Get-MihomoPolicyAudit -RuntimeConfig $runtimeConfig -ControllerConfig $appConfig -GroupPattern $PolicyGroupPattern
 
 $result = [ordered]@{
@@ -697,6 +821,7 @@ $result = [ordered]@{
     Browsers = [ordered]@{
         Chrome = $chromeAudit
         Edge = $edgeAudit
+        Firefox = $firefoxAudit
     }
     ClaudeCode = $claudeAudit
 }

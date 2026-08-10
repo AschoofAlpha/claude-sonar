@@ -1,9 +1,8 @@
 """Collector analysis for Claude Shield (AI-facing library).
 
 Runs the read-only collector and turns the snapshot into structured audit
-checks. Intended to be imported by an agent skill (Codex / Claude Code),
-not invoked as a CLI. No output rendering lives here; agents format the
-checks themselves per SKILL.md's Report Format.
+checks. Also powers ``python -m claude_shield``. Agents may format checks via
+``format_report`` (see ``claude_shield.report``).
 """
 
 from __future__ import annotations
@@ -29,6 +28,11 @@ from .models import AuditCheck, AuditReport, PlatformInfo, PrivacyMetadata, to_d
 from .redaction import Redactor
 from .resources import resource_path
 from .schema import validate_report
+
+try:
+    from .report import format_report
+except ImportError:  # pragma: no cover
+    format_report = None  # type: ignore[assignment]
 
 
 class CollectorError(RuntimeError):
@@ -75,11 +79,11 @@ def run_legacy_collector(timeout=30):
         raise CollectorError(Redactor().scan_and_redact(str(exc))) from exc
 
 
-def analyze_snapshot(data, include_recommendations=False, redactor=None):
+def analyze_snapshot(data, include_recommendations=True, redactor=None):
     """Turn a collector snapshot into a list of AuditCheck objects.
 
     System-level checks run even when no Mihomo config is present. Returns
-    a plain list; agents decide how to present it.
+    a plain list; agents decide how to present it (or use ``format_report``).
     """
     if not isinstance(data, dict):
         raise TypeError("snapshot must be a dictionary")
@@ -131,7 +135,13 @@ def build_audit_report(checks, snapshot=None, redactor=None):
     return report
 
 
-def run_full_audit(probe_timeout=5, include_recommendations=False, online=False):
+def run_full_audit(
+    probe_timeout=5,
+    include_recommendations=True,
+    online=False,
+    intended_region=None,
+    cross_site_urls=None,
+):
     """One-call audit: run the collector, analyze locally, and optionally probe online.
 
     Returns a dict with:
@@ -140,6 +150,7 @@ def run_full_audit(probe_timeout=5, include_recommendations=False, online=False)
     - ``snapshot``: redacted collector JSON
     - ``report``: AuditReport dataclass
     - ``report_dict``: schema-validated plain dict (via models.to_dict)
+    - ``report_markdown``: markdown string from ``format_report`` when available
     """
     from .probes.base import run_probes
 
@@ -150,7 +161,13 @@ def run_full_audit(probe_timeout=5, include_recommendations=False, online=False)
     redactor = Redactor()
     checks = analyze_snapshot(snapshot, include_recommendations=include_recommendations, redactor=redactor)
     try:
-        probe_results = run_probes(None, timeout=probe_timeout, online=online)
+        probe_kwargs = {
+            "timeout": probe_timeout,
+            "online": online,
+            "intended_region": intended_region,
+            "cross_site_urls": cross_site_urls,
+        }
+        probe_results = run_probes(None, **probe_kwargs)
         checks.extend(redact_checks(probe_results, redactor))
     except Exception as exc:  # probes are best-effort; never fail the audit
         checks.extend(redact_checks([AuditCheck(
@@ -169,12 +186,26 @@ def run_full_audit(probe_timeout=5, include_recommendations=False, online=False)
     report_dict = to_dict(report)
     validate_report(report_dict)
 
+    report_markdown = None
+    formatter = format_report
+    if formatter is None:
+        try:
+            from .report import format_report as formatter
+        except ImportError:
+            formatter = None
+    if formatter is not None:
+        try:
+            report_markdown = formatter(checks)
+        except Exception:
+            report_markdown = None
+
     return {
         "checks": checks,
         "summary": report.summary,
         "snapshot": redactor.scan_and_redact(snapshot),
         "report": report,
         "report_dict": report_dict,
+        "report_markdown": report_markdown,
     }
 
 
@@ -189,4 +220,5 @@ __all__ = [
     "mihomo_protects_dns",
     "_is_local_or_fake_dns",
     "_redact_checks",
+    "format_report",
 ]

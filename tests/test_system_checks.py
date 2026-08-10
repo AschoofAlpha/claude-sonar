@@ -20,6 +20,7 @@ class TestSystemLevelChecks(unittest.TestCase):
         }})
         ids = _ids(checks)
         self.assertEqual(ids["network.service"].status, "pass")
+        self.assertTrue(ids["network.service"].evidence)
 
     def test_service_mode_partial_warning(self):
         checks = analyze_snapshot({"System": {
@@ -86,6 +87,8 @@ class TestSystemLevelChecks(unittest.TestCase):
         self.assertIn("NO_PROXY", ids["network.env_proxy"].explanation)
         # values must never appear in the explanation
         self.assertNotIn("://", ids["network.env_proxy"].explanation)
+        self.assertIn("not shown", ids["network.env_proxy"].explanation.lower())
+        self.assertIn("system_proxy", ids["network.env_proxy"].explanation)
 
     def test_env_proxy_absent_pass(self):
         checks = analyze_snapshot({"System": {
@@ -105,8 +108,9 @@ class TestSystemLevelChecks(unittest.TestCase):
         }})
         ids = _ids(checks)
         self.assertEqual(ids["system.locale"].status, "pass")
+        self.assertTrue(ids["system.locale"].evidence)
 
-    def test_locale_mismatch_warning(self):
+    def test_locale_mismatch_warning_optional_only(self):
         checks = analyze_snapshot({"System": {
             "Culture": "en-US",
             "UICulture": "en-GB",
@@ -115,16 +119,53 @@ class TestSystemLevelChecks(unittest.TestCase):
         }})
         ids = _ids(checks)
         self.assertEqual(ids["system.locale"].status, "warning")
+        self.assertEqual(ids["system.locale"].severity, "info")
+        # bilingual / mismatch is optional consistency, not a hard fail
+        self.assertNotEqual(ids["system.locale"].status, "fail")
+
+    def test_timezone_present_pass(self):
+        checks = analyze_snapshot({"System": {
+            "TimeZone": "China Standard Time",
+        }})
+        ids = _ids(checks)
+        self.assertIn("system.timezone", ids)
+        self.assertEqual(ids["system.timezone"].status, "pass")
+        self.assertIn("China Standard Time", ids["system.timezone"].explanation)
+        self.assertTrue(ids["system.timezone"].evidence)
+
+    def test_timezone_missing_unknown(self):
+        checks = analyze_snapshot({"System": {
+            "Culture": "en-US",
+        }})
+        ids = _ids(checks)
+        self.assertIn("system.timezone", ids)
+        self.assertEqual(ids["system.timezone"].status, "unknown")
+        self.assertIn("missing", ids["system.timezone"].explanation.lower())
+
+    def test_timezone_empty_unknown(self):
+        checks = analyze_snapshot({"System": {
+            "TimeZone": "",
+        }})
+        ids = _ids(checks)
+        self.assertEqual(ids["system.timezone"].status, "unknown")
 
     def test_system_checks_run_without_mihomo(self):
         # Regression: system checks must run even when Mihomo config is absent
         checks = analyze_snapshot({"System": {
             "Teredo": {"Available": True, "Disabled": True},
+            "TimeZone": "UTC",
         }})
         ids = _ids(checks)
         self.assertIn("network.teredo", ids)
         self.assertIn("network.mihomo", ids)
+        self.assertIn("system.timezone", ids)
         self.assertEqual(ids["network.mihomo"].status, "unknown")
+
+    def test_privacy_not_configured_prefix(self):
+        checks = analyze_snapshot({"ClaudeCode": {}})
+        ids = _ids(checks)
+        self.assertIn("[not_configured]", ids["privacy.prompt_history"].explanation)
+        self.assertIn("[not_configured]", ids["privacy.telemetry"].explanation)
 
     def test_known_ids_unchanged(self):
         # Existing Mihomo checks keep their ids when config is present

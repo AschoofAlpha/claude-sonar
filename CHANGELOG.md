@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-08-10
+
+### Added
+- CLI entry point: `python -m claude_shield [--online] [--json] [--timeout N] [--intended-region REGION]`.
+  Markdown report by default; `--json` prints `report_dict` + `summary`. Online probes stay off unless `--online`.
+- `claude_shield.report.format_report(checks)` / `group_checks(checks)` markdown formatter (evidence table + Must fix / Optional consistency / Leave alone).
+- `run_full_audit(...).report_markdown` when the formatter is available.
+- Windows collector: best-effort **Firefox** WebRTC policy detection (`Browsers.Firefox`) via Mozilla policy registry and `distribution/policies.json` (same shape as Chrome/Edge; no profile reads).
+- Online probes: IP reputation observation and cross-site egress comparison (`intended_region`, `cross_site_urls` kwargs on `run_probes` / `run_full_audit`).
+
+### Changed
+- `run_full_audit(include_recommendations=True)` and `analyze_snapshot(include_recommendations=True)` default to **True**.
+- Public exports include `format_report` / `group_checks` when the report module is present.
+- Encrypted DNS upstream analysis accepts a single dict or a list of scheme objects.
+- Version **1.3.0** across `pyproject.toml`, `__version__`, badges, and docs.
+
+### Notes
+- Package name remains **`claude-shield`**. Skill name remains **`claude-shield`**.
+- Online reputation/cross-site probes contact public observers only when explicitly enabled; results are categorical and redacted.
+
 ## [1.2.2] - 2026-08-10
 
 ### Changed

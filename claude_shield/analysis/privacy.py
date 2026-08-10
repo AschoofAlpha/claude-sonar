@@ -40,7 +40,7 @@ def collect_privacy_checks(data, builder):
             if active else
             f"{variable} is present but is not set to 1."
             if present else
-            f"{variable}=1 was not verified."
+            f"[not_configured] {variable}=1 was not verified."
         )
         add(
             check_id,
@@ -62,11 +62,14 @@ def collect_privacy_checks(data, builder):
     )
     for check_id, title, values_key, active_key, variable in supplemental_controls:
         active, present = privacy_state(values_key, active_key)
-        explanation = (
-            f"{variable} is active; this is an observed setting, not proof of external transmission."
-            if active else
-            f"{variable} is present but its enabling value was not observed."
-            if present else
-            f"{variable} was not observed."
-        )
+        if active:
+            explanation = (
+                f"{variable} is active; this is an observed setting, not proof of external transmission."
+            )
+        elif present:
+            explanation = (
+                f"[not_configured] {variable} is present but its enabling value was not observed."
+            )
+        else:
+            explanation = f"[not_configured] {variable} was not observed."
         add(check_id, title, "privacy", "unknown", "info", explanation)

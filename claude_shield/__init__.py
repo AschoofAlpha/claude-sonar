@@ -16,6 +16,12 @@ try:
 except ImportError:  # pragma: no cover - allow version-only import during packaging edge cases
     pass
 
+try:
+    from .report import format_report, group_checks
+except ImportError:  # pragma: no cover
+    format_report = None  # type: ignore[assignment]
+    group_checks = None  # type: ignore[assignment]
+
 __all__ = [
     "__version__",
     "CollectorError",
@@ -28,4 +34,6 @@ __all__ = [
     "AuditReport",
     "Evidence",
     "Redactor",
+    "format_report",
+    "group_checks",
 ]
