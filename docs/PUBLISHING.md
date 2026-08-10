@@ -10,27 +10,26 @@ These three must match before tagging:
 
 The publish workflow fails closed if the tag does not equal both package versions.
 
-## PyPI Trusted Publisher (required)
+## PyPI auth (API token)
 
-Publish uses OIDC trusted publishing against GitHub Environment `pypi`.
+Publish uses a **PyPI API token** stored as the repo secret `PYPI_API_TOKEN`.
 
-Configure at:
-https://pypi.org/manage/project/anti-claude-check/settings/publishing/
+1. Create a token at https://pypi.org/manage/account/token/  
+   - Scope: project `anti-claude-check` (preferred) or entire account  
+   - Copy the value once (`pypi-...`)
+2. Store it on GitHub (do **not** paste into chat):
 
-Exact claims the workflow presents:
+```bash
+# from the repo directory; gh prompts for the secret value on stdin
+gh secret set PYPI_API_TOKEN -R AschoofAlpha/claude-shield
+```
 
-| Claim | Value |
-|---|---|
-| Owner | `AschoofAlpha` |
-| Repository | `claude-shield` |
-| Workflow filename | `publish.yml` |
-| Environment name | `pypi` |
+Or: repo → Settings → Secrets and variables → Actions → New repository secret  
+Name: `PYPI_API_TOKEN` · Value: the `pypi-...` token
 
-If Environment is left blank on PyPI while the workflow sets `environment: pypi`, publish fails with:
+Trusted Publisher / OIDC is optional and currently unused by the workflow.
 
-`invalid-publisher: valid token, but no corresponding publisher`
-
-GitHub Environment `pypi` already exists on the repo. After the PyPI side matches, push a tag:
+After the secret exists, push a tag:
 
 ```bash
 git tag -a v1.2.0 -m "v1.2.0"
