@@ -91,7 +91,7 @@ _CHECK_PLAIN = {
         "privacy.errors": "Claude 会不会自动上报错误日志",
         "privacy.nonessential": "是否关掉非必要的后台联网",
         "privacy.prompt_history": "是否少把对话记录长期留在本地（补充项，未配置不等于坏）",
-        "privacy.subprocess_scrub": "子进程会不会 inher 继承敏感环境变量（补充项）",
+        "privacy.subprocess_scrub": "子进程会不会继承敏感环境变量（补充项）",
         "privacy.otel_user_prompts": "监控系统会不会记下你的提问内容（补充项）",
         "privacy.otel_tool_content": "监控系统会不会记下工具调用内容（补充项）",
         "privacy.otel_tool_details": "监控系统会不会记下工具细节（补充项）",
@@ -504,7 +504,7 @@ def format_report(
     lines.extend(_glossary_lines(lang))
 
     if lang == "zh":
-        lines.append("_不确定就会标明。第三方评分和静态配置 alone 都不能单独当成「泄漏证据」。_")
+        lines.append("_不确定就会标明。第三方评分和静态配置，都不能单独当成「泄漏证据」。_")
     else:
         lines.append(
             "_Uncertainty is stated explicitly. Reputation scores and static "
