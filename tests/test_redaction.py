@@ -92,5 +92,15 @@ class TestRedactor(unittest.TestCase):
         res = self.redactor.scan_and_redact(b'\xff\xfe\x00\x01')
         self.assertEqual(res, "<BINARY_DATA>")
 
+    def test_locale_slash_not_path(self):
+        text = "Culture/UICulture/SystemLocale differ."
+        res = self.redactor.scan_and_redact(text)
+        self.assertEqual(res, text)
+        self.assertNotIn("<PATH:", res)
+
+    def test_real_posix_home_still_redacted(self):
+        res = self.redactor.scan_and_redact("/home/alice/project")
+        self.assertIn("<PATH:", res)
+
 if __name__ == '__main__':
     unittest.main()

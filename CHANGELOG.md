@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-08-10
+
+### Fixed
+- Redaction no longer treats identifier slashes such as `Culture/UICulture/SystemLocale` as POSIX paths.
+- Online DNS probe returns an honest observation (`unknown`) instead of a no-op skipped stub.
+
+### Changed
+- Split snapshot analysis into `claude_shield/analysis/*` (privacy / system / browser / mihomo).
+- `run_full_audit()` now also returns a schema-validated `report` / `report_dict` (`AuditReport`).
+- Public package exports: `run_full_audit`, `analyze_snapshot`, `AuditReport`, `Redactor`, etc.
+- Egress probe comments cleaned up (behavior unchanged).
+
 ## [1.2.0] - 2026-08-10
 
 ### Fixed

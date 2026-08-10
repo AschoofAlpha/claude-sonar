@@ -6,8 +6,7 @@ from .runtime_probe import run_python_probe, run_curl_probe
 from ..redaction import Redactor
 
 def extract_ip(text: str):
-    # Try to find something that looks like an IP
-    # This is a simple regex, in a real scenario it might be tailored to the endpoint's format
+    # Prefer Cloudflare-style ip= lines, then fall back to the first IPv4/IPv6 literal.
     ipv4_pattern = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'
     ipv6_pattern = r'([0-9a-fA-F]{1,4}:){1,7}:?[0-9a-fA-F]{1,4}'
     
@@ -28,7 +27,7 @@ def extract_ip(text: str):
     return None
 
 def check_egress_consistency(ctx: ProbeContext, is_custom: bool = False):
-    # Run multiple runtimes
+    # Compare Python stdlib and curl egress when both are available.
     results = []
     
     # Python stdlib
@@ -36,7 +35,7 @@ def check_egress_consistency(ctx: ProbeContext, is_custom: bool = False):
     # curl stdlib
     curl_text = run_curl_probe(ctx.endpoint.url, ctx.timeout)
     
-    # Redactor for memory-only IP pseudonomization
+    # Memory-only IP pseudonymization; raw addresses are not persisted.
     redactor = Redactor()
     
     def process_result(runtime, probe_result):

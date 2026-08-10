@@ -203,8 +203,18 @@ class Redactor:
         win_path = r'[a-zA-Z]:\\[^:\*\?"<>\|]+'
         text = re.sub(win_path, lambda m: self.redact_path(m.group(0)), text)
         
-        # POSIX Paths (/home/user/...)
-        posix_path = r'(?:/[a-zA-Z0-9_\-\.]+){2,}'
+        # POSIX-like absolute paths only. Require a leading slash and a path-like
+        # first segment so identifiers such as Culture/UICulture/SystemLocale
+        # are not treated as filesystem paths.
+        posix_path = (
+            r'(?<![A-Za-z0-9_])'
+            r'/(?:'
+            r'(?:home|Users|var|etc|tmp|opt|usr|root|private|Library|Applications|Volumes'
+            r'|mnt|media|data|srv|proc|sys|dev|run|boot|export|workspace|workspaces|repo|repos)'
+            r'/[A-Za-z0-9_./\-]+'
+            r'|[A-Za-z0-9_.\-]+(?:/[A-Za-z0-9_.\-]+){2,}'
+            r')'
+        )
         text = re.sub(posix_path, lambda m: self.redact_path(m.group(0)), text)
 
         return text
