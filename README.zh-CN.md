@@ -8,6 +8,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/AschoofAlpha/claude-shield/ci.yml?style=flat-square&label=CI" alt="CI">
+  <img src="https://img.shields.io/badge/version-1.2.0-2DD4BF?style=flat-square" alt="v1.2.0">
   <img src="https://img.shields.io/badge/default-read--only-2DD4BF?style=flat-square" alt="默认只读">
   <img src="https://img.shields.io/badge/platform-Windows-4F7CFF?style=flat-square" alt="Windows">
   <img src="https://img.shields.io/badge/license-MIT-64748B?style=flat-square" alt="MIT License">
@@ -66,7 +67,7 @@ git clone https://github.com/AschoofAlpha/claude-shield.git "$HOME/.codex/skills
 Windows PowerShell 7：
 
 ```powershell
-pwsh -NoProfile -File .\scripts\collect_windows_network.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\collect_windows_network.ps1
 ```
 
 Windows PowerShell 5.1：
