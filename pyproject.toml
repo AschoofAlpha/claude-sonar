@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "anti-claude-check"
-version = "1.1.1"
+version = "1.2.0"
 description = "Local privacy and proxy consistency audit skill"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -13,6 +13,11 @@ authors = [
     {name = "Anti Claude Check Authors"}
 ]
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/AschoofAlpha/claude-shield"
+Repository = "https://github.com/AschoofAlpha/claude-shield"
+Issues = "https://github.com/AschoofAlpha/claude-shield/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]

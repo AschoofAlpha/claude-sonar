@@ -33,7 +33,14 @@ def run_legacy_collector(timeout=30):
             executable = shutil.which("pwsh") or shutil.which("powershell.exe")
             if not executable:
                 raise CollectorError("PowerShell is not available.")
-            command = [executable, "-NoProfile", "-File", str(script_path)]
+            command = [
+                executable,
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(script_path),
+            ]
         else:
             script_path = resource_path("scripts", "collect_posix_network.sh")
             executable = shutil.which("bash")

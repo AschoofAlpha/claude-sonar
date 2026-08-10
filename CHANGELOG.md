@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-08-10
+
+### Fixed
+- `run_probes(..., online=False)` is honored end-to-end. Offline audits no longer raise `unexpected keyword argument 'online'` and no longer emit a spurious `network.egress.probe_error`.
+- Windows collector invocation now passes `-ExecutionPolicy Bypass`, matching the documented PowerShell entrypoints.
+- Version metadata aligned: `pyproject.toml`, `claude_shield.__version__`, README badges, and this changelog all report **1.2.0**.
+
+### Changed
+- Online egress probes remain **off by default** (`run_full_audit(online=False)`). Live contact with Cloudflare Trace / ipify requires explicit `online=True` or a custom endpoint.
+- Privacy analysis is more conservative: missing or unverified controls stay `unknown` instead of being treated as pass.
+- Collector + redaction path favors minimal local identifiers and unified redaction before sharing.
+
+### Notes
+- Package name on PyPI remains `anti-claude-check`.
+- Automated test suite: unit/smoke tests under `tests/` (currently 45+ cases).
+
 ## [1.1.1] - 2026-08-03
 
 ### Fixed

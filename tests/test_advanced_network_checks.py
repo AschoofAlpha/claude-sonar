@@ -134,7 +134,7 @@ class TestAdvancedNetworkChecks(unittest.TestCase):
 
     def test_run_full_audit_shape(self):
         try:
-            result = run_full_audit(probe_timeout=3)
+            result = run_full_audit(probe_timeout=3, online=False)
         except Exception as exc:
             self.fail(f"run_full_audit raised {type(exc).__name__}: {exc}")
         self.assertIn("checks", result)
@@ -142,6 +142,9 @@ class TestAdvancedNetworkChecks(unittest.TestCase):
         self.assertIn("snapshot", result)
         self.assertIsInstance(result["checks"], list)
         self.assertEqual(sum(result["summary"].values()), len(result["checks"]))
+        ids = {check.id for check in result["checks"]}
+        self.assertNotIn("network.egress.probe_error", ids)
+        self.assertFalse(any(check_id.startswith("network.egress.runtime_consistency") for check_id in ids))
 
 
 if __name__ == "__main__":

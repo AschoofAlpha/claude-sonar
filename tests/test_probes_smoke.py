@@ -12,16 +12,16 @@ class TestProbesSmoke(unittest.TestCase):
         from claude_shield.probes.base import run_probes
         self.assertTrue(callable(run_probes))
 
-    def test_probes_offline_run_returns_list(self):
-        # run_probes with a short timeout and no endpoint should not crash;
-        # results may be empty or unknown on restricted networks.
+    def test_probes_offline_run_returns_empty(self):
+        # Default offline path must not contact the network.
         from claude_shield.probes.base import run_probes
-        try:
-            results = run_probes(None, timeout=3)
-            self.assertIsInstance(results, list)
-        except Exception as exc:
-            # Network unreachable is acceptable; hard crashes are not.
-            self.fail(f"run_probes raised unexpected {type(exc).__name__}: {exc}")
+        results = run_probes(None, timeout=3, online=False)
+        self.assertEqual(results, [])
+
+    def test_probes_accepts_online_kwarg(self):
+        from claude_shield.probes.base import run_probes
+        import inspect
+        self.assertIn("online", inspect.signature(run_probes).parameters)
 
     def test_endpoints_known(self):
         from claude_shield.probes import endpoints
