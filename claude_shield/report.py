@@ -364,23 +364,12 @@ def _intro_lines(lang: str) -> List[str]:
         return [
             "Local evidence only — not a prediction of account review or bans.",
             "",
-            "| status | meaning | group | meaning |",
-            "| --- | --- | --- | --- |",
-            "| pass | OK | Must fix | Confirmed problem — fix first |",
-            "| warning / fail | Needs attention | Optional consistency | Not a leak; tidy only if you want |",
-            "| unknown | Not enough proof (not “safe”) | Leave alone | No action needed |",
-            "",
         ]
     return [
         "本机检查结果，不是「账号会不会被封」的预测。",
         "",
-        "| 状态 | 含义 | 分组 | 含义 |",
-        "| --- | --- | --- | --- |",
-        "| 通过 (pass) | 正常 | 必须处理 | 确认有问题，优先改 |",
-        "| 警告 / 失败 | 需要看一眼 | 可选一致性 | 不是泄漏，看你要不要统一 |",
-        "| 未知 (unknown) | 证据不够，别当成安全 | 保持不动 | 不用动 |",
-        "",
     ]
+
 
 
 def _glossary_lines(lang: str) -> List[str]:
@@ -449,26 +438,6 @@ def format_report(
     if lang == "zh":
         lines.extend(
             [
-                "## 总览",
-                "",
-                "| 项目 | 数量 |",
-                "| --- | ---: |",
-                f"| 检查项合计 | {len(checks)} |",
-                f"| 必须处理 | {len(groups['must_fix'])} |",
-                f"| 可选一致性 | {len(groups['optional_consistency'])} |",
-                f"| 保持不动 | {len(groups['leave_alone'])} |",
-            ]
-        )
-        if summary:
-            lines.append(
-                "| critical / high / medium / low / info | "
-                f"{summary.get('critical', 0)} / {summary.get('high', 0)} / "
-                f"{summary.get('medium', 0)} / {summary.get('low', 0)} / "
-                f"{summary.get('info', 0)} |"
-            )
-        lines.append("")
-        lines.extend(
-            [
                 "## 全部结果",
                 "",
                 "| 检查项 | 状态 | 说明 | 详情 | 分组 | 建议 |",
@@ -478,15 +447,6 @@ def format_report(
     else:
         lines.extend(
             [
-                "## Summary",
-                "",
-                "| item | count |",
-                "| --- | ---: |",
-                f"| total checks | {len(checks)} |",
-                f"| must fix | {len(groups['must_fix'])} |",
-                f"| optional consistency | {len(groups['optional_consistency'])} |",
-                f"| leave alone | {len(groups['leave_alone'])} |",
-                "",
                 "## All results",
                 "",
                 "| check | status | meaning | detail | group | recommendation |",

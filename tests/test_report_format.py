@@ -150,7 +150,6 @@ class TestReportFormat(unittest.TestCase):
         self.assertIn("## 可选一致性", md)
         self.assertIn("## 保持不动", md)
         self.assertIn("network.dns_hijack", md)
-        self.assertIn("## 总览", md)
         self.assertIn("## 全部结果", md)
         self.assertIn("名词解释", md)
         self.assertNotIn("人话", md)
@@ -162,7 +161,6 @@ class TestReportFormat(unittest.TestCase):
             _check(id="network.tun", status="unknown", confidence="unknown",
                    explanation="Observed TunEnabled=False."),
         ], lang="en")
-        self.assertIn("## Summary", md)
         self.assertIn("## All results", md)
         self.assertIn("| check | status | meaning | detail | group | recommendation |", md)
         self.assertIn("Glossary", md)
