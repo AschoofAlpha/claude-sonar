@@ -145,28 +145,28 @@ class TestReportFormat(unittest.TestCase):
         ]
         md = format_report(checks, summary={"critical": 0, "high": 0, "medium": 0, "low": 1, "info": 2}, lang="zh")
         self.assertIn("# Claude Shield Audit Report", md)
-        self.assertIn("| signal | status | plain status | evidence | action | plain action |", md)
-        self.assertIn("## Must fix", md)
-        self.assertIn("## Optional consistency", md)
-        self.assertIn("## Leave alone", md)
+        self.assertIn("| 检查项 | 状态 | 说明 | 详情 | 分组 | 建议 |", md)
+        self.assertIn("## 必须处理", md)
+        self.assertIn("## 可选一致性", md)
+        self.assertIn("## 保持不动", md)
         self.assertIn("network.dns_hijack", md)
-        self.assertIn("must_fix", md)
-        self.assertIn("optional_consistency", md)
-        self.assertIn("leave_alone", md)
-        self.assertIn("严重度统计", md)
-        self.assertIn("怎么看这份报告", md)
+        self.assertIn("## 总览", md)
+        self.assertIn("## 全部结果", md)
         self.assertIn("名词解释", md)
-        self.assertIn("人话", md)
-        self.assertIn("通过", md)  # plain status
+        self.assertNotIn("人话", md)
+        self.assertNotIn("plain:", md)
+        self.assertIn("通过", md)
 
     def test_format_report_english_plain_layer(self):
         md = format_report([
             _check(id="network.tun", status="unknown", confidence="unknown",
                    explanation="Observed TunEnabled=False."),
         ], lang="en")
-        self.assertIn("How to read this report", md)
+        self.assertIn("## Summary", md)
+        self.assertIn("## All results", md)
+        self.assertIn("| check | status | meaning | detail | group | recommendation |", md)
         self.assertIn("Glossary", md)
-        self.assertIn("plain:", md)
+        self.assertNotIn("plain:", md)
         self.assertIn("full-tunnel TUN", md)
 
     def test_format_report_from_live_analysis(self):
@@ -190,7 +190,7 @@ class TestReportFormat(unittest.TestCase):
             "ClaudeCode": {},
         })
         md = format_report(checks)
-        self.assertIn("## Must fix", md)
+        self.assertIn("## 必须处理", md)
         self.assertIn("network.allow_lan", md)
         self.assertIn("network.tun", md)
         self.assertIn("system.timezone", md)

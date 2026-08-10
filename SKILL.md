@@ -240,17 +240,22 @@ print(result["report_markdown"])
 # equivalent: format_report(result["checks"], summary=result["summary"], lang="zh")
 ```
 
-The markdown report includes:
-- a short **how to read** intro in plain language
-- the evidence table with both technical status/action and plain labels
-- three sections: Must fix / Optional consistency / Leave alone, each item with a **人话/plain** line
-- a **glossary** of terms (TUN, fake-IP, DoH, WebRTC, unknown, …)
+Present the result **as markdown tables in the chat** (do not dump a long prose essay). Prefer `result["report_markdown"]` / `format_report(..., lang="zh")`.
 
-If you must hand-write the report, still add ordinary-language explanations next to every technical term. Return a compact evidence table with these columns: `signal`, `status`, `confidence`, `evidence`, and `action` (plus plain status/action when using the library). Follow it with exactly three short sections:
+The library markdown includes:
+- a short legend table (status / group meanings)
+- **总览** counts table
+- **全部结果** table with columns: 检查项 / 状态 / 说明 / 详情 / 分组 / 建议
+- section tables: 必须处理 / 可选一致性 / 保持不动
+- **名词解释** glossary table
 
-1. `Must fix` for confirmed leaks or route failures.
-2. `Optional consistency` for timezone, primary language, or other non-leak mismatches.
-3. `Leave alone` for noisy detector claims and signals already aligned.
+Ordinary explanations go in the **说明** column — never use a label like说明列or「plain:」.
+
+If you must hand-build the reply, still use tables and put jargon explanations in a 说明/meaning column. Sections:
+
+1. 必须处理 — confirmed leaks or route failures
+2. 可选一致性 — non-leak mismatches
+3. 保持不动 — healthy or no action
 
 State uncertainty explicitly. Reputation scores, TCP/IP inference, and RTT are not standalone proof of proxy use or abuse. Never promise that a configuration will prevent account review, suspension, or platform detection.
 

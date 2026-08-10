@@ -73,7 +73,7 @@ class TestReportHelpers(unittest.TestCase):
         self.assertIn("Must fix", md)
         self.assertIn("Optional consistency", md)
         self.assertIn("Leave alone", md)
-        self.assertIn("| signal |", md)
+        self.assertIn("| 检查项 |", md)
         groups = group_checks(checks)
         self.assertIn("must_fix", groups)
         self.assertTrue(any(c.id == "network.allow_lan" for c in groups["must_fix"]))

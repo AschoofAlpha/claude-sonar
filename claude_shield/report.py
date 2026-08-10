@@ -358,47 +358,76 @@ def _md_escape_cell(value: Any) -> str:
     return text.strip() or "—"
 
 
+
 def _intro_lines(lang: str) -> List[str]:
     if lang == "en":
         return [
-            "## How to read this report",
+            "Local evidence only — not a prediction of account review or bans.",
             "",
-            "This is **local evidence**, not a prediction that an account will pass or get banned.",
-            "",
-            "- **pass** = looks fine for that item.",
-            "- **fail / serious warning** = treat as a real problem.",
-            "- **unknown** = we could not verify; do **not** read it as “safe”.",
-            "- **Must fix** = change these first.",
-            "- **Optional consistency** = tidy only if you care about matching region/habits.",
-            "- **Leave alone** = no action needed.",
-            "",
-            "Each item below keeps the technical id, then adds a **plain-language** line.",
+            "| status | meaning | group | meaning |",
+            "| --- | --- | --- | --- |",
+            "| pass | OK | Must fix | Confirmed problem — fix first |",
+            "| warning / fail | Needs attention | Optional consistency | Not a leak; tidy only if you want |",
+            "| unknown | Not enough proof (not “safe”) | Leave alone | No action needed |",
             "",
         ]
     return [
-        "## 怎么看这份报告",
+        "本机检查结果，不是「账号会不会被封」的预测。",
         "",
-        "这是**本机检查结果**，不是「账号会不会被封」的预测。",
-        "",
-        "- **pass / 通过**：这一项看起来正常。",
-        "- **fail / 严重 warning**：当问题处理。",
-        "- **unknown / 未知**：证据不够，**不要**理解成「安全」。",
-        "- **Must fix / 必须处理**：优先改这些。",
-        "- **Optional consistency / 可选一致性**：不是泄漏，只是想不想更统一。",
-        "- **Leave alone / 保持不动**：不用动。",
-        "",
-        "下面每条先保留技术名称，再跟一句**人话说明**这项在查什么。",
+        "| 状态 | 含义 | 分组 | 含义 |",
+        "| --- | --- | --- | --- |",
+        "| 通过 (pass) | 正常 | 必须处理 | 确认有问题，优先改 |",
+        "| 警告 / 失败 | 需要看一眼 | 可选一致性 | 不是泄漏，看你要不要统一 |",
+        "| 未知 (unknown) | 证据不够，别当成安全 | 保持不动 | 不用动 |",
         "",
     ]
 
 
 def _glossary_lines(lang: str) -> List[str]:
-    title = "## Glossary (plain language)" if lang == "en" else "## 名词解释（人话）"
+    title = "## Glossary" if lang == "en" else "## 名词解释"
     lines = [title, ""]
+    lines.append("| term | meaning |" if lang == "en" else "| 名词 | 含义 |")
+    lines.append("| --- | --- |")
     for term, meaning in _GLOSSARY.get(lang, _GLOSSARY["zh"]):
-        lines.append(f"- **{term}**：{meaning}" if lang == "zh" else f"- **{term}**: {meaning}")
+        lines.append(
+            "| {t} | {m} |".format(
+                t=_md_escape_cell(term),
+                m=_md_escape_cell(meaning),
+            )
+        )
     lines.append("")
     return lines
+
+
+def _signal_label(check: Any) -> str:
+    check_id = str(_field(check, "id", "") or "")
+    check_title = str(_field(check, "title", "") or "").strip()
+    if check_title and check_id and check_title != check_id:
+        return f"{check_title} (`{check_id}`)"
+    return check_title or check_id or "—"
+
+
+def _row_cells(check: Any, lang: str) -> Dict[str, str]:
+    check_id = str(_field(check, "id", "") or "")
+    status = str(_field(check, "status", "") or "")
+    action = classify_action(check)
+    explanation = str(_field(check, "explanation", "") or "").strip()
+    recommendation = str(_field(check, "recommendation", "") or "").strip()
+    if explanation.startswith("[") and "]" in explanation:
+        # strip tags like [not_configured] for cleaner table detail
+        tag_end = explanation.index("]")
+        rest = explanation[tag_end + 1 :].strip()
+        if rest:
+            explanation = rest
+    return {
+        "item": _signal_label(check),
+        "status": f"{plain_status(status, lang)} ({status})" if status else "—",
+        "meaning": plain_check(check_id, lang),
+        "detail": explanation or "—",
+        "group": plain_action(action, lang),
+        "action_key": action,
+        "recommendation": recommendation,
+    }
 
 
 def format_report(
@@ -406,103 +435,129 @@ def format_report(
     summary: Optional[Mapping[str, Any]] = None,
     lang: str = "zh",
 ) -> str:
-    """Render checks as markdown: intro, table, three sections, glossary.
+    """Render checks as markdown tables for AI/chat display.
 
-    ``lang`` is ``zh`` (default) or ``en`` for plain-language layers. Technical
-    ids and original explanations stay intact.
+    Plain-language text lives in table columns (说明 / meaning). Plain meaning is a normal table column.
     """
     lang = _norm_lang(lang)
     checks = list(checks or [])
     lines: List[str] = ["# Claude Shield Audit Report", ""]
     lines.extend(_intro_lines(lang))
 
-    if summary:
-        parts = []
-        for key in ("critical", "high", "medium", "low", "info"):
-            if key in summary:
-                parts.append(f"{key}={summary[key]}")
-        if parts:
-            label = "严重度统计" if lang == "zh" else "Severity counts"
-            lines.append(f"{label}: " + ", ".join(parts))
-            lines.append("")
+    groups = group_checks(checks)
 
-    # Human-friendly counts
-    groups_preview = group_checks(checks)
     if lang == "zh":
-        lines.append(
-            "分组统计：**必须处理 {m}** · **可选一致性 {o}** · **保持不动 {l}**（共 {t} 项）".format(
-                m=len(groups_preview["must_fix"]),
-                o=len(groups_preview["optional_consistency"]),
-                l=len(groups_preview["leave_alone"]),
-                t=len(checks),
+        lines.extend(
+            [
+                "## 总览",
+                "",
+                "| 项目 | 数量 |",
+                "| --- | ---: |",
+                f"| 检查项合计 | {len(checks)} |",
+                f"| 必须处理 | {len(groups['must_fix'])} |",
+                f"| 可选一致性 | {len(groups['optional_consistency'])} |",
+                f"| 保持不动 | {len(groups['leave_alone'])} |",
+            ]
+        )
+        if summary:
+            lines.append(
+                "| critical / high / medium / low / info | "
+                f"{summary.get('critical', 0)} / {summary.get('high', 0)} / "
+                f"{summary.get('medium', 0)} / {summary.get('low', 0)} / "
+                f"{summary.get('info', 0)} |"
             )
+        lines.append("")
+        lines.extend(
+            [
+                "## 全部结果",
+                "",
+                "| 检查项 | 状态 | 说明 | 详情 | 分组 | 建议 |",
+                "| --- | --- | --- | --- | --- | --- |",
+            ]
         )
     else:
-        lines.append(
-            "Groups: **must_fix {m}** · **optional {o}** · **leave_alone {l}** ({t} checks)".format(
-                m=len(groups_preview["must_fix"]),
-                o=len(groups_preview["optional_consistency"]),
-                l=len(groups_preview["leave_alone"]),
-                t=len(checks),
-            )
+        lines.extend(
+            [
+                "## Summary",
+                "",
+                "| item | count |",
+                "| --- | ---: |",
+                f"| total checks | {len(checks)} |",
+                f"| must fix | {len(groups['must_fix'])} |",
+                f"| optional consistency | {len(groups['optional_consistency'])} |",
+                f"| leave alone | {len(groups['leave_alone'])} |",
+                "",
+                "## All results",
+                "",
+                "| check | status | meaning | detail | group | recommendation |",
+                "| --- | --- | --- | --- | --- | --- |",
+            ]
         )
-    lines.append("")
 
-    lines.append("| signal | status | plain status | evidence | action | plain action |")
-    lines.append("| --- | --- | --- | --- | --- | --- |")
     for check in checks:
-        action = classify_action(check)
-        check_id = str(_field(check, "id", "") or "")
-        check_title = str(_field(check, "title", "") or "").strip()
-        status = str(_field(check, "status", "") or "")
-        signal = check_title or check_id
-        if check_title and check_id and check_title != check_id:
-            signal = f"{check_title} ({check_id})"
+        row = _row_cells(check, lang)
+        rec = row["recommendation"] if row["action_key"] != "leave_alone" else ""
         lines.append(
-            "| {signal} | {status} | {pstatus} | {evidence} | {action} | {paction} |".format(
-                signal=_md_escape_cell(signal),
-                status=_md_escape_cell(status),
-                pstatus=_md_escape_cell(plain_status(status, lang)),
-                evidence=_md_escape_cell(_evidence_cell(check)),
-                action=_md_escape_cell(action),
-                paction=_md_escape_cell(plain_action(action, lang)),
+            "| {item} | {status} | {meaning} | {detail} | {group} | {rec} |".format(
+                item=_md_escape_cell(row["item"]),
+                status=_md_escape_cell(row["status"]),
+                meaning=_md_escape_cell(row["meaning"]),
+                detail=_md_escape_cell(row["detail"]),
+                group=_md_escape_cell(row["group"]),
+                rec=_md_escape_cell(rec or "—"),
             )
         )
     lines.append("")
 
-    groups = group_checks(checks)
+    section_titles = {
+        "zh": {
+            "must_fix": "## 必须处理",
+            "optional_consistency": "## 可选一致性",
+            "leave_alone": "## 保持不动",
+        },
+        "en": {
+            "must_fix": "## Must fix",
+            "optional_consistency": "## Optional consistency",
+            "leave_alone": "## Leave alone",
+        },
+    }
+    head = (
+        (
+            "| 检查项 | 状态 | 说明 | 详情 | 建议 |",
+            "| --- | --- | --- | --- | --- |",
+        )
+        if lang == "zh"
+        else (
+            "| check | status | meaning | detail | recommendation |",
+            "| --- | --- | --- | --- | --- |",
+        )
+    )
+
     for key in _ACTION_ORDER:
-        tech_title = _ACTION_TITLES[key]
-        plain_title = plain_action(key, lang)
-        lines.append(f"## {tech_title} — {plain_title}")
+        lines.append(section_titles[lang][key])
         lines.append("")
         items = groups.get(key) or []
         if not items:
-            lines.append("_None._" if lang == "en" else "_无。_")
+            lines.append("_无。_" if lang == "zh" else "_None._")
             lines.append("")
             continue
+        lines.append(head[0])
+        lines.append(head[1])
         for check in items:
-            check_id = str(_field(check, "id", "unknown") or "unknown")
-            check_title = str(_field(check, "title", "") or "").strip()
-            status = str(_field(check, "status", "") or "")
-            explanation = str(_field(check, "explanation", "") or "").strip()
-            recommendation = str(_field(check, "recommendation", "") or "").strip()
-            if check_title and check_id and check_title != check_id:
-                line = f"- **{check_title}** (`{check_id}`, {status} / {plain_status(status, lang)}): {explanation or '—'}"
-            else:
-                label = check_title or check_id
-                line = f"- **{label}** ({status} / {plain_status(status, lang)}): {explanation or '—'}"
-            lines.append(line)
+            row = _row_cells(check, lang)
+            rec = "—" if key == "leave_alone" else (row["recommendation"] or "—")
             lines.append(
-                f"  - {'人话' if lang == 'zh' else 'plain'}: {plain_check(check_id, lang)}"
+                "| {item} | {status} | {meaning} | {detail} | {rec} |".format(
+                    item=_md_escape_cell(row["item"]),
+                    status=_md_escape_cell(row["status"]),
+                    meaning=_md_escape_cell(row["meaning"]),
+                    detail=_md_escape_cell(row["detail"]),
+                    rec=_md_escape_cell(rec),
+                )
             )
-            if recommendation and key != "leave_alone":
-                rec_label = "建议" if lang == "zh" else "recommendation"
-                lines.append(f"  - {rec_label}: {recommendation}")
         lines.append("")
 
     lines.extend(_glossary_lines(lang))
-
     if lang == "zh":
         lines.append("_不确定就会标明。第三方评分和静态配置，都不能单独当成「泄漏证据」。_")
     else:
