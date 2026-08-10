@@ -231,7 +231,22 @@ If the user employs a proxy core other than Mihomo (e.g., Xray, Sing-Box native,
 
 When the user supplies a collector snapshot (or an agent runs the collector), parse its redacted evidence and display the report before the evidence table. Treat every score as a transparent local heuristic, not independent proof. Explain each flagged item in the context of the collector and live tests; never convert an unknown public exit into a confirmed leak without comparing it with the intended exit.
 
-Return a compact evidence table with these columns: `signal`, `status`, `confidence`, `evidence`, and `action`. Follow it with exactly three short sections:
+**Prefer the library formatter** so jargon is explained consistently:
+
+```python
+from claude_shield import run_full_audit, format_report
+result = run_full_audit(online=False, lang="zh")   # or lang="en"
+print(result["report_markdown"])
+# equivalent: format_report(result["checks"], summary=result["summary"], lang="zh")
+```
+
+The markdown report includes:
+- a short **how to read** intro in plain language
+- the evidence table with both technical status/action and plain labels
+- three sections: Must fix / Optional consistency / Leave alone, each item with a **人话/plain** line
+- a **glossary** of terms (TUN, fake-IP, DoH, WebRTC, unknown, …)
+
+If you must hand-write the report, still add ordinary-language explanations next to every technical term. Return a compact evidence table with these columns: `signal`, `status`, `confidence`, `evidence`, and `action` (plus plain status/action when using the library). Follow it with exactly three short sections:
 
 1. `Must fix` for confirmed leaks or route failures.
 2. `Optional consistency` for timezone, primary language, or other non-leak mismatches.

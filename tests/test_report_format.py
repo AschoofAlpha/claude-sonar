@@ -143,9 +143,9 @@ class TestReportFormat(unittest.TestCase):
             ),
             _check(id="network.mode", status="pass", explanation="Observed Mode='Rule'."),
         ]
-        md = format_report(checks, summary={"critical": 0, "high": 0, "medium": 0, "low": 1, "info": 2})
+        md = format_report(checks, summary={"critical": 0, "high": 0, "medium": 0, "low": 1, "info": 2}, lang="zh")
         self.assertIn("# Claude Shield Audit Report", md)
-        self.assertIn("| signal | status | confidence | evidence | action |", md)
+        self.assertIn("| signal | status | plain status | evidence | action | plain action |", md)
         self.assertIn("## Must fix", md)
         self.assertIn("## Optional consistency", md)
         self.assertIn("## Leave alone", md)
@@ -153,7 +153,21 @@ class TestReportFormat(unittest.TestCase):
         self.assertIn("must_fix", md)
         self.assertIn("optional_consistency", md)
         self.assertIn("leave_alone", md)
-        self.assertIn("Summary:", md)
+        self.assertIn("严重度统计", md)
+        self.assertIn("怎么看这份报告", md)
+        self.assertIn("名词解释", md)
+        self.assertIn("人话", md)
+        self.assertIn("通过", md)  # plain status
+
+    def test_format_report_english_plain_layer(self):
+        md = format_report([
+            _check(id="network.tun", status="unknown", confidence="unknown",
+                   explanation="Observed TunEnabled=False."),
+        ], lang="en")
+        self.assertIn("How to read this report", md)
+        self.assertIn("Glossary", md)
+        self.assertIn("plain:", md)
+        self.assertIn("full-tunnel TUN", md)
 
     def test_format_report_from_live_analysis(self):
         checks = analyze_snapshot({

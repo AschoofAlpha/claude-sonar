@@ -17,10 +17,12 @@ except ImportError:  # pragma: no cover - allow version-only import during packa
     pass
 
 try:
-    from .report import format_report, group_checks
+    from .report import format_report, group_checks, plain_check, plain_status
 except ImportError:  # pragma: no cover
     format_report = None  # type: ignore[assignment]
     group_checks = None  # type: ignore[assignment]
+    plain_check = None  # type: ignore[assignment]
+    plain_status = None  # type: ignore[assignment]
 
 __all__ = [
     "__version__",
@@ -36,4 +38,6 @@ __all__ = [
     "Redactor",
     "format_report",
     "group_checks",
+    "plain_check",
+    "plain_status",
 ]

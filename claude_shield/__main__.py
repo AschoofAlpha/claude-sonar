@@ -44,6 +44,12 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="REGION",
         help="Optional intended exit region/country hint for online probes.",
     )
+    parser.add_argument(
+        "--lang",
+        choices=("zh", "en"),
+        default="zh",
+        help="Plain-language layer for the markdown report (default: zh). Technical ids stay unchanged.",
+    )
     return parser
 
 
@@ -83,12 +89,17 @@ def main(argv=None) -> int:
         return 0
 
     markdown = result.get("report_markdown")
-    if not markdown:
-        try:
-            from .report import format_report
+    # Always re-render with the requested plain-language layer.
+    try:
+        from .report import format_report
 
-            markdown = format_report(result.get("checks") or [])
-        except Exception:
+        markdown = format_report(
+            result.get("checks") or [],
+            summary=result.get("summary"),
+            lang=args.lang,
+        )
+    except Exception:
+        if not markdown:
             markdown = "# Claude Shield Audit Report\n\n(report unavailable)\n"
     print(markdown)
     return 0

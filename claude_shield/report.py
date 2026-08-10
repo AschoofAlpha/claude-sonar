@@ -1,7 +1,10 @@
 """Markdown report formatter and three-tier action classification.
 
 Maps AuditCheck rows into Must fix / Optional consistency / Leave alone
-per SKILL.md Report Format. Pure presentation — no collector I/O.
+per SKILL.md Report Format. Adds plain-language explanations so non-experts
+can read jargon without losing technical IDs.
+
+Pure presentation — no collector I/O.
 """
 
 from __future__ import annotations
@@ -42,18 +45,222 @@ _OPTIONAL_IDS = frozenset({
 })
 
 _ACTION_ORDER = ("must_fix", "optional_consistency", "leave_alone")
+
+# Technical section titles stay stable for agents; plain titles are added beside them.
 _ACTION_TITLES = {
     "must_fix": "Must fix",
     "optional_consistency": "Optional consistency",
     "leave_alone": "Leave alone",
 }
+_ACTION_PLAIN = {
+    "zh": {
+        "must_fix": "必须处理（确认有问题，建议尽快改）",
+        "optional_consistency": "可选一致性（不是泄漏，看你要不要统一）",
+        "leave_alone": "保持不动（正常或无需处理）",
+    },
+    "en": {
+        "must_fix": "Must fix (confirmed problem — change soon)",
+        "optional_consistency": "Optional consistency (not a leak — tidy if you want)",
+        "leave_alone": "Leave alone (healthy or no action needed)",
+    },
+}
+_STATUS_PLAIN = {
+    "zh": {
+        "pass": "通过",
+        "fail": "失败",
+        "warning": "警告",
+        "unknown": "未知/未验证",
+        "skipped": "已跳过",
+        "error": "出错",
+    },
+    "en": {
+        "pass": "pass",
+        "fail": "fail",
+        "warning": "warning",
+        "unknown": "unknown / not verified",
+        "skipped": "skipped",
+        "error": "error",
+    },
+}
 _SEVERITY_MUST = frozenset({"medium", "high", "critical"})
+
+# Plain-language meaning of each check id (what it is about — not the result).
+_CHECK_PLAIN = {
+    "zh": {
+        "privacy.telemetry": "Claude 会不会把使用数据（埋点）发回去",
+        "privacy.errors": "Claude 会不会自动上报错误日志",
+        "privacy.nonessential": "是否关掉非必要的后台联网",
+        "privacy.prompt_history": "是否少把对话记录长期留在本地（补充项，未配置不等于坏）",
+        "privacy.subprocess_scrub": "子进程会不会 inher 继承敏感环境变量（补充项）",
+        "privacy.otel_user_prompts": "监控系统会不会记下你的提问内容（补充项）",
+        "privacy.otel_tool_content": "监控系统会不会记下工具调用内容（补充项）",
+        "privacy.otel_tool_details": "监控系统会不会记下工具细节（补充项）",
+        "privacy.otel_raw_api": "监控系统会不会记下原始 API 正文（补充项）",
+        "network.service": "代理软件（Mihomo）是否在正常运行、端口是否在听",
+        "network.teredo": "系统有没有开可能绕过代理的 IPv6 隧道（Teredo）",
+        "network.ipv6_binding": "网卡 IPv6 会不会从物理网络直接出去",
+        "network.dns_physical_resolver": "宽带/路由器 DNS 是否还配在物理网卡上（有 fake-IP 时通常无害）",
+        "network.env_proxy": "系统/终端里有没有手动设置代理环境变量",
+        "network.system_proxy": "Windows 系统代理是否打开，并指向本机代理端口",
+        "network.other_proxy_clients": "有没有别的代理软件同时在跑、可能打架",
+        "system.locale": "系统语言/地区设置是否互相一致",
+        "system.timezone": "系统时区是什么",
+        "browser.webrtc.chrome": "Chrome 有没有限制 WebRTC 暴露真实地址（策略层，非实测）",
+        "browser.webrtc.edge": "Edge 有没有限制 WebRTC 暴露真实地址（策略层，非实测）",
+        "browser.webrtc.firefox": "Firefox 有没有限制 WebRTC 暴露真实地址（策略层，非实测）",
+        "network.mode": "代理是否工作在「规则模式」（按规则分流）",
+        "network.allow_lan": "是否禁止局域网其它设备蹭你的代理端口",
+        "network.tun": "是否开启虚拟网卡全隧道（TUN）；关着也可能只是系统代理模式",
+        "network.strict_route": "严格路由：尽量让流量按隧道走、减少漏网",
+        "network.dns": "代理是否接管 DNS 查询",
+        "network.dns_mode": "是否使用 fake-IP（用假 IP 先占位，再走代理解析）",
+        "network.dns_hijack": "是否劫持 53 端口 DNS，减少查询绕过代理",
+        "network.dns_respect_rules": "DNS 是否也遵守分流规则",
+        "network.dns_ipv6": "DNS 的 IPv6 开关是否和整体 IPv6 策略一致",
+        "network.dns_encrypted": "上游 DNS 是否使用加密（如 DoH）",
+        "network.tun_stack": "TUN 使用的网络栈类型（如 gvisor），本身不代表泄漏",
+        "network.policy_group": "节点是否固定选择，而不是自动测速乱跳",
+        "network.mihomo": "有没有读到 Mihomo/Clash 配置",
+        "network.dns.consistency": "在线时观察 DNS 能否解析（不能单独证明泄漏）",
+        "network.ip_reputation": "在线时出口 IP 的国家/运营商类标签（第三方看法，不是判决）",
+        "network.cross_site.routing": "在线时多个网站看到的出口是否一致",
+        "network.egress.probe_error": "在线探测没跑成",
+    },
+    "en": {
+        "privacy.telemetry": "Whether Claude metrics telemetry is disabled",
+        "privacy.errors": "Whether Claude error reporting is disabled",
+        "privacy.nonessential": "Whether non-essential Claude background traffic is disabled",
+        "privacy.prompt_history": "Optional: reduce local prompt-history persistence",
+        "privacy.subprocess_scrub": "Optional: scrub secrets from subprocess environments",
+        "privacy.otel_user_prompts": "Optional: whether OpenTelemetry logs user prompts",
+        "privacy.otel_tool_content": "Optional: whether OpenTelemetry logs tool content",
+        "privacy.otel_tool_details": "Optional: whether OpenTelemetry logs tool details",
+        "privacy.otel_raw_api": "Optional: whether OpenTelemetry logs raw API bodies",
+        "network.service": "Whether the Mihomo proxy process/service and port are up",
+        "network.teredo": "Whether Teredo (an IPv6 tunnel that can bypass the proxy) is off",
+        "network.ipv6_binding": "Whether physical NICs expose IPv6 that could bypass the tunnel",
+        "network.dns_physical_resolver": "Whether ISP DNS is still configured on physical adapters",
+        "network.env_proxy": "Whether HTTP(S)_PROXY environment variables are set",
+        "network.system_proxy": "Whether Windows system proxy points at the local proxy port",
+        "network.other_proxy_clients": "Whether other proxy apps are also running",
+        "system.locale": "Whether Windows language/locale settings agree with each other",
+        "system.timezone": "What timezone Windows is using",
+        "browser.webrtc.chrome": "Chrome managed WebRTC policy only (not a live WebRTC test)",
+        "browser.webrtc.edge": "Edge managed WebRTC policy only (not a live WebRTC test)",
+        "browser.webrtc.firefox": "Firefox managed WebRTC policy only (not a live WebRTC test)",
+        "network.mode": "Whether the proxy is in rule mode",
+        "network.allow_lan": "Whether LAN devices are blocked from using your proxy port",
+        "network.tun": "Whether full-tunnel TUN is on; off may mean system-proxy mode on purpose",
+        "network.strict_route": "Strict routing to reduce traffic leaking off the tunnel",
+        "network.dns": "Whether the proxy handles DNS lookups",
+        "network.dns_mode": "Whether fake-IP DNS mode is enabled",
+        "network.dns_hijack": "Whether port-53 DNS is hijacked into the proxy",
+        "network.dns_respect_rules": "Whether DNS follows the same routing rules",
+        "network.dns_ipv6": "Whether DNS IPv6 matches the IPv6 routing toggle",
+        "network.dns_encrypted": "Whether upstream DNS uses encryption (e.g. DoH)",
+        "network.tun_stack": "Which TUN stack is used (informational)",
+        "network.policy_group": "Whether the node is pinned instead of auto-switching",
+        "network.mihomo": "Whether Mihomo/Clash config was available",
+        "network.dns.consistency": "Online DNS resolve observation (not leak proof alone)",
+        "network.ip_reputation": "Online exit IP labels from third parties (opinion, not verdict)",
+        "network.cross_site.routing": "Online check that several sites see a consistent exit",
+        "network.egress.probe_error": "Online probes failed to run",
+    },
+}
+
+_GLOSSARY = {
+    "zh": [
+        ("pass / 通过", "这项看起来正常。"),
+        ("fail / 失败", "确认有问题，应处理。"),
+        ("warning / 警告", "有风险或不一致，需要你看一眼。"),
+        ("unknown / 未知", "证据不够，不能当成「安全」也不能当成「泄漏」。"),
+        ("Must fix / 必须处理", "已确认的问题或高风险项。"),
+        ("Optional consistency / 可选一致性", "不影响「有没有漏」，只是风格/习惯是否统一。"),
+        ("Leave alone / 保持不动", "正常，或改了也没好处。"),
+        ("Mihomo / Clash", "常见代理核心/客户端（如 Clash Verge 用的引擎）。"),
+        ("系统代理 (system proxy)", "让软件走系统里填的代理地址（通常是 127.0.0.1:端口）。"),
+        ("TUN / 全隧道", "虚拟网卡模式，更多流量强制进代理；比「仅系统代理」覆盖面更大。"),
+        ("fake-IP", "DNS 先返回假 IP，真正访问时再走代理解析，便于接管查询。"),
+        ("DNS 劫持 (port 53)", "把系统 DNS 查询拦到代理里，减少「查网站直接问宽带运营商」。"),
+        ("DoH / 加密 DNS", "DNS 查询加密传输，减少被中间人偷看域名。"),
+        ("strict-route", "严格路由，减少流量从旁路溜走。"),
+        ("Teredo", "一种 IPv6 隧道，有时会绕过你的代理，一般建议关掉。"),
+        ("WebRTC", "浏览器实时通讯技术；配置不当可能暴露真实网络地址。本工具默认只看策略，不做网页实测。"),
+        ("策略组 / policy group", "代理里选节点的分组；固定选择比自动测速乱跳更稳。"),
+        ("not_configured", "这项开关根本没配，不等于已经泄漏。"),
+    ],
+    "en": [
+        ("pass", "Looks healthy for this check."),
+        ("fail", "Confirmed problem — act on it."),
+        ("warning", "Risk or mismatch — review it."),
+        ("unknown", "Not enough evidence; neither safe nor a proven leak."),
+        ("Must fix", "Confirmed issues or high-risk items."),
+        ("Optional consistency", "Not a leak; tidy only if you want consistency."),
+        ("Leave alone", "Fine as-is, or changing it does not help."),
+        ("Mihomo / Clash", "Common proxy engine/client stack."),
+        ("System proxy", "Apps use the OS proxy address (usually 127.0.0.1:port)."),
+        ("TUN", "Virtual-adapter full-tunnel mode; broader capture than system proxy alone."),
+        ("fake-IP", "DNS returns placeholder IPs so lookups can be steered through the proxy."),
+        ("DNS hijack (port 53)", "Forces DNS queries into the proxy path."),
+        ("DoH", "Encrypted DNS so names are harder to snoop on the wire."),
+        ("strict-route", "Tightens routing so fewer packets bypass the tunnel."),
+        ("Teredo", "An IPv6 transition tunnel that can bypass the proxy; usually keep off."),
+        ("WebRTC", "Browser realtime API; bad settings can expose real addresses. This tool only reads policy by default."),
+        ("Policy group", "How nodes are chosen; fixed manual selection is stabler than auto URL-test."),
+        ("not_configured", "The optional control is absent — not proof of a leak."),
+    ],
+}
 
 
 def _field(check: Any, name: str, default: Any = None) -> Any:
     if isinstance(check, Mapping):
         return check.get(name, default)
     return getattr(check, name, default)
+
+
+def _norm_lang(lang: Optional[str]) -> str:
+    value = (lang or "zh").strip().lower()
+    if value in ("en", "english"):
+        return "en"
+    return "zh"
+
+
+def plain_status(status: str, lang: str = "zh") -> str:
+    lang = _norm_lang(lang)
+    key = str(status or "").lower()
+    return _STATUS_PLAIN.get(lang, _STATUS_PLAIN["zh"]).get(key, str(status or ""))
+
+
+def plain_action(action: str, lang: str = "zh") -> str:
+    lang = _norm_lang(lang)
+    return _ACTION_PLAIN.get(lang, _ACTION_PLAIN["zh"]).get(action, action)
+
+
+def plain_check(check_id: str, lang: str = "zh") -> str:
+    """Return a one-line plain explanation of what this check means."""
+    lang = _norm_lang(lang)
+    table = _CHECK_PLAIN.get(lang, _CHECK_PLAIN["zh"])
+    check_id = str(check_id or "")
+    if check_id in table:
+        return table[check_id]
+    # prefix fallbacks for dynamic ids
+    if check_id.startswith("network.egress.runtime_consistency"):
+        return (
+            "在线对比不同方式看到的出口是否一致"
+            if lang == "zh"
+            else "Online: whether different runtimes see the same egress"
+        )
+    if check_id.startswith("browser.webrtc."):
+        return (
+            "浏览器 WebRTC 策略（不是网页实测）"
+            if lang == "zh"
+            else "Browser WebRTC policy only (not a live page test)"
+        )
+    return (
+        "本项检查的技术细节见上方英文/原始说明"
+        if lang == "zh"
+        else "See the technical explanation above"
+    )
 
 
 def status_reason(check: Any) -> str:
@@ -110,7 +317,6 @@ def classify_action(check: Any) -> str:
         return "leave_alone"
 
     if status == "warning" and severity in ("low", "info"):
-        # Non-leakish low warnings still surface as optional consistency
         if check_id not in _LEAKISH_IDS:
             return "optional_consistency"
 
@@ -152,10 +358,63 @@ def _md_escape_cell(value: Any) -> str:
     return text.strip() or "—"
 
 
-def format_report(checks: Sequence[Any], summary: Optional[Mapping[str, Any]] = None) -> str:
-    """Render checks as a compact markdown report (table + three sections)."""
+def _intro_lines(lang: str) -> List[str]:
+    if lang == "en":
+        return [
+            "## How to read this report",
+            "",
+            "This is **local evidence**, not a prediction that an account will pass or get banned.",
+            "",
+            "- **pass** = looks fine for that item.",
+            "- **fail / serious warning** = treat as a real problem.",
+            "- **unknown** = we could not verify; do **not** read it as “safe”.",
+            "- **Must fix** = change these first.",
+            "- **Optional consistency** = tidy only if you care about matching region/habits.",
+            "- **Leave alone** = no action needed.",
+            "",
+            "Each item below keeps the technical id, then adds a **plain-language** line.",
+            "",
+        ]
+    return [
+        "## 怎么看这份报告",
+        "",
+        "这是**本机检查结果**，不是「账号会不会被封」的预测。",
+        "",
+        "- **pass / 通过**：这一项看起来正常。",
+        "- **fail / 严重 warning**：当问题处理。",
+        "- **unknown / 未知**：证据不够，**不要**理解成「安全」。",
+        "- **Must fix / 必须处理**：优先改这些。",
+        "- **Optional consistency / 可选一致性**：不是泄漏，只是想不想更统一。",
+        "- **Leave alone / 保持不动**：不用动。",
+        "",
+        "下面每条先保留技术名称，再跟一句**人话说明**这项在查什么。",
+        "",
+    ]
+
+
+def _glossary_lines(lang: str) -> List[str]:
+    title = "## Glossary (plain language)" if lang == "en" else "## 名词解释（人话）"
+    lines = [title, ""]
+    for term, meaning in _GLOSSARY.get(lang, _GLOSSARY["zh"]):
+        lines.append(f"- **{term}**：{meaning}" if lang == "zh" else f"- **{term}**: {meaning}")
+    lines.append("")
+    return lines
+
+
+def format_report(
+    checks: Sequence[Any],
+    summary: Optional[Mapping[str, Any]] = None,
+    lang: str = "zh",
+) -> str:
+    """Render checks as markdown: intro, table, three sections, glossary.
+
+    ``lang`` is ``zh`` (default) or ``en`` for plain-language layers. Technical
+    ids and original explanations stay intact.
+    """
+    lang = _norm_lang(lang)
     checks = list(checks or [])
     lines: List[str] = ["# Claude Shield Audit Report", ""]
+    lines.extend(_intro_lines(lang))
 
     if summary:
         parts = []
@@ -163,59 +422,94 @@ def format_report(checks: Sequence[Any], summary: Optional[Mapping[str, Any]] = 
             if key in summary:
                 parts.append(f"{key}={summary[key]}")
         if parts:
-            lines.append("Summary: " + ", ".join(parts))
+            label = "严重度统计" if lang == "zh" else "Severity counts"
+            lines.append(f"{label}: " + ", ".join(parts))
             lines.append("")
 
-    lines.append("| signal | status | confidence | evidence | action |")
-    lines.append("| --- | --- | --- | --- | --- |")
+    # Human-friendly counts
+    groups_preview = group_checks(checks)
+    if lang == "zh":
+        lines.append(
+            "分组统计：**必须处理 {m}** · **可选一致性 {o}** · **保持不动 {l}**（共 {t} 项）".format(
+                m=len(groups_preview["must_fix"]),
+                o=len(groups_preview["optional_consistency"]),
+                l=len(groups_preview["leave_alone"]),
+                t=len(checks),
+            )
+        )
+    else:
+        lines.append(
+            "Groups: **must_fix {m}** · **optional {o}** · **leave_alone {l}** ({t} checks)".format(
+                m=len(groups_preview["must_fix"]),
+                o=len(groups_preview["optional_consistency"]),
+                l=len(groups_preview["leave_alone"]),
+                t=len(checks),
+            )
+        )
+    lines.append("")
+
+    lines.append("| signal | status | plain status | evidence | action | plain action |")
+    lines.append("| --- | --- | --- | --- | --- | --- |")
     for check in checks:
         action = classify_action(check)
         check_id = str(_field(check, "id", "") or "")
         check_title = str(_field(check, "title", "") or "").strip()
+        status = str(_field(check, "status", "") or "")
         signal = check_title or check_id
         if check_title and check_id and check_title != check_id:
             signal = f"{check_title} ({check_id})"
         lines.append(
-            "| {signal} | {status} | {confidence} | {evidence} | {action} |".format(
+            "| {signal} | {status} | {pstatus} | {evidence} | {action} | {paction} |".format(
                 signal=_md_escape_cell(signal),
-                status=_md_escape_cell(_field(check, "status", "")),
-                confidence=_md_escape_cell(_field(check, "confidence", "")),
+                status=_md_escape_cell(status),
+                pstatus=_md_escape_cell(plain_status(status, lang)),
                 evidence=_md_escape_cell(_evidence_cell(check)),
                 action=_md_escape_cell(action),
+                paction=_md_escape_cell(plain_action(action, lang)),
             )
         )
     lines.append("")
 
     groups = group_checks(checks)
     for key in _ACTION_ORDER:
-        section_title = _ACTION_TITLES[key]
-        lines.append(f"## {section_title}")
+        tech_title = _ACTION_TITLES[key]
+        plain_title = plain_action(key, lang)
+        lines.append(f"## {tech_title} — {plain_title}")
         lines.append("")
         items = groups.get(key) or []
         if not items:
-            lines.append("_None._")
+            lines.append("_None._" if lang == "en" else "_无。_")
             lines.append("")
             continue
         for check in items:
-            check_id = _field(check, "id", "unknown")
+            check_id = str(_field(check, "id", "unknown") or "unknown")
             check_title = str(_field(check, "title", "") or "").strip()
-            status = _field(check, "status", "")
+            status = str(_field(check, "status", "") or "")
             explanation = str(_field(check, "explanation", "") or "").strip()
             recommendation = str(_field(check, "recommendation", "") or "").strip()
-            label = check_title or check_id
             if check_title and check_id and check_title != check_id:
-                line = f"- **{check_title}** (`{check_id}`, {status}): {explanation or '—'}"
+                line = f"- **{check_title}** (`{check_id}`, {status} / {plain_status(status, lang)}): {explanation or '—'}"
             else:
-                line = f"- **{label}** ({status}): {explanation or '—'}"
+                label = check_title or check_id
+                line = f"- **{label}** ({status} / {plain_status(status, lang)}): {explanation or '—'}"
             lines.append(line)
+            lines.append(
+                f"  - {'人话' if lang == 'zh' else 'plain'}: {plain_check(check_id, lang)}"
+            )
             if recommendation and key != "leave_alone":
-                lines.append(f"  - recommendation: {recommendation}")
+                rec_label = "建议" if lang == "zh" else "recommendation"
+                lines.append(f"  - {rec_label}: {recommendation}")
         lines.append("")
 
-    lines.append(
-        "_Uncertainty is stated explicitly. Reputation scores and static "
-        "configuration alone are not proof of a leak._"
-    )
+    lines.extend(_glossary_lines(lang))
+
+    if lang == "zh":
+        lines.append("_不确定就会标明。第三方评分和静态配置 alone 都不能单独当成「泄漏证据」。_")
+    else:
+        lines.append(
+            "_Uncertainty is stated explicitly. Reputation scores and static "
+            "configuration alone are not proof of a leak._"
+        )
     lines.append("")
     return "\n".join(lines)
 
@@ -224,5 +518,8 @@ __all__ = [
     "classify_action",
     "format_report",
     "group_checks",
+    "plain_action",
+    "plain_check",
+    "plain_status",
     "status_reason",
 ]

@@ -143,6 +143,7 @@ def run_full_audit(
     online=False,
     intended_region=None,
     cross_site_urls=None,
+    lang="zh",
 ):
     """One-call audit: run the collector, analyze locally, and optionally probe online.
 
@@ -153,6 +154,8 @@ def run_full_audit(
     - ``report``: AuditReport dataclass
     - ``report_dict``: schema-validated plain dict (via models.to_dict)
     - ``report_markdown``: markdown string from ``format_report`` when available
+
+    ``lang`` selects the plain-language layer for ``report_markdown`` (``zh`` or ``en``).
     """
     from .probes.base import run_probes
 
@@ -197,7 +200,7 @@ def run_full_audit(
             formatter = None
     if formatter is not None:
         try:
-            report_markdown = formatter(checks)
+            report_markdown = formatter(checks, summary=report.summary, lang=lang)
         except Exception:
             report_markdown = None
 
