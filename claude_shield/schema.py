@@ -6,14 +6,15 @@ class SchemaValidationError(Exception):
     pass
 
 def validate_report(report_dict: Dict[str, Any]):
+    if not isinstance(report_dict, dict):
+        raise SchemaValidationError("Report must be an object")
     schema_version = report_dict.get('schema_version')
-    if not schema_version:
+    if not isinstance(schema_version, str) or not schema_version:
         raise SchemaValidationError("Missing schema_version")
-        
-    try:
-        major = int(schema_version.split('.')[0])
-    except ValueError:
+    parts = schema_version.split('.')
+    if len(parts) != 2 or not all(part.isdigit() for part in parts):
         raise SchemaValidationError(f"Invalid schema_version format: {schema_version}")
+    major = int(parts[0])
         
     if major > SUPPORTED_MAJOR_VERSION:
         raise SchemaValidationError(f"Unsupported major schema version: {major}. Max supported is {SUPPORTED_MAJOR_VERSION}")
@@ -28,7 +29,12 @@ def validate_report(report_dict: Dict[str, Any]):
             raise SchemaValidationError(f"Unknown root field: {k}")
 
     # Validate allowed enums for checks
-    for check in report_dict.get('checks', []):
+    checks = report_dict.get('checks', [])
+    if not isinstance(checks, list):
+        raise SchemaValidationError("checks must be a list")
+    for check in checks:
+        if not isinstance(check, dict):
+            raise SchemaValidationError("Each check must be an object")
         status = check.get('status')
         if status not in ('pass', 'fail', 'warning', 'unknown', 'skipped', 'error'):
             raise SchemaValidationError(f"Invalid status '{status}' in check {check.get('id')}")

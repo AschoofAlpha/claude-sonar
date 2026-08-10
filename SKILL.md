@@ -49,32 +49,40 @@ from claude_shield.analyze import run_legacy_collector, analyze_snapshot, summar
 from claude_shield.redaction import Redactor
 
 snapshot = run_legacy_collector()          # runs scripts/collect_windows_network.ps1
-redacted = Redactor().scan_and_redact(snapshot)
-checks = analyze_snapshot(redacted)        # list[AuditCheck] with status/severity/explanation
+redactor = Redactor()
+checks = analyze_snapshot(snapshot, redactor=redactor)  # analyze raw evidence, return redacted checks
+redacted = redactor.scan_and_redact(snapshot)
 summary = summarize(checks)                # severity counts
 ```
 
-For a one-call local-plus-online audit (collector, redaction, analysis, and live egress probes in a single step):
+For the default local-only audit (collector, redaction, and analysis):
 
 ```python
 from claude_shield.analyze import run_full_audit
-result = run_full_audit(probe_timeout=5)
+result = run_full_audit(probe_timeout=5, include_recommendations=False, online=False)
 checks, summary, snapshot = result["checks"], result["summary"], result["snapshot"]
+```
+
+Use online probes only after explicit approval:
+
+```python
+result = run_full_audit(probe_timeout=5, include_recommendations=False, online=True)
 ```
 
 - `run_legacy_collector()` raises `CollectorError` on failure; it never prints or exits.
 - `analyze_snapshot()` returns `AuditCheck` objects; system-level checks run even when no Mihomo config is present.
-- Coverage includes privacy opt-outs, service mode, Teredo, physical IPv6 bindings, physical-ISP DNS resolvers, proxy environment variables, Windows locale, rule-mode routing, DNS (fake-IP, hijack, respect-rules, IPv6 consistency, encrypted upstreams), TUN stack, and policy-group selection.
-- `run_full_audit()` contacts public probe endpoints to observe egress; present that tradeoff when interactive, and never treat probe failure as a leak.
+- Coverage includes privacy controls, service mode, system proxy, Teredo, classified IPv6 bindings and DNS resolvers, proxy environment-variable presence, Windows locale, browser WebRTC-policy presence, rule-mode routing, DNS configuration, TUN stack, and aggregate policy-selection types.
+- `online=False` is the default. With `online=True`, `run_full_audit()` contacts Cloudflare Trace (`https://1.1.1.1/cdn-cgi/trace`) and ipify (`https://api.ipify.org`) to observe egress. This discloses the public IP and request metadata to those providers; obtain approval and never treat a failed or skipped probe as a leak or pass.
+- Browser collection reads installation presence and managed WebRTC policy settings only. It does not read browser profiles, exercise WebRTC, or prove runtime behavior.
 - Feed the same `checks` into the Report Format section below. Do not re-derive the checks from raw JSON unless the library cannot run (then label every result `manual check required`).
-- The package has no CLI and no browser component; it is a library only.
+- The package has no CLI or browser automation component; it is a library plus read-only platform collectors.
 
 ## Audit Workflow
 
 1. Establish the intended exit country or region and whether it is temporary or long-term.
 2. On Windows, resolve `<skill-root>/scripts/collect_windows_network.ps1` and run it to collect a local snapshot. Pass `-ConfigDir` for a non-default Clash Verge installation and `-PolicyGroupPattern` for locally named service groups. On macOS/Linux, use the limited POSIX collector and keep unsupported areas manual. Do not dump complete proxy configuration or subscription files, and redact the snapshot before sharing it.
 3. Review actual services, process and listener state, physical versus tunnel adapters, DNS configuration, proxy environment variables, Windows locale, and Mihomo policy groups.
-4. Inspect public IP reputation, unique-hostname DNS results, IPv4/IPv6, cross-site exits, and the observed exit country for the tested sites. The collector snapshot does not replace external IP, DNS, or header tests.
+4. For public IP reputation, unique-hostname DNS results, IPv4/IPv6, cross-site exits, and observed exit country, use an approved controlled probe or require manual verification. The collector snapshot does not replace external IP, DNS, or header tests.
 5. Label every result `verified`, `inferred`, or `manual check required`. Never turn missing data into a pass.
 6. Compare every signal with the intended exit rather than treating a detector's score as proof.
 7. Classify findings as `must fix`, `optional consistency`, or `leave alone`.
@@ -96,13 +104,14 @@ Use the snapshot and live network tests together:
 | Service mode | Matching Windows service state, Mihomo process, mixed-port listener | Service is running and the expected listener exists |
 | Routing | Rule mode, system proxy, TUN, `strict-route`, stack, LAN access | Required values are verified in runtime-relevant configuration |
 | IPv6 and Teredo | Teredo state plus classified active adapter bindings | No physical-uplink bypass; do not disable the Mihomo/tunnel adapter |
-| DNS | `respect-rules`, fake-IP, `any:53`, DNS IPv6, local resolvers, encrypted upstream hosts | A unique-hostname live test shows no physical-ISP resolver; static settings alone do not pass |
+| DNS | `respect-rules`, fake-IP, `any:53`, DNS IPv6, local resolvers, encrypted upstream hosts | An approved unique-hostname live test shows no physical-ISP resolver; static settings alone are `unknown` |
+| Browser WebRTC | Installed-browser and managed-policy observations | Settings are local evidence only; runtime behavior requires a controlled browser test or manual verification |
 | Policy group | Rule reference, group type, HTTP or named-pipe controller selection chain | Intended service group is selected and the chain contains no URL-test, fallback, load-balance, smart, or other automatic selector; otherwise verify in the UI |
-| Windows locale | Timezone, culture, UI culture, user language list, system locale, home location | Explain mismatches; only change values that reflect genuine long-term use |
+| Windows locale | Timezone, culture, UI culture, user language list, system locale | Explain mismatches; only change values that reflect genuine long-term use |
 | Environment proxies | Presence of process, user, or machine `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, or `NO_PROXY` | Explain whether each is intentional; do not reveal its value |
 | IP reputation | Country, ASN, provider type, proxy flags, abuse indicators, and blacklist claims from the supplied report | Separate confirmed routing facts from database opinions; corroborate severe claims when possible |
 | Cross-site routing | Observed exit country, ASN, and IP grouping for each tested site | Protected sites follow the intended group; intentional direct routes are documented; physical-ISP exits are failures |
-| Claude Code privacy | `DISABLE_TELEMETRY`, `DISABLE_ERROR_REPORTING`, `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`, and provider configuration | Report exact verified values; change only documented opt-outs after approval |
+| Claude Code privacy | Three documented opt-outs and read-only supplemental-variable state | Report only presence/active state; change only the three documented opt-outs after approval |
 
 ## Claude Code Privacy Controls
 
@@ -111,8 +120,9 @@ Use only current, documented controls and distinguish metrics, error reports, fe
 - Treat `DISABLE_TELEMETRY=1` as the verified opt-out for operational metrics. Any other value is not a pass.
 - Treat `DISABLE_ERROR_REPORTING=1` as the verified opt-out for operational error reports.
 - Treat `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` as the broad documented opt-out for non-essential traffic.
+- Report `CLAUDE_CODE_SKIP_PROMPT_HISTORY`, `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`, `OTEL_LOG_USER_PROMPTS`, `OTEL_LOG_TOOL_CONTENT`, `OTEL_LOG_TOOL_DETAILS`, and `OTEL_LOG_RAW_API_BODIES` as presence/active state only. Current-process state determines effective active status; user/machine scopes are configured-state context. Never expose values, and do not remediate these controls automatically.
 - Treat an unset opt-out as a privacy preference, not a confirmed leak or account risk. The broad opt-out can disable optional Claude Code features and does not block required model traffic or the WebFetch domain-safety check; explain that tradeoff before setting it.
-- Record Bedrock, Vertex, or other provider configuration as context; do not infer account safety or eligibility from it.
+- Do not collect provider credentials. If the user supplies provider mode as context, do not infer account safety or eligibility from it.
 - Do not delete `~/.claude.json` fields, telemetry caches, logs, or session data as an anti-review measure.
 - Describe HTTP 429 as a rate-limit response unless current primary documentation proves a stronger conclusion. Never claim that a local setting prevents suspension.
 
@@ -130,7 +140,7 @@ Use these rules when reviewing IP, DNS, and routing reports:
 | IP reputation | Region and ASN are plausible; no corroborated severe abuse or blacklist signal | Conflicting proxy flags or severe abuse claims across multiple current sources |
 | Cross-site routing | Sites follow their declared rule groups without exposing the physical ISP | A protected site exits through the physical ISP or an unintended country |
 
-Do not call a long list of Google or Cloudflare anycast DNS servers a leak merely because the list is long. Do not call a proxy-owned IPv6 a local IPv6 leak when its geography and ASN align with the intended exit.
+Do not call a long list of Google or Cloudflare anycast DNS servers a leak merely because the list is long. Do not call a proxy-owned IPv6 a local IPv6 leak when its geography and ASN align with the intended exit. Missing local or online evidence is `unknown`, never a pass.
 
 ## Review IP Reputation
 
@@ -196,7 +206,7 @@ If the user employs a proxy core other than Mihomo (e.g., Xray, Sing-Box native,
 - Change DNS, IPv6, or TUN settings only after a live test identifies the bypassing layer.
 - **Use OS-Level Probes to Verify Isolation (macOS Example)**: Since you cannot read their proprietary config files, verify the actual OS network state:
   - Run `ifconfig | grep -E "utun|tun"` to ensure a virtual network interface is active.
-  - Run `scutil --dns` to verify if DNS resolution is hijacked (look for `nameserver[0] : 198.18.0.2` or similar fake-ip ranges, and ensure no domestic ISP resolvers leak in the primary resolver array).
+  - Run `scutil --dns` to record resolver order and fake-IP entries. Static resolver presence alone does not prove a leak; use an approved unique-hostname test for the active path.
   - Run `netstat -nr -f inet | grep -e "default" -e "0/1" -e "128.0/1"` to verify if the default route or a fake-ip route points to the `utun` interface.
 - Use the remediation scripts only for documented privacy environment variables. Handle proxy-client and IPv6 changes manually, one verified setting at a time, after explicit approval.
 
@@ -214,4 +224,4 @@ State uncertainty explicitly. Reputation scores, TCP/IP inference, and RTT are n
 
 ## Verification
 
-Re-run public tests after a node, network, or configuration change. Use a fresh unique hostname for DNS so cached answers do not hide the active resolver path. A healthy result is internally consistent and free of confirmed bypasses; it does not need every heuristic detector to show green. Do not mark the audit complete while any required item is `ManualCheckRequired`.
+After explicit approval, re-run controlled public tests after a node, network, or configuration change. Use a fresh unique hostname for DNS so cached answers do not hide the active resolver path. A healthy result is internally consistent and free of confirmed bypasses; it does not need every heuristic detector to show green. Do not mark the audit complete while any required item is `unknown` or `ManualCheckRequired`.

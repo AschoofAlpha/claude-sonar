@@ -1,7 +1,8 @@
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [switch]$Apply,
-    [string]$RestoreFrom
+    [string]$RestoreFrom,
+    [switch]$SelfTest
 )
 
 Set-StrictMode -Version 2.0
@@ -13,6 +14,14 @@ $variables = @(
     'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC'
 )
 $backupDir = Join-Path $env:USERPROFILE '.anti-claude-check\backups'
+
+if ($SelfTest) {
+    if ($variables.Count -ne 3 -or $variables -notcontains 'DISABLE_TELEMETRY' -or $variables -notcontains 'DISABLE_ERROR_REPORTING' -or $variables -notcontains 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC') {
+        throw 'Remediation variable allowlist changed.'
+    }
+    'Self-test passed.'
+    return
+}
 
 if ($Apply -and $RestoreFrom) {
     throw 'Use either -Apply or -RestoreFrom, not both.'
@@ -33,6 +42,7 @@ if ($RestoreFrom) {
             $property = $backup.PSObject.Properties[$name]
             $value = if ($null -eq $property) { $null } else { $property.Value }
             [Environment]::SetEnvironmentVariable($name, $value, 'User')
+            [Environment]::SetEnvironmentVariable($name, $value, 'Process')
         }
         Write-Host "Restored user environment from $resolvedBackup" -ForegroundColor Green
     }

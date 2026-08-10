@@ -60,21 +60,6 @@ function Read-TextIfPresent {
     return [System.IO.File]::ReadAllText($Path)
 }
 
-function Read-JsonIfPresent {
-    param([Parameter(Mandatory)][string]$Path)
-
-    $text = Read-TextIfPresent -Path $Path
-    if (-not $text) {
-        return $null
-    }
-    try {
-        return $text | ConvertFrom-Json
-    }
-    catch {
-        return $null
-    }
-}
-
 function Get-PropertyValue {
     param(
         [AllowNull()]$Object,
@@ -91,150 +76,75 @@ function Get-PropertyValue {
     return $property.Value
 }
 
+function Get-EnvironmentStatusRows {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [switch]$ContentValue
+    )
+    $rows = @()
+    foreach ($scope in @('Process','User','Machine')) {
+        $value = [Environment]::GetEnvironmentVariable($Name, $scope)
+        $active = if ($ContentValue) { $null -ne $value -and $value -match '^(?:1|file:.+)$' } else { $value -ceq '1' }
+        $rows += [pscustomobject][ordered]@{ Scope = $scope; Present = $null -ne $value; Active = $active }
+    }
+    return $rows
+}
+
+function Test-ProxyServerLoopback {
+    param([AllowEmptyString()][string]$ProxyServer)
+    $targets = @($ProxyServer -split ';' | ForEach-Object { ($_ -replace '^[^=]+=', '').Trim() } | Where-Object { $_ })
+    if ($targets.Count -eq 0) { return $false }
+    return @($targets | Where-Object { $_ -notmatch '^(?:(?:https?|socks5?)://)?(?:127\.0\.0\.1|localhost|\[::1\])(?::\d{1,5})?$' }).Count -eq 0
+}
+
+function Get-DnsServerClass {
+    param([AllowEmptyString()][string]$Address)
+    $parsed = $null
+    if (-not [Net.IPAddress]::TryParse($Address, [ref]$parsed)) { return 'Unknown' }
+    if ([Net.IPAddress]::IsLoopback($parsed)) { return 'Loopback' }
+    if ($parsed.AddressFamily -eq [Net.Sockets.AddressFamily]::InterNetwork) {
+        $bytes = $parsed.GetAddressBytes()
+        if ($bytes[0] -eq 198 -and $bytes[1] -in @(18,19)) { return 'FakeIp' }
+    }
+    return 'Other'
+}
+
 function Get-BrowserWebRtcAudit {
     param(
-        [Parameter(Mandatory)][string]$Name,
         [Parameter(Mandatory)][string]$UserDataPath,
         [Parameter(Mandatory)][string[]]$ExecutablePaths,
-        [Parameter(Mandatory)][string]$ProcessName,
         [Parameter(Mandatory)][string]$PolicyRegistryPath
     )
 
-    $localState = Read-JsonIfPresent -Path (Join-Path $UserDataPath 'Local State')
-    $localStateProfile = Get-PropertyValue -Object $localState -Name 'profile'
-    $localStateIntl = Get-PropertyValue -Object $localState -Name 'intl'
-    $lastUsedProfile = Get-PropertyValue -Object $localStateProfile -Name 'last_used'
-    $applicationLocale = Get-PropertyValue -Object $localStateIntl -Name 'app_locale'
-    $profiles = @()
-    $profileAudits = @()
-    $extensionMatches = @()
-    if (Test-Path -LiteralPath $UserDataPath -PathType Container) {
-        $profiles = @(Get-ChildItem -LiteralPath $UserDataPath -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'Default' -or $_.Name -like 'Profile *' })
-        foreach ($profile in $profiles) {
-            $preferences = Read-JsonIfPresent -Path (Join-Path $profile.FullName 'Preferences')
-            $securePreferences = Read-JsonIfPresent -Path (Join-Path $profile.FullName 'Secure Preferences')
-            $intl = Get-PropertyValue -Object $preferences -Name 'intl'
-            $webrtc = Get-PropertyValue -Object $preferences -Name 'webrtc'
-            $extensions = Get-PropertyValue -Object $securePreferences -Name 'extensions'
-            $extensionSettings = Get-PropertyValue -Object $extensions -Name 'settings'
-            if ($null -eq $extensionSettings) {
-                $extensions = Get-PropertyValue -Object $preferences -Name 'extensions'
-                $extensionSettings = Get-PropertyValue -Object $extensions -Name 'settings'
-            }
-
-            $profileAudits += [pscustomobject][ordered]@{
-                Profile = $profile.Name
-                AcceptLanguages = Get-PropertyValue -Object $intl -Name 'accept_languages'
-                SelectedLanguages = Get-PropertyValue -Object $intl -Name 'selected_languages'
-                WebRtcIpHandlingPreference = Get-PropertyValue -Object $webrtc -Name 'ip_handling_policy'
-            }
-
-            $extensionRoot = Join-Path $profile.FullName 'Extensions'
-            $extensionDirs = @(Get-ChildItem -LiteralPath $extensionRoot -Directory -ErrorAction SilentlyContinue)
-            foreach ($extensionDir in $extensionDirs) {
-                $versionDir = Get-ChildItem -LiteralPath $extensionDir.FullName -Directory -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-                if ($null -eq $versionDir) {
-                    continue
-                }
-                $manifestFile = Get-Item -LiteralPath (Join-Path $versionDir.FullName 'manifest.json') -ErrorAction SilentlyContinue
-                if ($null -eq $manifestFile) {
-                    continue
-                }
-                try {
-                    $manifestText = [System.IO.File]::ReadAllText($manifestFile.FullName)
-                    $manifest = $manifestText | ConvertFrom-Json
-                    $searchText = $manifestText
-                    $defaultLocaleProperty = $manifest.PSObject.Properties['default_locale']
-                    if ($null -ne $defaultLocaleProperty) {
-                        $messagesPath = Join-Path $manifestFile.DirectoryName "_locales\$($defaultLocaleProperty.Value)\messages.json"
-                        $searchText += Read-TextIfPresent -Path $messagesPath
-                    }
-                    if ($searchText -notmatch '(?i)web[ -]?rtc|rtc[- _]?leak') {
-                        continue
-                    }
-                    $nameProperty = $manifest.PSObject.Properties['name']
-                    $displayName = if ($null -ne $nameProperty) { [string]$nameProperty.Value } else { 'Unknown' }
-                    $extensionId = $extensionDir.Name
-                    $extensionState = Get-PropertyValue -Object $extensionSettings -Name $extensionId
-                    $state = Get-PropertyValue -Object $extensionState -Name 'state'
-                    $disableReasons = @(Get-PropertyValue -Object $extensionState -Name 'disable_reasons')
-                    $enabled = $null
-                    $enabledAssessment = 'Unknown'
-                    if ($null -ne $state) {
-                        $enabled = ([int]$state -eq 1) -and ($disableReasons.Count -eq 0)
-                        $enabledAssessment = if ($enabled) { 'Enabled' } else { 'Disabled' }
-                    }
-                    elseif ($null -ne $extensionState -and $disableReasons.Count -eq 0) {
-                        $enabledAssessment = 'LikelyEnabled'
-                    }
-                    $extensionMatches += [pscustomobject][ordered]@{
-                        Profile = $profile.Name
-                        ExtensionId = $extensionId
-                        Name = $displayName
-                        Enabled = $enabled
-                        EnabledAssessment = $enabledAssessment
-                        DisableReasons = $disableReasons
-                    }
-                }
-                catch {
-                    continue
-                }
-            }
-        }
-    }
-
-    $processLanguages = @()
-    try {
-        $browserProcesses = @(Get-CimInstance Win32_Process -Filter "Name='$ProcessName'" -ErrorAction SilentlyContinue)
-        foreach ($process in $browserProcesses) {
-            $languageMatch = [regex]::Match([string]$process.CommandLine, '(?i)(?:^|\s)--lang(?:=|\s+)(?:"(?<language>[^"]+)"|(?<language>\S+))')
-            if ($languageMatch.Success) {
-                $processLanguages += $languageMatch.Groups['language'].Value
-            }
-        }
-    }
-    catch {
-        $processLanguages = @()
-    }
-
-    $managedPolicies = @()
+    $managedWebRtcPolicyPresent = $false
+    $restrictiveWebRtcPolicyDetected = $false
     foreach ($scope in @('HKCU','HKLM')) {
         $registryPath = "${scope}:\SOFTWARE\Policies\$PolicyRegistryPath"
         $policy = Get-ItemProperty -LiteralPath $registryPath -ErrorAction SilentlyContinue
         if ($null -eq $policy) {
             continue
         }
-        $managedPolicies += [pscustomobject][ordered]@{
-            Scope = $scope
-            WebRtcIPHandling = Get-PropertyValue -Object $policy -Name 'WebRtcIPHandling'
-            WebRtcIPHandlingUrl = Get-PropertyValue -Object $policy -Name 'WebRtcIPHandlingUrl'
-            WebRtcLocalhostIpHandling = Get-PropertyValue -Object $policy -Name 'WebRtcLocalhostIpHandling'
-        }
+        $policyValues = @(
+            (Get-PropertyValue -Object $policy -Name 'WebRtcIPHandling'),
+            (Get-PropertyValue -Object $policy -Name 'WebRtcIPHandlingUrl'),
+            (Get-PropertyValue -Object $policy -Name 'WebRtcLocalhostIpHandling')
+        )
+        $managedWebRtcPolicyPresent = $managedWebRtcPolicyPresent -or (@($policyValues | Where-Object { $null -ne $_ }).Count -gt 0)
+        $restrictiveWebRtcPolicyDetected = $restrictiveWebRtcPolicyDetected -or (($policyValues | Out-String) -match 'disable_non_proxied_udp')
     }
 
-    $installed = $false
-    $browserVersion = $null
+    $installed = Test-Path -LiteralPath $UserDataPath -PathType Container
     foreach ($path in $ExecutablePaths) {
         if ($path -and (Test-Path -LiteralPath $path -PathType Leaf)) {
             $installed = $true
-            $browserVersion = (Get-Item -LiteralPath $path).VersionInfo.ProductVersion
             break
         }
     }
 
     return [pscustomobject][ordered]@{
-        Name = $Name
         Installed = $installed
-        Version = $browserVersion
-        LastUsedProfile = $lastUsedProfile
-        ApplicationLocale = $applicationLocale
-        ProfilesChecked = $profiles.Count
-        Profiles = $profileAudits
-        ProcessLanguages = @($processLanguages | Sort-Object -Unique)
-        ManagedWebRtcPolicies = $managedPolicies
-        RestrictiveWebRtcPolicyDetected = (($managedPolicies | Out-String) -match 'disable_non_proxied_udp')
-        WebRtcRelatedExtensionDetected = $extensionMatches.Count -gt 0
-        WebRtcRelatedExtensions = @($extensionMatches | Sort-Object Profile,ExtensionId -Unique)
+        ManagedWebRtcPolicyPresent = $managedWebRtcPolicyPresent
+        RestrictiveWebRtcPolicyDetected = $restrictiveWebRtcPolicyDetected
     }
 }
 
@@ -246,10 +156,9 @@ function Get-DnsUpstreamAudit {
     foreach ($uriMatch in $uriMatches) {
         $upstreams += [pscustomobject][ordered]@{
             Scheme = $uriMatch.Groups['scheme'].Value.ToLowerInvariant()
-            Host = $uriMatch.Groups['host'].Value.ToLowerInvariant()
         }
     }
-    return @($upstreams | Sort-Object Scheme,Host -Unique)
+    return @($upstreams | Sort-Object Scheme -Unique)
 }
 
 function Find-ByteSequence {
@@ -350,6 +259,29 @@ function Get-MihomoNamedPipeProxies {
     }
 }
 
+function Get-MihomoControllerSettings {
+    param(
+        [AllowEmptyString()][string]$RuntimeConfig,
+        [AllowEmptyString()][string]$ControllerConfig
+    )
+
+    # The generated runtime config is authoritative when it supplies a value;
+    # the app config is retained as a fallback for settings not copied there.
+    $settings = [ordered]@{}
+    foreach ($key in @('external[-_]controller', 'external[-_]controller[-_]pipe', 'secret')) {
+        $value = Get-YamlScalar -Text $RuntimeConfig -KeyPattern $key
+        if (-not $value) {
+            $value = Get-YamlScalar -Text $ControllerConfig -KeyPattern $key
+        }
+        $settings[$key] = $value
+    }
+    return [pscustomobject]@{
+        Controller = $settings['external[-_]controller']
+        Pipe = $settings['external[-_]controller[-_]pipe']
+        Secret = $settings['secret']
+    }
+}
+
 function Get-MihomoPolicyAudit {
     param(
         [AllowEmptyString()][string]$RuntimeConfig,
@@ -358,22 +290,27 @@ function Get-MihomoPolicyAudit {
     )
 
     $staticGroups = @()
+    $staticGroupNames = @()
+    $staticGroupReferences = @{}
     $groupMatches = [regex]::Matches($RuntimeConfig, '(?ms)^[ \t]*-[ \t]*name:\s*(?<name>[^\r\n#]+)\r?\n[ \t]+type:\s*(?<type>[^\r\n#]+)')
     foreach ($groupMatch in $groupMatches) {
         $groupName = $groupMatch.Groups['name'].Value.Trim().Trim("'`"")
         if ($groupName -notmatch $GroupPattern) {
             continue
         }
+        $referencedByRule = $RuntimeConfig -match "(?im),\s*$([regex]::Escape($groupName))\s*$"
+        $staticGroupNames += $groupName
+        $staticGroupReferences[$groupName] = $referencedByRule
         $staticGroups += [pscustomobject][ordered]@{
-            Name = $groupName
             Type = $groupMatch.Groups['type'].Value.Trim().Trim("'`"")
-            ReferencedByRule = $RuntimeConfig -match "(?im),\s*$([regex]::Escape($groupName))\s*$"
+            ReferencedByRule = $referencedByRule
         }
     }
 
-    $controllerValue = Get-YamlScalar -Text $ControllerConfig -KeyPattern 'external[-_]controller'
-    $controllerPipe = Get-YamlScalar -Text ($ControllerConfig + [Environment]::NewLine + $RuntimeConfig) -KeyPattern 'external[-_]controller[-_]pipe'
-    $secret = Get-YamlScalar -Text $ControllerConfig -KeyPattern 'secret'
+    $controllerSettings = Get-MihomoControllerSettings -RuntimeConfig $RuntimeConfig -ControllerConfig $ControllerConfig
+    $controllerValue = $controllerSettings.Controller
+    $controllerPipe = $controllerSettings.Pipe
+    $secret = $controllerSettings.Secret
     $controllerReachable = $false
     $controllerSkipped = $false
     $controllerTransport = $null
@@ -383,12 +320,14 @@ function Get-MihomoPolicyAudit {
     if ($controllerValue) {
         try {
             $controllerUri = if ($controllerValue -match '^https?://') { [uri]$controllerValue } else { [uri]("http://$controllerValue") }
-            if ($controllerUri.Host -notin @('127.0.0.1','localhost','0.0.0.0','::1')) {
+            $controllerHost = $controllerUri.Host.Trim('[', ']')
+            if ($controllerHost -notin @('127.0.0.1','localhost','0.0.0.0','::1')) {
                 $controllerSkipped = $true
             }
             else {
-                $hostName = if ($controllerUri.Host -eq '0.0.0.0') { '127.0.0.1' } else { $controllerUri.Host }
-                $baseUri = "http://${hostName}:$($controllerUri.Port)"
+                $hostName = if ($controllerHost -eq '0.0.0.0') { '127.0.0.1' } else { $controllerHost }
+                $uriHost = if ($hostName -match ':') { "[$hostName]" } else { $hostName }
+                $baseUri = "http://${uriHost}:$($controllerUri.Port)"
                 $headers = @{}
                 if ($secret) {
                     $headers.Authorization = "Bearer $secret"
@@ -416,7 +355,7 @@ function Get-MihomoPolicyAudit {
     }
 
     if ($controllerReachable) {
-        $groupNames = @($staticGroups | ForEach-Object Name)
+        $groupNames = @($staticGroupNames)
         $groupNames += @($proxyObjects.PSObject.Properties.Name | Where-Object { $_ -match $GroupPattern })
         foreach ($groupName in @($groupNames | Sort-Object -Unique)) {
             $chain = @()
@@ -434,15 +373,14 @@ function Get-MihomoPolicyAudit {
                 if ($type -match '(?i)URLTest|Fallback|LoadBalance|Smart') {
                     $usesAutomaticSelection = $true
                 }
-                $chain += [pscustomobject][ordered]@{ Name = $currentName; Type = $type; Selected = $next }
+                $chain += [pscustomobject][ordered]@{ Type = $type }
                 $currentName = $next
             }
-            $staticGroup = $staticGroups | Where-Object Name -eq $groupName | Select-Object -First 1
             $runtimeGroups += [pscustomobject][ordered]@{
-                Name = $groupName
-                ReferencedByRule = if ($null -ne $staticGroup) { $staticGroup.ReferencedByRule } else { $null }
+                ReferencedByRule = if ($staticGroupReferences.ContainsKey($groupName)) { $staticGroupReferences[$groupName] } else { $null }
+                Resolved = $chain.Count -gt 0
                 UsesAutomaticSelection = $usesAutomaticSelection
-                SelectionChain = $chain
+                SelectionTypes = @($chain | ForEach-Object Type | Sort-Object -Unique)
             }
         }
     }
@@ -456,6 +394,9 @@ function Get-MihomoPolicyAudit {
     elseif ($runtimeGroups.Count -eq 0) {
         'MatchedGroupNotFound'
     }
+    elseif (@($runtimeGroups | Where-Object { -not $_.Resolved }).Count -gt 0) {
+        'ManualCheckRequired'
+    }
     elseif (@($runtimeGroups | Where-Object UsesAutomaticSelection).Count -gt 0) {
         'AutomaticSelectionDetected'
     }
@@ -464,7 +405,6 @@ function Get-MihomoPolicyAudit {
     }
 
     return [pscustomobject][ordered]@{
-        Pattern = $GroupPattern
         StaticGroups = $staticGroups
         LocalControllerConfigured = [bool]$controllerValue
         NamedPipeControllerConfigured = [bool]$controllerPipe
@@ -489,12 +429,38 @@ tun:
     if ((Get-YamlScalar -Text $sample -KeyPattern 'mixed[-_]port') -ne '7897') { throw 'Hyphenated key parsing failed.' }
     $sampleTun = Get-YamlBlock -Text $sample -Section 'tun'
     if ((ConvertTo-NullableBoolean (Get-YamlScalar -Text $sampleTun -KeyPattern 'strict-route')) -ne $true) { throw 'Section parsing failed.' }
-    $extensionSample = '{"name":"WebRTC Leak Test","description":"Controls Web RTC behavior"}'
-    if ($extensionSample -notmatch '(?i)web[ -]?rtc|rtc[- _]?leak') { throw 'WebRTC extension matching failed.' }
+    $runtimeFirst = "mode: rule" + [Environment]::NewLine + "mode: global"
+    if ((Get-YamlScalar -Text $runtimeFirst -KeyPattern 'mode') -ne 'rule') { throw 'Runtime config precedence failed.' }
+    if (-not (Test-ProxyServerLoopback -ProxyServer 'http=127.0.0.1:7897;https=[::1]:7897')) { throw 'Loopback proxy parsing failed.' }
+    if (Test-ProxyServerLoopback -ProxyServer 'http=127.0.0.1:7897;https=proxy.example:443') { throw 'Remote proxy target was treated as loopback.' }
+    if ((Get-DnsServerClass '127.0.0.1') -ne 'Loopback' -or (Get-DnsServerClass '198.19.2.3') -ne 'FakeIp' -or (Get-DnsServerClass '203.0.113.8') -ne 'Other') { throw 'DNS server classification failed.' }
     $dnsSample = 'nameserver: [https://dns.example/dns-query, tls://resolver.example]'
     if ((Get-DnsUpstreamAudit -DnsConfig $dnsSample).Count -ne 2) { throw 'DNS upstream parsing failed.' }
     if ('Hawaiian residential' -match $PolicyGroupPattern) { throw 'Policy-group pattern produced a false positive.' }
     if ('group AI service' -notmatch $PolicyGroupPattern) { throw 'Policy-group pattern missed an AI group.' }
+    $controllerSettings = Get-MihomoControllerSettings -RuntimeConfig "external-controller: '[::1]:9090'`nsecret: runtime-secret" -ControllerConfig "external-controller-pipe: \\.\pipe\mihomo`nsecret: app-secret"
+    if ($controllerSettings.Controller -ne '[::1]:9090' -or $controllerSettings.Pipe -ne '\\.\pipe\mihomo' -or $controllerSettings.Secret -ne 'runtime-secret') { throw 'Controller settings parsing failed.' }
+    $fallbackSettings = Get-MihomoControllerSettings -RuntimeConfig '' -ControllerConfig "external-controller: 127.0.0.1:9090`nsecret: app-secret"
+    if ($fallbackSettings.Controller -ne '127.0.0.1:9090' -or $fallbackSettings.Secret -ne 'app-secret') { throw 'App controller settings fallback failed.' }
+    $controllerUri = [uri]("http://$($controllerSettings.Controller)")
+    $selfTestUriHost = $controllerUri.Host.Trim('[', ']')
+    if ($selfTestUriHost -match ':') { $selfTestUriHost = "[$selfTestUriHost]" }
+    if ("http://${selfTestUriHost}:$($controllerUri.Port)" -notmatch '^http://\[[0-9a-f:]+\]:9090$') { throw 'IPv6 controller URI formatting failed.' }
+    $selfTestEnv = 'CLAUDE_SHIELD_SELFTEST_ENV'
+    $originalSelfTestEnv = [Environment]::GetEnvironmentVariable($selfTestEnv, 'Process')
+    try {
+        [Environment]::SetEnvironmentVariable($selfTestEnv, 'not-one', 'Process')
+        $envRows = @(Get-EnvironmentStatusRows -Name $selfTestEnv)
+        if ($envRows[0].Active -or $envRows[0].PSObject.Properties['Value']) { throw 'Privacy environment status leaked a value.' }
+        [Environment]::SetEnvironmentVariable($selfTestEnv, '1', 'Process')
+        if (-not (Get-EnvironmentStatusRows -Name $selfTestEnv | Select-Object -First 1).Active) { throw 'Privacy environment active parsing failed.' }
+        [Environment]::SetEnvironmentVariable($selfTestEnv, 'file:C:\private\trace', 'Process')
+        $contentRows = @(Get-EnvironmentStatusRows -Name $selfTestEnv -ContentValue)
+        if (-not $contentRows[0].Active -or ($contentRows | ConvertTo-Json) -match 'private|trace') { throw 'Content logging status leaked a value.' }
+    }
+    finally {
+        [Environment]::SetEnvironmentVariable($selfTestEnv, $originalSelfTestEnv, 'Process')
+    }
     $unicodeName = ([char]0x65E5).ToString() + ([char]0x672C)
     $chunkText = '{"name":"' + $unicodeName + '"}'
     $chunkPayload = [Text.Encoding]::UTF8.GetBytes($chunkText)
@@ -519,7 +485,7 @@ $appConfigPath = Join-Path $ConfigDir 'config.yaml'
 $runtimeConfigPath = Join-Path $ConfigDir 'clash-verge.yaml'
 $appConfig = Read-TextIfPresent -Path $appConfigPath
 $runtimeConfig = Read-TextIfPresent -Path $runtimeConfigPath
-$combinedConfig = $appConfig + [Environment]::NewLine + $runtimeConfig
+$combinedConfig = $runtimeConfig + [Environment]::NewLine + $appConfig
 $tunConfig = Get-YamlBlock -Text $combinedConfig -Section 'tun'
 $dnsConfig = Get-YamlBlock -Text $runtimeConfig -Section 'dns'
 $dnsUpstreams = Get-DnsUpstreamAudit -DnsConfig $dnsConfig
@@ -548,7 +514,7 @@ if ($null -ne $internetSettings) {
     if ($null -ne $proxyServerProperty) {
         $proxyServer = [string]$proxyServerProperty.Value
     }
-    $proxyPointsToLoopback = $proxyServer -match '(?i)(127\.0\.0\.1|localhost|\[::1\])'
+    $proxyPointsToLoopback = Test-ProxyServerLoopback -ProxyServer $proxyServer
 }
 
 $teredo = [ordered]@{ Available = $false; Type = $null; Disabled = $null }
@@ -562,60 +528,14 @@ if (Get-Command Get-NetTeredoConfiguration -ErrorAction SilentlyContinue) {
 }
 
 $isAdministrator = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-$deviceContext = [ordered]@{
-    OperatingSystem = $null
-    LogicalProcessors = $null
-    PhysicalMemoryGiB = $null
-    Graphics = @()
-}
+$serviceModeActive = $false
 try {
-    $operatingSystem = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
-    if ($null -ne $operatingSystem) {
-        $deviceContext.OperatingSystem = [pscustomobject][ordered]@{
-            Caption = $operatingSystem.Caption
-            Version = $operatingSystem.Version
-            BuildNumber = $operatingSystem.BuildNumber
-            Architecture = $operatingSystem.OSArchitecture
-        }
-    }
-    $computerSystem = Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue
-    if ($null -ne $computerSystem) {
-        $deviceContext.LogicalProcessors = $computerSystem.NumberOfLogicalProcessors
-        $deviceContext.PhysicalMemoryGiB = [math]::Round([double]$computerSystem.TotalPhysicalMemory / 1GB, 1)
-    }
-    $graphicsControllers = @(Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue)
-    foreach ($graphicsController in $graphicsControllers) {
-        $deviceContext.Graphics += [pscustomobject][ordered]@{
-            Name = $graphicsController.Name
-            DriverVersion = $graphicsController.DriverVersion
-            CurrentResolution = if ($graphicsController.CurrentHorizontalResolution -and $graphicsController.CurrentVerticalResolution) {
-                "$($graphicsController.CurrentHorizontalResolution)x$($graphicsController.CurrentVerticalResolution)"
-            }
-            else {
-                $null
-            }
-        }
-    }
-}
-catch {
-    $deviceContext = [ordered]@{ OperatingSystem = $null; LogicalProcessors = $null; PhysicalMemoryGiB = $null; Graphics = @() }
-}
-$serviceMatches = @()
-try {
-    $services = @(Get-CimInstance Win32_Service -ErrorAction SilentlyContinue | Where-Object {
+    $serviceModeActive = @(Get-CimInstance Win32_Service -ErrorAction SilentlyContinue | Where-Object {
         $_.Name -match '(?i)clash|mihomo|verge' -or $_.DisplayName -match '(?i)clash|mihomo|verge' -or $_.PathName -match '(?i)clash|mihomo|verge'
-    })
-    foreach ($service in $services) {
-        $serviceMatches += [pscustomobject][ordered]@{
-            Name = $service.Name
-            DisplayName = $service.DisplayName
-            State = $service.State
-            StartMode = $service.StartMode
-        }
-    }
+    } | Where-Object State -eq 'Running').Count -gt 0
 }
 catch {
-    $serviceMatches = @()
+    $serviceModeActive = $false
 }
 
 $userLanguages = @()
@@ -627,15 +547,9 @@ if (Get-Command Get-WinUserLanguageList -ErrorAction SilentlyContinue) {
 }
 $systemLocale = if (Get-Command Get-WinSystemLocale -ErrorAction SilentlyContinue) { (Get-WinSystemLocale).Name } else { $null }
 $uiLanguageOverride = if (Get-Command Get-WinUILanguageOverride -ErrorAction SilentlyContinue) { [string](Get-WinUILanguageOverride) } else { $null }
-$homeGeoId = $null
-$homeLocationName = $null
-if (Get-Command Get-WinHomeLocation -ErrorAction SilentlyContinue) {
-    $homeLocation = Get-WinHomeLocation
-    $homeGeoId = Get-PropertyValue -Object $homeLocation -Name 'GeoId'
-    $homeLocationName = Get-PropertyValue -Object $homeLocation -Name 'HomeLocation'
-}
 
 $ipv6Bindings = @()
+$adapterClassifications = @{}
 if ((Get-Command Get-NetAdapter -ErrorAction SilentlyContinue) -and (Get-Command Get-NetAdapterBinding -ErrorAction SilentlyContinue)) {
     $activeAdapters = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object Status -eq 'Up'
     foreach ($adapter in $activeAdapters) {
@@ -652,9 +566,8 @@ if ((Get-Command Get-NetAdapter -ErrorAction SilentlyContinue) -and (Get-Command
             else {
                 'VirtualOrOther'
             }
+            $adapterClassifications[[string]$adapter.Name] = $classification
             $ipv6Bindings += [pscustomobject][ordered]@{
-                Interface = $adapter.Name
-                Description = $description
                 Classification = $classification
                 Enabled = [bool]$binding.Enabled
                 CandidateForIPv6Disable = ($classification -eq 'Physical' -and [bool]$binding.Enabled)
@@ -667,7 +580,12 @@ $localDns = @()
 if (Get-Command Get-DnsClientServerAddress -ErrorAction SilentlyContinue) {
     $dnsRows = Get-DnsClientServerAddress -ErrorAction SilentlyContinue | Where-Object { $_.ServerAddresses.Count -gt 0 }
     foreach ($row in $dnsRows) {
-        $localDns += [ordered]@{ Interface = $row.InterfaceAlias; Family = [string]$row.AddressFamily; Servers = @($row.ServerAddresses) }
+        $classification = if ($adapterClassifications.ContainsKey([string]$row.InterfaceAlias)) { $adapterClassifications[[string]$row.InterfaceAlias] } else { 'Unknown' }
+        $localDns += [ordered]@{
+            Classification = $classification
+            Family = [string]$row.AddressFamily
+            ServerClasses = @($row.ServerAddresses | ForEach-Object { Get-DnsServerClass ([string]$_) } | Sort-Object -Unique)
+        }
     }
 }
 
@@ -681,70 +599,67 @@ foreach ($scope in @('Process','User','Machine')) {
     }
 }
 
-function Get-EnvironmentValueRows {
-    param([Parameter(Mandatory = $true)][string]$Name)
-    $rows = @()
-    foreach ($scope in @('Process','User','Machine')) {
-        $value = [Environment]::GetEnvironmentVariable($Name, $scope)
-        if ($null -ne $value -and $value -ne '') {
-            $rows += [pscustomobject][ordered]@{ Scope = $scope; Value = $value }
-        }
-    }
-    return $rows
-}
+$claudeDisableTelemetry = @(Get-EnvironmentStatusRows -Name 'DISABLE_TELEMETRY')
+$claudeDisableErrorReporting = @(Get-EnvironmentStatusRows -Name 'DISABLE_ERROR_REPORTING')
+$claudeDisableNonessentialTraffic = @(Get-EnvironmentStatusRows -Name 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC')
+$claudeSkipPromptHistory = @(Get-EnvironmentStatusRows -Name 'CLAUDE_CODE_SKIP_PROMPT_HISTORY')
+$claudeSubprocessEnvScrub = @(Get-EnvironmentStatusRows -Name 'CLAUDE_CODE_SUBPROCESS_ENV_SCRUB')
+$otelLogUserPrompts = @(Get-EnvironmentStatusRows -Name 'OTEL_LOG_USER_PROMPTS')
+$otelLogToolContent = @(Get-EnvironmentStatusRows -Name 'OTEL_LOG_TOOL_CONTENT')
+$otelLogToolDetails = @(Get-EnvironmentStatusRows -Name 'OTEL_LOG_TOOL_DETAILS')
+$otelLogRawApiBodies = @(Get-EnvironmentStatusRows -Name 'OTEL_LOG_RAW_API_BODIES' -ContentValue)
 
-$claudeDisableTelemetry = @(Get-EnvironmentValueRows -Name 'DISABLE_TELEMETRY')
-$claudeDisableErrorReporting = @(Get-EnvironmentValueRows -Name 'DISABLE_ERROR_REPORTING')
-$claudeDisableNonessentialTraffic = @(Get-EnvironmentValueRows -Name 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC')
-
-$cloudProviders = [ordered]@{
-    UseBedrock = [bool]([Environment]::GetEnvironmentVariable('CLAUDE_CODE_USE_BEDROCK', 'Process') -or [Environment]::GetEnvironmentVariable('CLAUDE_CODE_USE_BEDROCK', 'User') -or [Environment]::GetEnvironmentVariable('CLAUDE_CODE_USE_BEDROCK', 'Machine'))
-    UseVertex = [bool]([Environment]::GetEnvironmentVariable('CLAUDE_CODE_USE_VERTEX', 'Process') -or [Environment]::GetEnvironmentVariable('CLAUDE_CODE_USE_VERTEX', 'User') -or [Environment]::GetEnvironmentVariable('CLAUDE_CODE_USE_VERTEX', 'Machine'))
-    HasAnthropicApiKey = [bool]([Environment]::GetEnvironmentVariable('ANTHROPIC_API_KEY', 'Process') -or [Environment]::GetEnvironmentVariable('ANTHROPIC_API_KEY', 'User') -or [Environment]::GetEnvironmentVariable('ANTHROPIC_API_KEY', 'Machine'))
-}
-
-$multiClientProcesses = @()
+$otherProxyClientCount = 0
 $clientNames = @('sing-box','v2rayN','v2ray','xray','nekobox')
 foreach ($cn in $clientNames) {
     $proc = Get-Process -Name $cn -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($null -ne $proc) {
-        $multiClientProcesses += [pscustomobject][ordered]@{ Name = $cn; Running = $true; ProcessId = $proc.Id }
+        $otherProxyClientCount++
     }
 }
 
 $claudeAudit = [ordered]@{
     DisableTelemetryVars = $claudeDisableTelemetry
-    DisableTelemetryActive = (@($claudeDisableTelemetry | Where-Object Value -eq '1').Count -gt 0)
+    DisableTelemetryActive = [bool]($claudeDisableTelemetry[0].Active)
     DisableErrorReportingVars = $claudeDisableErrorReporting
-    DisableErrorReportingActive = (@($claudeDisableErrorReporting | Where-Object Value -eq '1').Count -gt 0)
+    DisableErrorReportingActive = [bool]($claudeDisableErrorReporting[0].Active)
     DisableNonessentialTrafficVars = $claudeDisableNonessentialTraffic
-    DisableNonessentialTrafficActive = (@($claudeDisableNonessentialTraffic | Where-Object Value -eq '1').Count -gt 0)
-    CloudProviders = $cloudProviders
+    DisableNonessentialTrafficActive = [bool]($claudeDisableNonessentialTraffic[0].Active)
+    SkipPromptHistoryVars = $claudeSkipPromptHistory
+    SkipPromptHistoryActive = [bool]($claudeSkipPromptHistory[0].Active)
+    SubprocessEnvScrubVars = $claudeSubprocessEnvScrub
+    SubprocessEnvScrubActive = [bool]($claudeSubprocessEnvScrub[0].Active)
+    OtelLogUserPromptsVars = $otelLogUserPrompts
+    OtelLogUserPromptsActive = [bool]($otelLogUserPrompts[0].Active)
+    OtelLogToolContentVars = $otelLogToolContent
+    OtelLogToolContentActive = [bool]($otelLogToolContent[0].Active)
+    OtelLogToolDetailsVars = $otelLogToolDetails
+    OtelLogToolDetailsActive = [bool]($otelLogToolDetails[0].Active)
+    OtelLogRawApiBodiesVars = $otelLogRawApiBodies
+    OtelLogRawApiBodiesActive = [bool]($otelLogRawApiBodies[0].Active)
 }
 
 $dnsHijackAny53 = $combinedConfig -match "(?im)^\s*-\s*['`"]?any:53['`"]?\s*(?:#.*)?$"
 $processRunning = $null -ne (Get-Process -Name 'verge-mihomo','mihomo','clash-meta','clash' -ErrorAction SilentlyContinue | Select-Object -First 1)
-$chromeAudit = Get-BrowserWebRtcAudit -Name 'Google Chrome' -UserDataPath (Join-Path $env:LOCALAPPDATA 'Google\Chrome\User Data') -ProcessName 'chrome.exe' -PolicyRegistryPath 'Google\Chrome' -ExecutablePaths @(
+$chromeAudit = Get-BrowserWebRtcAudit -UserDataPath (Join-Path $env:LOCALAPPDATA 'Google\Chrome\User Data') -PolicyRegistryPath 'Google\Chrome' -ExecutablePaths @(
     (Join-Path $env:LOCALAPPDATA 'Google\Chrome\Application\chrome.exe'),
     (Join-Path $env:ProgramFiles 'Google\Chrome\Application\chrome.exe'),
     (Join-Path ${env:ProgramFiles(x86)} 'Google\Chrome\Application\chrome.exe')
 )
-$edgeAudit = Get-BrowserWebRtcAudit -Name 'Microsoft Edge' -UserDataPath (Join-Path $env:LOCALAPPDATA 'Microsoft\Edge\User Data') -ProcessName 'msedge.exe' -PolicyRegistryPath 'Microsoft\Edge' -ExecutablePaths @(
+$edgeAudit = Get-BrowserWebRtcAudit -UserDataPath (Join-Path $env:LOCALAPPDATA 'Microsoft\Edge\User Data') -PolicyRegistryPath 'Microsoft\Edge' -ExecutablePaths @(
     (Join-Path $env:ProgramFiles 'Microsoft\Edge\Application\msedge.exe'),
     (Join-Path ${env:ProgramFiles(x86)} 'Microsoft\Edge\Application\msedge.exe')
 )
 $policyAudit = Get-MihomoPolicyAudit -RuntimeConfig $runtimeConfig -ControllerConfig $appConfig -GroupPattern $PolicyGroupPattern
 
 $result = [ordered]@{
-    SchemaVersion = 6
+    SchemaVersion = 7
     CollectedAt = (Get-Date).ToUniversalTime().ToString('o')
     System = [ordered]@{
         IsAdministrator = $isAdministrator
-        DeviceContext = $deviceContext
         MihomoProcessRunning = $processRunning
-        OtherProxyClientsRunning = $multiClientProcesses
-        ClashVergeServices = $serviceMatches
-        ServiceModeActive = @($serviceMatches | Where-Object State -eq 'Running').Count -gt 0
+        OtherProxyClientCount = $otherProxyClientCount
+        ServiceModeActive = $serviceModeActive
         MixedPort = $mixedPort
         MixedPortListening = $portListening
         SystemProxy = [ordered]@{
@@ -757,8 +672,6 @@ $result = [ordered]@{
         UILanguageOverride = $uiLanguageOverride
         UserLanguageList = $userLanguages
         SystemLocale = $systemLocale
-        HomeGeoId = $homeGeoId
-        HomeLocation = $homeLocationName
         Teredo = $teredo
         ActiveAdapterIPv6Bindings = $ipv6Bindings
         LocalDnsServers = $localDns
@@ -769,7 +682,7 @@ $result = [ordered]@{
         RuntimeConfigPresent = [bool]$runtimeConfig
         Mode = Get-YamlScalar -Text $combinedConfig -KeyPattern 'mode'
         AllowLan = ConvertTo-NullableBoolean (Get-YamlScalar -Text $combinedConfig -KeyPattern 'allow[-_]lan')
-        IPv6 = ConvertTo-NullableBoolean (Get-YamlScalar -Text $appConfig -KeyPattern 'ipv6')
+        IPv6 = ConvertTo-NullableBoolean (Get-YamlScalar -Text $combinedConfig -KeyPattern 'ipv6')
         TunEnabled = ConvertTo-NullableBoolean (Get-YamlScalar -Text $tunConfig -KeyPattern 'enable')
         StrictRoute = ConvertTo-NullableBoolean (Get-YamlScalar -Text $tunConfig -KeyPattern 'strict[-_]route')
         TunStack = Get-YamlScalar -Text $tunConfig -KeyPattern 'stack'

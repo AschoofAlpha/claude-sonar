@@ -11,6 +11,9 @@ class Redactor:
     - 单报告随机假名化盐 (Single-report random pseudonymization salt)
     - 支持循环引用检测，并对递归深度、节点数量和字符串长度设置安全上限。
     """
+    MAX_DEPTH = 20
+    MAX_NODES = 10000
+
     def __init__(self):
         # Use secrets for cryptographically secure salt, distinct for every report
         self.salt = secrets.token_hex(16)
@@ -20,9 +23,10 @@ class Redactor:
         return hashlib.sha256((self.salt + str(value)).encode('utf-8', errors='ignore')).hexdigest()[:6]
 
     def _get_or_create(self, prefix: str, value: str) -> str:
-        if value not in self.mapping:
-            self.mapping[value] = f"<{prefix}:{self._hash(value)}>"
-        return self.mapping[value]
+        key = (prefix, str(value))
+        if key not in self.mapping:
+            self.mapping[key] = f"<{prefix}:{self._hash(prefix + ':' + str(value))}>"
+        return self.mapping[key]
 
     def redact_ipv4(self, ip: str) -> str:
         return self._get_or_create("IPV4", ip)
@@ -46,10 +50,17 @@ class Redactor:
     def redact_credential(self, cred: str) -> str:
         return self._get_or_create("CRED", cred)
 
-    def scan_and_redact(self, data, seen=None):
+    def scan_and_redact(self, data, seen=None, _depth=0, _nodes=None, _mihomo_policy=False):
         """Recursively scan dictionaries and lists, and redact sensitive info."""
         if seen is None:
             seen = set()
+        if _nodes is None:
+            _nodes = [0]
+        _nodes[0] += 1
+        if _nodes[0] > self.MAX_NODES:
+            return "<TRUNCATED_NODE_LIMIT>"
+        if _depth > self.MAX_DEPTH:
+            return "<TRUNCATED_DEPTH_LIMIT>"
             
         # Handle circular references
         if id(data) in seen:
@@ -62,19 +73,27 @@ class Redactor:
             if isinstance(data, dict):
                 result = {}
                 for k, v in data.items():
-                    key_lower = str(k).lower()
-                    if key_lower in ('ssid', 'bssid', 'hostname', 'username', 'user', 'password', 'token', 'secret', 'apikey', 'api_key', 'cookie', 'auth'):
-                        if isinstance(v, str):
+                    key_lower = re.sub(r'[^a-z0-9]', '', str(k).lower())
+                    policy_value = _mihomo_policy and key_lower in ('name', 'selected')
+                    sensitive = key_lower in ('ssid', 'bssid', 'host', 'hostname', 'username', 'user', 'auth') or any(
+                        marker in key_lower
+                        for marker in ('password', 'passwd', 'token', 'secret', 'apikey', 'cookie', 'authorization', 'credential', 'privatekey')
+                    )
+                    if sensitive or policy_value:
+                        if v is None:
+                            result[k] = None
+                        elif isinstance(v, (str, bytes, bool, int, float)):
                             result[k] = self.redact_credential(v)
                         else:
-                            result[k] = self.scan_and_redact(v, seen)
+                            result[k] = "<REDACTED_SENSITIVE_FIELD>"
                     else:
-                        result[k] = self.scan_and_redact(v, seen)
+                        child_policy = _mihomo_policy or str(k) == "PolicyGroups"
+                        result[k] = self.scan_and_redact(v, seen, _depth + 1, _nodes, child_policy)
                 return result
             elif isinstance(data, list):
-                return [self.scan_and_redact(i, seen) for i in data]
+                return [self.scan_and_redact(i, seen, _depth + 1, _nodes, _mihomo_policy) for i in data]
             elif isinstance(data, tuple):
-                return tuple(self.scan_and_redact(i, seen) for i in data)
+                return tuple(self.scan_and_redact(i, seen, _depth + 1, _nodes, _mihomo_policy) for i in data)
             elif isinstance(data, str):
                 return self._redact_string(data)
             elif isinstance(data, bytes):
@@ -96,11 +115,20 @@ class Redactor:
             
         # 1. Credentials (Bearer, API Keys, etc.)
         # Bearer token
-        text = re.sub(r'(?i)(bearer\s+)([a-zA-Z0-9_\-\.]{20,})', lambda m: m.group(1) + self.redact_credential(m.group(2)), text)
+        text = re.sub(r'(?i)(bearer\s+)([^\s,;]+)', lambda m: m.group(1) + self.redact_credential(m.group(2)), text)
         # Basic auth
-        text = re.sub(r'(?i)(basic\s+)([a-zA-Z0-9\+/=]{20,})', lambda m: m.group(1) + self.redact_credential(m.group(2)), text)
-        # API Keys / Tokens / Secrets (skipping common non-sensitive words)
-        text = re.sub(r'(?i)(secret[_-]?key|api[_-]?key|token|secret|password)["\'\s:=]+([a-zA-Z0-9_\-\.]{16,})', lambda m: m.group(1) + "=" + self.redact_credential(m.group(2)), text)
+        text = re.sub(r'(?i)(basic\s+)([^\s,;]+)', lambda m: m.group(1) + self.redact_credential(m.group(2)), text)
+        # Explicit credential assignments are sensitive regardless of length.
+        text = re.sub(
+            r'(?i)(access[_-]?token|refresh[_-]?token|secret[_-]?key|api[_-]?key|token|secret|password)["\'\s:=]+([^\s&,;\'"}]+)',
+            lambda m: m.group(1) + "=" + self.redact_credential(m.group(2)),
+            text,
+        )
+        text = re.sub(
+            r'([?&][^&=#]+=)([^&#]*)',
+            lambda m: m.group(1) + (self.redact_credential(m.group(2)) if m.group(2) else ""),
+            text,
+        )
         # Private key headers
         if "BEGIN RSA PRIVATE KEY" in text or "BEGIN PRIVATE KEY" in text or "BEGIN OPENSSH PRIVATE KEY" in text:
             return "<PRIVATE_KEY_REDACTED>"
@@ -164,6 +192,9 @@ class Redactor:
         text = re.sub(mac_pattern, lambda m: self.redact_mac(m.group(0)), text)
 
         # 4. Identity & Paths
+        email_pattern = r'\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b'
+        text = re.sub(email_pattern, lambda m: self.redact_user(m.group(0)), text)
+
         # UNC Paths (\\SERVER\Share)
         unc_pattern = r'\\\\[a-zA-Z0-9_\.\-]+\\[a-zA-Z0-9_\.\-\\]+'
         text = re.sub(unc_pattern, lambda m: self.redact_path(m.group(0)), text)
