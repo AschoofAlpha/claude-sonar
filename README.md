@@ -8,7 +8,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/AschoofAlpha/claude-shield/ci.yml?style=flat-square&label=CI" alt="CI">
-  <img src="https://img.shields.io/badge/version-1.3.1-2DD4BF?style=flat-square" alt="v1.3.1">
+  <img src="https://img.shields.io/badge/version-1.3.2-2DD4BF?style=flat-square" alt="v1.3.2">
   <img src="https://img.shields.io/badge/default-read--only-2DD4BF?style=flat-square" alt="Read-only by default">
   <img src="https://img.shields.io/badge/platform-Windows-4F7CFF?style=flat-square" alt="Windows">
   <img src="https://img.shields.io/badge/license-MIT-64748B?style=flat-square" alt="MIT License">
@@ -79,7 +79,7 @@ Library defaults: `run_full_audit(include_recommendations=True)` returns `report
 
 The audit is local evidence, not a prediction of account approval or suspension.
 
-![Claude Shield audit report — signal, status, confidence, evidence, action](https://raw.githubusercontent.com/AschoofAlpha/claude-shield/main/assets/audit-demo.jpg)
+Run `python -m claude_shield` for a live markdown report (`format_report`: evidence table + Must fix / Optional consistency / Leave alone). No staged demo screenshot is shipped.
 
 ## Read-only collection
 

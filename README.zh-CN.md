@@ -8,7 +8,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/AschoofAlpha/claude-shield/ci.yml?style=flat-square&label=CI" alt="CI">
-  <img src="https://img.shields.io/badge/version-1.3.1-2DD4BF?style=flat-square" alt="v1.3.1">
+  <img src="https://img.shields.io/badge/version-1.3.2-2DD4BF?style=flat-square" alt="v1.3.2">
   <img src="https://img.shields.io/badge/default-read--only-2DD4BF?style=flat-square" alt="默认只读">
   <img src="https://img.shields.io/badge/platform-Windows-4F7CFF?style=flat-square" alt="Windows">
   <img src="https://img.shields.io/badge/license-MIT-64748B?style=flat-square" alt="MIT License">
@@ -77,7 +77,7 @@ python -m claude_shield --online --intended-region US
 
 审计结果只是本地证据，不是账号通过审核或避免封禁的预测。
 
-![Claude Shield 审计报告示例——信号、状态、置信度、证据、行动五列表格](https://raw.githubusercontent.com/AschoofAlpha/claude-shield/main/assets/audit-demo.jpg)
+运行 `python -m claude_shield` 即可得到实时 Markdown 报告（`format_report`：证据表 + 必须处理 / 可选一致性 / 保持不动）。仓库不再附带伪造的演示截图。
 
 ## 只读采集
 
