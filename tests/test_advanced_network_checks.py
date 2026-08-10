@@ -45,13 +45,14 @@ class TestAdvancedNetworkChecks(unittest.TestCase):
             ]}})
         ids = _ids(checks)
         self.assertEqual(ids["network.dns_encrypted"].status, "pass")
-        self.assertIn("cloudflare-dns.com", ids["network.dns_encrypted"].explanation)
+        self.assertIn("Encrypted upstream", ids["network.dns_encrypted"].explanation)
 
-    def test_dns_encrypted_empty_warning(self):
+    def test_dns_encrypted_empty_unknown(self):
         checks = analyze_snapshot({"Mihomo": {
             "AppConfigPresent": True, "EncryptedDnsUpstreams": []}})
         ids = _ids(checks)
-        self.assertEqual(ids["network.dns_encrypted"].status, "warning")
+        # 1.2.0.dev0: conservative unknown when upstreams absent
+        self.assertEqual(ids["network.dns_encrypted"].status, "unknown")
 
     def test_tun_stack_gvisor_pass(self):
         checks = analyze_snapshot({"Mihomo": {
@@ -59,11 +60,12 @@ class TestAdvancedNetworkChecks(unittest.TestCase):
         ids = _ids(checks)
         self.assertEqual(ids["network.tun_stack"].status, "pass")
 
-    def test_tun_stack_other_info(self):
+    def test_tun_stack_other_unknown(self):
         checks = analyze_snapshot({"Mihomo": {
             "AppConfigPresent": True, "TunStack": "system"}})
         ids = _ids(checks)
-        self.assertEqual(ids["network.tun_stack"].status, "info")
+        # 1.2.0.dev0: conservative unknown for non-gvisor stacks
+        self.assertEqual(ids["network.tun_stack"].status, "unknown")
 
     def test_policy_group_fixed_pass(self):
         checks = analyze_snapshot({"Mihomo": {
@@ -119,7 +121,8 @@ class TestAdvancedNetworkChecks(unittest.TestCase):
             ]}})
         ids = _ids(checks)
         self.assertEqual(ids["network.dns_physical_resolver"].status, "warning")
-        self.assertIn("218.85.157.99", ids["network.dns_physical_resolver"].explanation)
+        # 1.2.0.dev0: redacted explanation omits raw IPs
+        self.assertIn("non-local DNS resolver", ids["network.dns_physical_resolver"].explanation)
 
     def test_dns_physical_resolver_skips_tunnel(self):
         checks = analyze_snapshot({"System": {
