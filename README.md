@@ -45,6 +45,12 @@
 
 ## Install
 
+```bash
+pip install claude-shield
+```
+
+As an agent skill (Codex / Claude Code):
+
 ```powershell
 git clone https://github.com/AschoofAlpha/claude-shield.git "$HOME/.codex/skills/anti-claude-check"
 ```

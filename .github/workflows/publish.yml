@@ -12,6 +12,8 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     environment: pypi
+    permissions:
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -25,10 +27,12 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME#v}"
           PKG=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          NAME=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['name'])")
           INIT=$(python -c "import pathlib,re; t=pathlib.Path('claude_shield/__init__.py').read_text(encoding='utf-8'); print(re.search(r'__version__\s*=\s*[\"\\']([^\"\\']+)', t).group(1))")
-          echo "tag=$TAG pyproject=$PKG __init__=$INIT"
+          echo "tag=$TAG name=$NAME pyproject=$PKG __init__=$INIT"
           test "$TAG" = "$PKG"
           test "$TAG" = "$INIT"
+          test "$NAME" = "claude-shield"
       - name: Build distributions
         run: python -m build
       - name: Check distributions
@@ -36,7 +40,5 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
           skip-existing: true
           verbose: true

@@ -45,6 +45,12 @@
 
 ## 快速开始
 
+```bash
+pip install claude-shield
+```
+
+作为 Agent Skill（Codex / Claude Code）：
+
 ```powershell
 git clone https://github.com/AschoofAlpha/claude-shield.git "$HOME/.codex/skills/anti-claude-check"
 ```

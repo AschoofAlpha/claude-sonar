@@ -15,8 +15,9 @@ All notable changes to this project are documented here. The format follows [Kee
 - Collector + redaction path favors minimal local identifiers and unified redaction before sharing.
 
 ### Notes
-- Package name on PyPI remains `anti-claude-check`.
+- Package name on PyPI is **`claude-shield`** (renamed from legacy `anti-claude-check`).
 - Automated test suite: unit/smoke tests under `tests/` (currently 45+ cases).
+- Install: `pip install claude-shield`
 
 ## [1.1.1] - 2026-08-03
 

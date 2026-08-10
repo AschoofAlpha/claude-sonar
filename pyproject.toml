@@ -3,30 +3,40 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "anti-claude-check"
+name = "claude-shield"
 version = "1.2.0"
-description = "Local privacy and proxy consistency audit skill"
+description = "Local privacy and proxy consistency audit for Claude Code and agent skills"
 readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"
 authors = [
-    {name = "Anti Claude Check Authors"}
+    {name = "Claude Shield Authors"}
 ]
 dependencies = []
+keywords = ["claude", "privacy", "proxy", "dns-leak", "mihomo", "audit", "agent-skills"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+]
 
 [project.urls]
 Homepage = "https://github.com/AschoofAlpha/claude-shield"
 Repository = "https://github.com/AschoofAlpha/claude-shield"
 Issues = "https://github.com/AschoofAlpha/claude-shield/issues"
+Changelog = "https://github.com/AschoofAlpha/claude-shield/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["claude_shield*"]
 
 [tool.setuptools.data-files]
-"share/anti-claude-check" = ["SKILL.md", "README.md", "README.zh-CN.md", "LICENSE"]
-"share/anti-claude-check/assets" = ["assets/social-preview.en.jpg", "assets/social-preview.jpg"]
-"share/anti-claude-check/scripts" = [
+"share/claude-shield" = ["SKILL.md", "README.md", "README.zh-CN.md", "LICENSE"]
+"share/claude-shield/assets" = ["assets/social-preview.en.jpg", "assets/social-preview.jpg"]
+"share/claude-shield/scripts" = [
     "scripts/collect_posix_network.sh",
     "scripts/collect_windows_network.ps1",
     "scripts/remediate_posix_network.sh",
