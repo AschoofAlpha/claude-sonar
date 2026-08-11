@@ -85,11 +85,18 @@ Library defaults: `run_full_audit(include_recommendations=True)` returns `report
 
 ## What you get
 
-- A full read-only Windows collector for proxy, DNS, IPv6, system, and documented Claude Code privacy settings, plus a limited POSIX environment summary.
-- Clash Verge/Mihomo checks for rule mode, system proxy, service/TUN state, `strict-route`, fake-IP, DNS hijacking, LAN access, and the actual policy selection when its local controller is available.
-- Recommendations split into **Must fix**, **Optional consistency**, and **Leave alone**.
-- Optional, reversible privacy environment-variable remediation. No automatic DNS, route, firewall, VPN, or IPv6-adapter changes. Device-ID/cache/fingerprint items appear only as optional recommendations with explicit limits (local hygiene only; not server unban; no anti-detect stacks).
-- Report plain-language **说明/meaning** on every check, a **configuration self-consistency** score (not anti-ban), and a soft footer listing what is **recommend-only never auto** (fingerprint, timezone-follow-node, env wipe, anti-ban score disguise, DNS/route/TUN).
+| Layer | Checks |
+| --- | --- |
+| Claude privacy | 3 main opt-out switches + 6 supplemental vars + local artifact presence |
+| Proxy | system proxy / WinHTTP / env vars / PAC / other-client conflicts |
+| DNS | fake-IP, port-53 hijack, DoH, physical-resolver residue, browser Secure DNS |
+| Routing | TUN, default route, Teredo, IPv6 bypass |
+| Consistency | timezone × locale × (online) exit region |
+| Personalized | detects your proxy client (Clash Verge / v2rayN / sing-box / …) and gives per-app manual steps |
+
+Results split into **Must fix**, **Optional consistency**, and **Leave alone**; every check carries a plain-language **说明/meaning** column and the report ends with a **configuration self-consistency** score (not anti-ban) plus a footer of what stays **recommend-only never auto** (fingerprint, timezone-follow-node, env wipe, anti-ban score disguise, DNS/route/TUN).
+
+Optional, reversible privacy environment-variable remediation only. No automatic DNS, route, firewall, VPN, or IPv6-adapter changes. Device-ID/cache/fingerprint items appear only as optional recommendations with explicit limits (local hygiene only; not server unban; no anti-detect stacks).
 
 The audit is local evidence, not a prediction of account approval or suspension.
 
