@@ -8,7 +8,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/AschoofAlpha/claude-shield/ci.yml?style=flat-square&label=CI" alt="CI">
-  <img src="https://img.shields.io/badge/version-1.3.3-2DD4BF?style=flat-square" alt="v1.3.3">
+  <img src="https://img.shields.io/badge/version-1.4.0-2DD4BF?style=flat-square" alt="v1.4.0">
   <img src="https://img.shields.io/badge/default-read--only-2DD4BF?style=flat-square" alt="默认只读">
   <img src="https://img.shields.io/badge/platform-Windows-4F7CFF?style=flat-square" alt="Windows">
   <img src="https://img.shields.io/badge/license-MIT-64748B?style=flat-square" alt="MIT License">
@@ -49,8 +49,8 @@
 pip install -U claude-shield
 ```
 
-完整报告能力（说明列、配置自洽分、代理分层检查等）请使用 **1.3.3+**。  
-**关于 1.3.2：** PyPI 上的 `1.3.2` 轮子 主要是删除了假演示截图；之后在 git 上仍标 1.3.2、但未再发 PyPI 的功能，已收进 **1.3.3**。请 `pip install -U claude-shield`，或以本仓库安装。  
+CLI `--out` / `--diff` / `--compact` / `--intended-mode` 与并行在线探测请使用 **1.4.0+**。  
+说明列、配置自洽分、代理分层检查等报告能力自 **1.3.3+** 起已具备。  
 旧包名 **`anti-claude-check`** 已停用，请只安装 **`claude-shield`**。
 
 
@@ -62,16 +62,26 @@ git clone https://github.com/AschoofAlpha/claude-shield.git "$HOME/.codex/skills
 
 在 Codex 中调用 `$claude-shield`。Claude Code 用户将同一目录安装到 `~/.claude/skills/claude-shield`，调用 `/claude-shield`。
 
-## CLI（1.3）
+## CLI（1.4）
 
 ```bash
-python -m claude_shield                 # 默认 Markdown 报告（离线）
+python -m claude_shield                 # 完整 Markdown 报告（离线）
+python -m claude_shield --compact       # 精简报告（分数 + 必须处理 / 可选一致性）
 python -m claude_shield --json          # 输出 report_dict + summary
+python -m claude_shield --out report.md
+python -m claude_shield --json --out report.json
+python -m claude_shield --diff previous.json
 python -m claude_shield --online --timeout 5
 python -m claude_shield --online --intended-region US
+python -m claude_shield --intended-mode system_proxy   # 或 full_tunnel
+python -m claude_shield --lang en
 ```
 
-除非传入 `--online`，否则不会启用在线探测（出口、DNS、IP 声誉、跨站出口）。库默认 `run_full_audit(include_recommendations=True)`，并返回 `report_markdown`。Windows 采集器在可检测时也会报告 Firefox WebRTC 策略。
+除非传入 `--online`，否则不会启用在线探测（出口、DNS、IP 声誉、跨站出口）。启用 `--online` 时，独立探测会并行执行（共享超时）。
+
+`--out` 写入文件的同时仍打印到 stdout。`--diff` 接受上次 CLI `--json` 输出或裸 `report_dict`，在 Markdown 末尾追加对比段（JSON 模式增加 `diff` 字段）。默认完整报告；`--compact` 输出精简版（若与 `--full` 同时出现，以 `--full` 为准）。
+
+库默认 `run_full_audit(include_recommendations=True)`，并返回 `report_markdown`。Windows 采集器在可检测时也会报告 Firefox WebRTC 策略。
 
 ## 你会得到什么
 

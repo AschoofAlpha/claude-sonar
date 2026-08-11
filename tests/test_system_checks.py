@@ -164,7 +164,8 @@ class TestSystemLevelChecks(unittest.TestCase):
     def test_privacy_not_configured_prefix(self):
         checks = analyze_snapshot({"ClaudeCode": {}})
         ids = _ids(checks)
-        self.assertIn("[not_configured]", ids["privacy.prompt_history"].explanation)
+        # Core privacy controls keep [not_configured]; supplemental are folded
+        self.assertIn("[folded_optional]", ids["privacy.prompt_history"].explanation)
         self.assertIn("[not_configured]", ids["privacy.telemetry"].explanation)
 
     def test_known_ids_unchanged(self):

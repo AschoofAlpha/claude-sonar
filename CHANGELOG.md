@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-08-11
+
+### Added
+- CLI flags: `--out PATH` (write report file and still print to stdout), `--diff PATH` (compare against a previous JSON `report_dict` / CLI `--json` payload), `--intended-mode {system_proxy,full_tunnel}`, `--compact` (short markdown), `--full` (explicit full report; overrides `--compact`).
+- `claude_shield.diff`: `diff_audits` / `diff_reports`, `format_diff_markdown`, `load_checks_from_report_dict` / `load_previous_report` for check-id status diffs.
+- Online probes: independent DNS / reputation / cross-site / dual-stack / stability probes run in a thread pool (ordered merge; sequential fallback). Offline path unchanged.
+- `run_full_audit(..., intended_mode=None, compact=False)` and `analyze_snapshot(..., intended_mode=None)` coordination stubs; `format_report(..., compact=False)`.
+
+### Changed
+- Version **1.4.0** across package metadata, badges, and docs.
+- CLI forwards `--lang` into `run_full_audit` and always re-renders markdown via `format_report`.
+
 ## [1.3.3] - 2026-08-11
 
 ### Added

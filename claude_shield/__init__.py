@@ -25,6 +25,21 @@ except ImportError:  # pragma: no cover
     plain_status = None  # type: ignore[assignment]
     score_checks = None  # type: ignore[assignment]
 
+try:
+    from .diff import (
+        diff_audits,
+        diff_reports,
+        format_diff_markdown,
+        load_checks_from_report_dict,
+        load_previous_report,
+    )
+except ImportError:  # pragma: no cover
+    diff_audits = None  # type: ignore[assignment]
+    diff_reports = None  # type: ignore[assignment]
+    format_diff_markdown = None  # type: ignore[assignment]
+    load_checks_from_report_dict = None  # type: ignore[assignment]
+    load_previous_report = None  # type: ignore[assignment]
+
 __all__ = [
     "__version__",
     "CollectorError",
@@ -42,4 +57,9 @@ __all__ = [
     "score_checks",
     "plain_check",
     "plain_status",
+    "diff_audits",
+    "diff_reports",
+    "format_diff_markdown",
+    "load_checks_from_report_dict",
+    "load_previous_report",
 ]

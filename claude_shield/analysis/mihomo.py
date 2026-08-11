@@ -34,9 +34,12 @@ def _normalize_encrypted_upstreams(upstreams):
     return schemes
 
 
-def collect_mihomo_checks(data, builder):
+def collect_mihomo_checks(data, builder, intended_mode=None):
     """Return True if analysis should stop early (no mihomo config)."""
+    from .system import normalize_intended_mode
+
     add = builder.add
+    mode = normalize_intended_mode(intended_mode)
     mihomo = data.get("Mihomo")
     if not isinstance(mihomo, dict) or not (mihomo.get("AppConfigPresent") or mihomo.get("RuntimeConfigPresent")):
         add(
@@ -73,8 +76,21 @@ def collect_mihomo_checks(data, builder):
             evidence=[evidence("mihomo_config", f"{key}", {"key": key, "value": value})] if value is not None else None,
         )
 
-    # TUN: system-proxy mode (TunEnabled=False) may be intentional — do not hard-fail
+    # TUN vs intended_mode:
+    # - system_proxy + TunEnabled False => pass (intentional)
+    # - full_tunnel + TunEnabled False => warning (optional/must-ish with clear rec)
+    # - full_tunnel + TunEnabled True => pass
+    # - None => keep soft unknown when off
     tun_value = mihomo.get("TunEnabled")
+    tun_evidence = (
+        [evidence(
+            "mihomo_config",
+            "TunEnabled",
+            {"key": "TunEnabled", "value": tun_value, "intended_mode": mode},
+        )]
+        if tun_value is not None
+        else [evidence("mihomo_config", "TunEnabled", {"intended_mode": mode})]
+    )
     if tun_value is None:
         add(
             "network.tun",
@@ -82,21 +98,67 @@ def collect_mihomo_checks(data, builder):
             "network",
             "unknown",
             "info",
-            "TunEnabled requires manual confirmation.",
+            "TunEnabled requires manual confirmation."
+            + (f" Intended mode is {mode}." if mode else ""),
             "Confirm the intended mode (TUN vs system-proxy) in the active proxy client.",
+            evidence=tun_evidence,
         )
     else:
         tun_on = str(tun_value).lower() in ("true", "1", "yes")
         if tun_on:
+            if mode == "system_proxy":
+                add(
+                    "network.tun",
+                    "TUN enabled",
+                    "network",
+                    "unknown",
+                    "info",
+                    (
+                        f"Observed TunEnabled={tun_value!r} while intended mode is system_proxy. "
+                        "TUN-on with system-proxy intent may be redundant; confirm the intended routing mode."
+                    ),
+                    "If system_proxy is intended, TUN may be turned off; if full_tunnel is intended, keep TUN.",
+                    evidence=tun_evidence,
+                )
+            else:
+                add(
+                    "network.tun",
+                    "TUN enabled",
+                    "network",
+                    "pass",
+                    "info",
+                    f"Observed TunEnabled={tun_value!r}."
+                    + (" Matches intended full_tunnel mode." if mode == "full_tunnel" else ""),
+                    "Confirm the setting in the active proxy client before changing it.",
+                    evidence=tun_evidence,
+                )
+        elif mode == "system_proxy":
             add(
                 "network.tun",
                 "TUN enabled",
                 "network",
                 "pass",
                 "info",
-                f"Observed TunEnabled={tun_value!r}.",
-                "Confirm the setting in the active proxy client before changing it.",
-                evidence=[evidence("mihomo_config", "TunEnabled", {"key": "TunEnabled", "value": tun_value})],
+                (
+                    f"Observed TunEnabled={tun_value!r}. "
+                    "Matches intended system_proxy mode (TUN off is intentional)."
+                ),
+                "",
+                evidence=tun_evidence,
+            )
+        elif mode == "full_tunnel":
+            add(
+                "network.tun",
+                "TUN enabled",
+                "network",
+                "warning",
+                "info",
+                (
+                    f"Observed TunEnabled={tun_value!r} while intended mode is full_tunnel. "
+                    "Full-tunnel routing expects TUN enabled."
+                ),
+                "Enable TUN (full-tunnel) in the active proxy client if full_tunnel is the intended mode.",
+                evidence=tun_evidence,
             )
         else:
             add(
@@ -111,7 +173,7 @@ def collect_mihomo_checks(data, builder):
                     "rather than treating TUN-off as an automatic failure."
                 ),
                 "Only enable TUN if it matches the intended routing mode; system-proxy alone is not a leak.",
-                evidence=[evidence("mihomo_config", "TunEnabled", {"key": "TunEnabled", "value": tun_value})],
+                evidence=tun_evidence,
             )
 
     # DNS respect-rules: must be enabled so fake-IP resolution honors rule routing

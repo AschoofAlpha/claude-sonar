@@ -24,6 +24,7 @@ from .analysis import (
     mihomo_protects_dns,
     redact_checks,
 )
+from .analysis.system import merge_geo_with_egress, normalize_intended_mode
 from .models import AuditCheck, AuditReport, PlatformInfo, PrivacyMetadata, to_dict
 from .redaction import Redactor
 from .resources import resource_path
@@ -81,20 +82,33 @@ def run_legacy_collector(timeout=30):
         raise CollectorError(Redactor().scan_and_redact(str(exc))) from exc
 
 
-def analyze_snapshot(data, include_recommendations=True, redactor=None):
+def analyze_snapshot(data, include_recommendations=True, redactor=None, intended_mode=None, **_kwargs):
     """Turn a collector snapshot into a list of AuditCheck objects.
 
     System-level checks run even when no Mihomo config is present. Returns
     a plain list; agents decide how to present it (or use ``format_report``).
+
+    ``intended_mode`` is optional (``system_proxy`` / ``full_tunnel``; aliases
+    ``system-proxy``, ``tun``, ``full-tunnel``) and is forwarded to collectors
+    that accept it; unknown kwargs are ignored.
     """
     if not isinstance(data, dict):
         raise TypeError("snapshot must be a dictionary")
 
+    mode = normalize_intended_mode(intended_mode)
     builder = CheckBuilder(include_recommendations=include_recommendations)
-    collect_privacy_checks(data, builder)
-    collect_system_checks(data, builder)
-    collect_browser_checks(data, builder)
-    early_stop = collect_mihomo_checks(data, builder)
+    # intended_mode is a coordination stub for analysis collectors; pass only
+    # when the callee accepts it so older analysis modules keep working.
+    def _call(fn, *args):
+        try:
+            return fn(*args, intended_mode=mode)
+        except TypeError:
+            return fn(*args)
+
+    _call(collect_privacy_checks, data, builder)
+    _call(collect_system_checks, data, builder)
+    _call(collect_browser_checks, data, builder)
+    early_stop = _call(collect_mihomo_checks, data, builder)
     # early_stop True means no mihomo config; checks already include placeholder
     _ = early_stop
     return redact_checks(builder.checks, redactor or Redactor())
@@ -144,6 +158,8 @@ def run_full_audit(
     intended_region=None,
     cross_site_urls=None,
     lang="zh",
+    intended_mode=None,
+    compact=False,
 ):
     """One-call audit: run the collector, analyze locally, and optionally probe online.
 
@@ -156,6 +172,9 @@ def run_full_audit(
     - ``report_markdown``: markdown string from ``format_report`` when available
 
     ``lang`` selects the plain-language layer for ``report_markdown`` (``zh`` or ``en``).
+    ``intended_mode`` is optional (``system_proxy`` / ``full_tunnel``) and is
+    forwarded into ``analyze_snapshot`` when collectors support it.
+    ``compact`` shortens ``report_markdown`` when the formatter supports it.
     """
     from .probes.base import run_probes
 
@@ -164,7 +183,12 @@ def run_full_audit(
 
     snapshot = run_legacy_collector()
     redactor = Redactor()
-    checks = analyze_snapshot(snapshot, include_recommendations=include_recommendations, redactor=redactor)
+    checks = analyze_snapshot(
+        snapshot,
+        include_recommendations=include_recommendations,
+        redactor=redactor,
+        intended_mode=intended_mode,
+    )
     try:
         probe_kwargs = {
             "timeout": probe_timeout,
@@ -185,6 +209,9 @@ def run_full_audit(
             explanation=f"Online probes could not run: {exc}",
         )], redactor))
 
+    # Best-effort: fold online reputation country into offline geo_stack message
+    checks = merge_geo_with_egress(checks)
+
     report = build_audit_report(checks, snapshot=snapshot, redactor=redactor)
     # Redact platform hostname in report before export
     report.platform.hostname = redactor.scan_and_redact(report.platform.hostname)
@@ -200,7 +227,14 @@ def run_full_audit(
             formatter = None
     if formatter is not None:
         try:
-            report_markdown = formatter(checks, summary=report.summary, lang=lang)
+            report_markdown = formatter(
+                checks, summary=report.summary, lang=lang, compact=compact
+            )
+        except TypeError:
+            try:
+                report_markdown = formatter(checks, summary=report.summary, lang=lang)
+            except Exception:
+                report_markdown = None
         except Exception:
             report_markdown = None
 

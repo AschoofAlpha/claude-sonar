@@ -758,6 +758,79 @@ if (Get-Command Get-DnsClientServerAddress -ErrorAction SilentlyContinue) {
     }
 }
 
+# Default IPv4 route classes (booleans only — no next-hop IPs)
+$defaultRoute = $null
+if (Get-Command Get-NetRoute -ErrorAction SilentlyContinue) {
+    try {
+        $defaultRoutes = @(Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Where-Object {
+            $null -ne $_.InterfaceAlias
+        })
+        if ($defaultRoutes.Count -gt 0) {
+            $hasPhysicalDefault = $false
+            $hasTunnelDefault = $false
+            $bestPhysicalMetric = $null
+            $bestTunnelMetric = $null
+            foreach ($route in $defaultRoutes) {
+                $alias = [string]$route.InterfaceAlias
+                $description = ''
+                try {
+                    $adapter = Get-NetAdapter -Name $alias -ErrorAction SilentlyContinue
+                    if ($null -ne $adapter) {
+                        $description = [string]$adapter.InterfaceDescription
+                    }
+                } catch {
+                    $description = ''
+                }
+                $classification = if ($adapterClassifications.ContainsKey($alias)) {
+                    $adapterClassifications[$alias]
+                } elseif ("$alias $description" -match '(?i)mihomo|clash|wintun|wireguard|tap|vpn|tun|sstap') {
+                    'TunnelOrVpn'
+                } else {
+                    $hardwareInterface = $null
+                    try {
+                        $adapterObj = Get-NetAdapter -Name $alias -ErrorAction SilentlyContinue
+                        $hardwareInterface = Get-PropertyValue -Object $adapterObj -Name 'HardwareInterface'
+                    } catch {
+                        $hardwareInterface = $null
+                    }
+                    if ($hardwareInterface -eq $true) { 'Physical' } else { 'VirtualOrOther' }
+                }
+                $routeMetric = 0
+                $ifMetric = 0
+                try { $routeMetric = [int]$route.RouteMetric } catch { $routeMetric = 0 }
+                try { $ifMetric = [int]$route.InterfaceMetric } catch { $ifMetric = 0 }
+                $combinedMetric = $routeMetric + $ifMetric
+                if ($classification -eq 'TunnelOrVpn') {
+                    $hasTunnelDefault = $true
+                    if ($null -eq $bestTunnelMetric -or $combinedMetric -lt $bestTunnelMetric) {
+                        $bestTunnelMetric = $combinedMetric
+                    }
+                } elseif ($classification -eq 'Physical') {
+                    $hasPhysicalDefault = $true
+                    if ($null -eq $bestPhysicalMetric -or $combinedMetric -lt $bestPhysicalMetric) {
+                        $bestPhysicalMetric = $combinedMetric
+                    }
+                }
+            }
+            $physicalMetricLower = $null
+            if ($hasPhysicalDefault -and $hasTunnelDefault -and $null -ne $bestPhysicalMetric -and $null -ne $bestTunnelMetric) {
+                $physicalMetricLower = [bool]($bestPhysicalMetric -lt $bestTunnelMetric)
+            } elseif ($hasPhysicalDefault -and -not $hasTunnelDefault) {
+                $physicalMetricLower = $true
+            } elseif ($hasTunnelDefault -and -not $hasPhysicalDefault) {
+                $physicalMetricLower = $false
+            }
+            $defaultRoute = [ordered]@{
+                HasPhysicalDefault = [bool]$hasPhysicalDefault
+                HasTunnelDefault = [bool]$hasTunnelDefault
+                PhysicalMetricLower = $physicalMetricLower
+            }
+        }
+    } catch {
+        $defaultRoute = $null
+    }
+}
+
 $proxyEnvironmentVariables = @()
 foreach ($scope in @('Process','User','Machine')) {
     foreach ($variableName in @('HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','NO_PROXY')) {
@@ -891,6 +964,45 @@ $edgeAudit = Get-BrowserWebRtcAudit -UserDataPath (Join-Path $env:LOCALAPPDATA '
 $firefoxAudit = Get-FirefoxWebRtcAudit
 $policyAudit = Get-MihomoPolicyAudit -RuntimeConfig $runtimeConfig -ControllerConfig $appConfig -GroupPattern $PolicyGroupPattern
 
+# Browser Secure DNS / DoH mode from policy registry (classes only, no URLs)
+function Get-BrowserSecureDnsMode {
+    param([Parameter(Mandatory)][string]$PolicyRegistryPath)
+
+    foreach ($scope in @('HKCU', 'HKLM')) {
+        $registryPath = "${scope}:\SOFTWARE\Policies\$PolicyRegistryPath"
+        $policy = Get-ItemProperty -LiteralPath $registryPath -ErrorAction SilentlyContinue
+        if ($null -eq $policy) { continue }
+        $modeValue = Get-PropertyValue -Object $policy -Name 'DnsOverHttpsMode'
+        if ($null -eq $modeValue) {
+            $modeValue = Get-PropertyValue -Object $policy -Name 'DnsOverHttps'
+        }
+        if ($null -eq $modeValue) { continue }
+        $text = [string]$modeValue
+        if ($text -match '^(?i:0|off|disabled)$') { return 'off' }
+        if ($text -match '^(?i:1|automatic|automatic_mode|auto)$') { return 'automatic' }
+        if ($text -match '^(?i:2|secure|secure_mode|force_secure)$') { return 'secure' }
+        return 'unknown'
+    }
+    return $null
+}
+
+$browserSecureDns = [ordered]@{}
+$chromeSecureDns = Get-BrowserSecureDnsMode -PolicyRegistryPath 'Google\Chrome'
+if ($null -ne $chromeSecureDns) {
+    $browserSecureDns['Chrome'] = $chromeSecureDns
+} elseif ($chromeAudit.Installed) {
+    $browserSecureDns['Chrome'] = 'unknown'
+}
+$edgeSecureDns = Get-BrowserSecureDnsMode -PolicyRegistryPath 'Microsoft\Edge'
+if ($null -ne $edgeSecureDns) {
+    $browserSecureDns['Edge'] = $edgeSecureDns
+} elseif ($edgeAudit.Installed) {
+    $browserSecureDns['Edge'] = 'unknown'
+}
+if ($browserSecureDns.Count -eq 0) {
+    $browserSecureDns = $null
+}
+
 $result = [ordered]@{
     SchemaVersion = 7
     CollectedAt = (Get-Date).ToUniversalTime().ToString('o')
@@ -926,6 +1038,8 @@ $result = [ordered]@{
         ActiveAdapterIPv6Bindings = $ipv6Bindings
         LocalDnsServers = $localDns
         ProxyEnvironmentVariables = $proxyEnvironmentVariables
+        DefaultRoute = $defaultRoute
+        BrowserSecureDns = $browserSecureDns
     }
     Mihomo = [ordered]@{
         AppConfigPresent = [bool]$appConfig

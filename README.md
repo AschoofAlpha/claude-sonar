@@ -8,7 +8,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/AschoofAlpha/claude-shield/ci.yml?style=flat-square&label=CI" alt="CI">
-  <img src="https://img.shields.io/badge/version-1.3.3-2DD4BF?style=flat-square" alt="v1.3.3">
+  <img src="https://img.shields.io/badge/version-1.4.0-2DD4BF?style=flat-square" alt="v1.4.0">
   <img src="https://img.shields.io/badge/default-read--only-2DD4BF?style=flat-square" alt="Read-only by default">
   <img src="https://img.shields.io/badge/platform-Windows-4F7CFF?style=flat-square" alt="Windows">
   <img src="https://img.shields.io/badge/license-MIT-64748B?style=flat-square" alt="MIT License">
@@ -49,8 +49,8 @@
 pip install -U claude-shield
 ```
 
-Requires **1.3.3+** for the full report (plain-language column, consistency score, proxy-layer checks).  
-**Note on 1.3.2:** the PyPI `1.3.2` wheel mainly dropped the fake demo screenshot; later features stayed on git under the same version label until **1.3.3**. Prefer `pip install -U claude-shield` or install from this repo.  
+Requires **1.4.0+** for CLI `--out` / `--diff` / `--compact` / `--intended-mode` and parallel online probes.  
+**1.3.3+** already includes the plain-language report, consistency score, and proxy-layer checks.  
 Legacy package **`anti-claude-check`** is retired — use **`claude-shield`** only.
 
 
@@ -62,16 +62,24 @@ git clone https://github.com/AschoofAlpha/claude-shield.git "$HOME/.codex/skills
 
 Invoke `$claude-shield` in Codex. For Claude Code, install the same folder as `~/.claude/skills/claude-shield` and invoke `/claude-shield`.
 
-## CLI (1.3)
+## CLI (1.4)
 
 ```bash
-python -m claude_shield                 # markdown report (offline)
+python -m claude_shield                 # full markdown report (offline)
+python -m claude_shield --compact       # shorter markdown (score + must-fix / optional)
 python -m claude_shield --json          # report_dict + summary as JSON
+python -m claude_shield --out report.md
+python -m claude_shield --json --out report.json
+python -m claude_shield --diff previous.json
 python -m claude_shield --online --timeout 5
 python -m claude_shield --online --intended-region US
+python -m claude_shield --intended-mode system_proxy   # or full_tunnel
+python -m claude_shield --lang en
 ```
 
-Online probes (egress, DNS observation, IP reputation, cross-site exits) stay **off** unless you pass `--online`.
+Online probes (egress, DNS observation, IP reputation, cross-site exits) stay **off** unless you pass `--online`. With `--online`, independent probes run in parallel (shared timeout).
+
+`--out` writes the report to a file **and** still prints to stdout. `--diff` accepts a previous CLI `--json` payload or bare `report_dict` and appends a status-diff section (or a `diff` key in JSON mode). Default markdown is full; pass `--compact` for a short report (`--full` forces full if both are set).
 
 Library defaults: `run_full_audit(include_recommendations=True)` returns `report_markdown` via `format_report`. Windows collector also reports Firefox WebRTC policy presence when detectable.
 

@@ -4,7 +4,7 @@ from .browser import collect_browser_checks
 from .common import CheckBuilder, evidence, is_local_or_fake_dns, mihomo_protects_dns, redact_checks
 from .mihomo import collect_mihomo_checks
 from .privacy import collect_privacy_checks
-from .system import collect_system_checks
+from .system import collect_system_checks, merge_geo_with_egress, normalize_intended_mode
 
 __all__ = [
     "CheckBuilder",
@@ -16,4 +16,6 @@ __all__ = [
     "is_local_or_fake_dns",
     "mihomo_protects_dns",
     "redact_checks",
+    "merge_geo_with_egress",
+    "normalize_intended_mode",
 ]

@@ -1,8 +1,105 @@
 from .common import evidence, is_local_or_fake_dns, mihomo_protects_dns
 
 
-def collect_system_checks(data, builder):
+def normalize_intended_mode(intended_mode):
+    """Normalize intended routing mode aliases.
+
+    Returns None | \"system_proxy\" | \"full_tunnel\".
+    Accepts: system_proxy, system-proxy, full_tunnel, full-tunnel, tun.
+    """
+    if intended_mode is None:
+        return None
+    text = str(intended_mode).strip().lower().replace("-", "_")
+    if not text:
+        return None
+    if text in ("system_proxy", "systemproxy", "proxy", "sysproxy"):
+        return "system_proxy"
+    if text in ("full_tunnel", "fulltunnel", "tun", "tunnel", "tun_mode"):
+        return "full_tunnel"
+    return None
+
+
+def merge_geo_with_egress(checks):
+    """Best-effort: if online reputation evidence has a country, enrich geo_stack.
+
+    Offline geo_stack stays advisory; never recommends following proxy/node country.
+    Mutates matching check explanations in place when possible; returns checks.
+    """
+    if not checks:
+        return checks
+
+    country = None
+    for check in checks:
+        check_id = getattr(check, "id", None) or (check.get("id") if isinstance(check, dict) else None)
+        if check_id not in (
+            "network.ip_reputation",
+            "network.egress.reputation",
+            "network.egress.ip_reputation",
+        ):
+            continue
+        evidence_list = getattr(check, "evidence", None)
+        if evidence_list is None and isinstance(check, dict):
+            evidence_list = check.get("evidence") or []
+        for item in evidence_list or []:
+            data = getattr(item, "data", None)
+            if data is None and isinstance(item, dict):
+                data = item.get("data")
+            if not isinstance(data, dict):
+                continue
+            for key in ("country_code", "country", "Country", "CountryCode"):
+                raw = data.get(key)
+                if raw is None:
+                    continue
+                text = str(raw).strip().upper()
+                if len(text) == 2 and text.isalpha():
+                    country = text
+                    break
+            if country:
+                break
+        if country:
+            break
+
+    if not country:
+        return checks
+
+    for check in checks:
+        check_id = getattr(check, "id", None) or (check.get("id") if isinstance(check, dict) else None)
+        if check_id != "consistency.geo_stack":
+            continue
+        note = (
+            f" Online reputation observed country code {country} "
+            f"(informational only — do not auto-follow proxy/node country)."
+        )
+        if hasattr(check, "explanation"):
+            expl = check.explanation or ""
+            if country not in expl and "Online reputation" not in expl:
+                try:
+                    check.explanation = expl.rstrip() + note
+                except Exception:
+                    pass
+            # Prefer mutating evidence when dataclass allows
+            try:
+                for item in check.evidence or []:
+                    data = getattr(item, "data", None)
+                    if isinstance(data, dict) and "egress_country_code" not in data:
+                        data = dict(data)
+                        data["egress_country_code"] = country
+                        item.data = data
+                        break
+            except Exception:
+                pass
+        elif isinstance(check, dict):
+            expl = str(check.get("explanation") or "")
+            if country not in expl and "Online reputation" not in expl:
+                check["explanation"] = expl.rstrip() + note
+        break
+
+    return checks
+
+
+def collect_system_checks(data, builder, intended_mode=None):
     add = builder.add
+    mode = normalize_intended_mode(intended_mode)
     # System-level network and locale checks (run even when no Mihomo config is present)
     system = data.get("System")
     if isinstance(system, dict):
@@ -243,6 +340,11 @@ def collect_system_checks(data, builder):
                 expl += " Port class looks like the configured mixed-port."
             elif status == "pass" and port_mixed is False:
                 expl += " Port class does not match the configured mixed-port (confirm intentional)."
+            # Intended mode note for system_proxy path
+            if mode == "system_proxy" and status == "pass":
+                expl += " Matches intended mode system_proxy."
+            elif mode == "full_tunnel" and status == "pass":
+                expl += " System proxy loopback is fine alongside full_tunnel when TUN owns the default route."
             add(
                 "network.system_proxy",
                 "System proxy setting",
@@ -258,6 +360,7 @@ def collect_system_checks(data, builder):
                         "enabled": enabled,
                         "points_to_loopback": loopback,
                         "port_looks_like_mixed": port_mixed,
+                        "intended_mode": mode,
                     },
                 )],
             )
@@ -369,6 +472,7 @@ def collect_system_checks(data, builder):
                     "env_proxy_present": bool(env_present_names),
                     "auto_detect": auto_detect,
                     "auto_config_url_present": pac_url_present,
+                    "intended_mode": mode,
                 },
             )
 
@@ -390,6 +494,12 @@ def collect_system_checks(data, builder):
                 wh_enabled is True
                 and wh_loopback is False
                 and system_loopback_ok
+            )
+            # WinHTTP enabled non-loopback without system loopback is also a soft conflict
+            winhttp_standalone_non_loopback = (
+                wh_enabled is True
+                and wh_loopback is False
+                and not system_loopback_ok
             )
             pac_with_system = system_loopback_ok and (
                 auto_detect is True or pac_url_present is True
@@ -418,6 +528,20 @@ def collect_system_checks(data, builder):
                         "does not point to loopback; some apps may bypass the local client."
                     ),
                     "Consider aligning WinHTTP with the loopback system proxy, or confirm WinHTTP direct access is intended.",
+                    evidence=[layers_evidence],
+                )
+            elif winhttp_standalone_non_loopback and mode == "system_proxy":
+                add(
+                    "network.proxy_layers",
+                    "Proxy layer consistency",
+                    "network",
+                    "warning",
+                    "info",
+                    (
+                        "WinHTTP proxy is enabled and does not point to loopback while intended "
+                        "mode is system_proxy; WinHTTP-using apps may bypass the local client."
+                    ),
+                    "Consider setting WinHTTP to direct or loopback to match system_proxy intent.",
                     evidence=[layers_evidence],
                 )
             elif pac_with_system:
@@ -479,6 +603,252 @@ def collect_system_checks(data, builder):
                     "Consider confirming which proxy layer each app uses; static flags do not prove routing.",
                     evidence=[layers_evidence],
                 )
+
+        # Default route classes (physical vs tunnel) vs intended mode
+        default_route = system.get("DefaultRoute")
+        if isinstance(default_route, dict) and default_route:
+            has_phys = default_route.get("HasPhysicalDefault")
+            has_tun = default_route.get("HasTunnelDefault")
+            phys_lower = default_route.get("PhysicalMetricLower")
+            route_evidence = [evidence(
+                "default_route",
+                "default route classes",
+                {
+                    "has_physical_default": has_phys,
+                    "has_tunnel_default": has_tun,
+                    "physical_metric_lower": phys_lower,
+                    "intended_mode": mode,
+                },
+            )]
+            if mode == "full_tunnel":
+                if has_tun is True and phys_lower is not True:
+                    add(
+                        "network.default_route",
+                        "Default route vs intended mode",
+                        "network",
+                        "pass",
+                        "info",
+                        (
+                            "Tunnel default route is present and not overridden by a lower-metric "
+                            "physical default; consistent with intended full_tunnel mode."
+                        ),
+                        "",
+                        evidence=route_evidence,
+                    )
+                elif has_tun is True and phys_lower is True:
+                    add(
+                        "network.default_route",
+                        "Default route vs intended mode",
+                        "network",
+                        "warning",
+                        "info",
+                        (
+                            "Tunnel default exists but a physical default has a lower metric; "
+                            "full_tunnel mode may not own the preferred default route."
+                        ),
+                        "Consider confirming TUN/strict-route owns the default route when full_tunnel is intended.",
+                        evidence=route_evidence,
+                    )
+                elif has_tun is False:
+                    add(
+                        "network.default_route",
+                        "Default route vs intended mode",
+                        "network",
+                        "warning",
+                        "info",
+                        (
+                            "No tunnel default route observed while intended mode is full_tunnel; "
+                            "traffic may use the physical uplink."
+                        ),
+                        "Enable TUN / full-tunnel routing if that is the intended mode, then re-check default routes.",
+                        evidence=route_evidence,
+                    )
+                else:
+                    add(
+                        "network.default_route",
+                        "Default route vs intended mode",
+                        "network",
+                        "unknown",
+                        "info",
+                        "Default route flags are incomplete for full_tunnel assessment.",
+                        "Consider re-running the Windows collector with route permissions.",
+                        evidence=route_evidence,
+                    )
+            elif mode == "system_proxy":
+                # Physical default is expected; tunnel default optional/not required
+                if has_phys is True or has_phys is None:
+                    bits = []
+                    if has_phys is True:
+                        bits.append("physical default present")
+                    if has_tun is True:
+                        bits.append("tunnel default also present (optional)")
+                    elif has_tun is False:
+                        bits.append("no tunnel default (expected for system_proxy)")
+                    add(
+                        "network.default_route",
+                        "Default route vs intended mode",
+                        "network",
+                        "pass",
+                        "info",
+                        (
+                            "Default route posture is acceptable for intended system_proxy mode"
+                            + (": " + "; ".join(bits) + "." if bits else ".")
+                        ),
+                        "",
+                        evidence=route_evidence,
+                    )
+                else:
+                    add(
+                        "network.default_route",
+                        "Default route vs intended mode",
+                        "network",
+                        "unknown",
+                        "info",
+                        "No physical default route observed; unusual for system_proxy mode but not proof of a leak.",
+                        "Confirm the active default route if apps cannot reach the network.",
+                        evidence=route_evidence,
+                    )
+            else:
+                # Soft/unknown when intended mode not declared
+                if has_tun is True and phys_lower is True:
+                    add(
+                        "network.default_route",
+                        "Default route vs intended mode",
+                        "network",
+                        "unknown",
+                        "info",
+                        (
+                            "Both physical and tunnel defaults exist; physical metric is lower. "
+                            "Declare intended_mode (system_proxy | full_tunnel) for a firmer assessment."
+                        ),
+                        "Optional: pass intended_mode=full_tunnel or system_proxy on analyze/run_full_audit.",
+                        evidence=route_evidence,
+                    )
+                elif has_tun is True:
+                    add(
+                        "network.default_route",
+                        "Default route vs intended mode",
+                        "network",
+                        "pass",
+                        "info",
+                        "Tunnel default route is present (intended mode not declared; soft pass).",
+                        "",
+                        evidence=route_evidence,
+                    )
+                elif has_phys is True:
+                    add(
+                        "network.default_route",
+                        "Default route vs intended mode",
+                        "network",
+                        "unknown",
+                        "info",
+                        (
+                            "Only a physical default route was observed. "
+                            "This is normal for system-proxy mode; declare intended_mode for a firmer assessment."
+                        ),
+                        "Optional: pass intended_mode=system_proxy or full_tunnel on analyze/run_full_audit.",
+                        evidence=route_evidence,
+                    )
+                else:
+                    add(
+                        "network.default_route",
+                        "Default route vs intended mode",
+                        "network",
+                        "unknown",
+                        "info",
+                        "Default route classes could not be classified.",
+                        "",
+                        evidence=route_evidence,
+                    )
+
+        # Browser Secure DNS / DoH — advisory dual-path when Mihomo DNS is on
+        browser_doh = system.get("BrowserSecureDns")
+        if isinstance(browser_doh, dict) and browser_doh:
+            modes = {}
+            for name in ("Chrome", "Edge"):
+                val = browser_doh.get(name)
+                if val is not None:
+                    modes[name] = str(val).lower().strip()
+            if modes:
+                mihomo = data.get("Mihomo") if isinstance(data.get("Mihomo"), dict) else {}
+                mihomo_dns_on = mihomo.get("DnsEnabled") is True
+                dual_path = [
+                    f"{name}={mode}"
+                    for name, mode in modes.items()
+                    if mode in ("secure", "automatic")
+                ]
+                doh_evidence = [evidence(
+                    "browser_secure_dns",
+                    "browser DoH mode classes",
+                    {"modes": modes, "mihomo_dns_enabled": mihomo_dns_on},
+                )]
+                if dual_path and mihomo_dns_on:
+                    add(
+                        "network.browser_secure_dns",
+                        "Browser Secure DNS / DoH",
+                        "network",
+                        "warning",
+                        "info",
+                        (
+                            "Browser Secure DNS is active ("
+                            + ", ".join(dual_path)
+                            + ") while Mihomo DNS is enabled; browsers may resolve outside the proxy DNS path "
+                            "(dual-path advisory only)."
+                        ),
+                        "Consider setting browser Secure DNS to off when Mihomo owns DNS, if a single DNS path is desired.",
+                        evidence=doh_evidence,
+                    )
+                elif dual_path:
+                    add(
+                        "network.browser_secure_dns",
+                        "Browser Secure DNS / DoH",
+                        "network",
+                        "unknown",
+                        "info",
+                        (
+                            "Browser Secure DNS is active ("
+                            + ", ".join(dual_path)
+                            + "); Mihomo DNS is not confirmed enabled. Dual-path risk is inconclusive."
+                        ),
+                        "Confirm whether browser DoH is intentional relative to the proxy DNS path.",
+                        evidence=doh_evidence,
+                    )
+                elif all(m in ("off", "unknown") for m in modes.values()):
+                    if any(m == "off" for m in modes.values()):
+                        add(
+                            "network.browser_secure_dns",
+                            "Browser Secure DNS / DoH",
+                            "network",
+                            "pass",
+                            "info",
+                            "Browser Secure DNS is off or unknown; no dual-path Secure DNS signal.",
+                            "",
+                            evidence=doh_evidence,
+                        )
+                    else:
+                        add(
+                            "network.browser_secure_dns",
+                            "Browser Secure DNS / DoH",
+                            "network",
+                            "unknown",
+                            "info",
+                            "Browser Secure DNS mode could not be read from policy (unknown).",
+                            "",
+                            evidence=doh_evidence,
+                        )
+                else:
+                    add(
+                        "network.browser_secure_dns",
+                        "Browser Secure DNS / DoH",
+                        "network",
+                        "unknown",
+                        "info",
+                        "Browser Secure DNS modes: "
+                        + ", ".join(f"{k}={v}" for k, v in modes.items())
+                        + ".",
+                        "",
+                        evidence=doh_evidence,
+                    )
 
         other_client_count = system.get("OtherProxyClientCount")
         other_clients = system.get("OtherProxyClientsRunning")

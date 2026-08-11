@@ -68,13 +68,29 @@ def collect_privacy_checks(data, builder):
             explanation = (
                 f"{variable} is active; this is an observed setting, not proof of external transmission."
             )
-        elif present:
-            explanation = (
-                f"[not_configured] {variable} is present but its enabling value was not observed."
+            # Active supplemental remains optional_consistency (unknown + rec empty-ish)
+            add(
+                check_id,
+                title,
+                "privacy",
+                "pass",
+                "info",
+                explanation,
+                "",
             )
+        elif present:
+            # Folded optional: not configured / incomplete — leave_alone, do not inflate score
+            explanation = (
+                f"[folded_optional] 补充项未配置，默认可忽略. "
+                f"{variable} is present but its enabling value was not observed."
+            )
+            add(check_id, title, "privacy", "unknown", "info", explanation, "")
         else:
-            explanation = f"[not_configured] {variable} was not observed."
-        add(check_id, title, "privacy", "unknown", "info", explanation)
+            explanation = (
+                f"[folded_optional] 补充项未配置，默认可忽略. "
+                f"{variable} was not observed."
+            )
+            add(check_id, title, "privacy", "unknown", "info", explanation, "")
 
     # --- Local artifacts: recommend hygiene only; never claim server-side unban ---
     artifacts = claude.get("LocalArtifacts")

@@ -1,0 +1,95 @@
+{
+  "SchemaVersion": 7,
+  "CollectedAt": "2026-08-11T00:00:00Z",
+  "System": {
+    "IsAdministrator": false,
+    "MihomoProcessRunning": true,
+    "ServiceModeActive": true,
+    "MixedPortListening": true,
+    "OtherProxyClientCount": 0,
+    "OtherProxyClientsRunning": [],
+    "SystemProxy": {
+      "Enabled": true,
+      "PointsToLoopback": true,
+      "PortLooksLikeMixed": true
+    },
+    "WinHttpProxy": {
+      "Enabled": false,
+      "PointsToLoopback": false,
+      "HasProxyList": false
+    },
+    "ProxyAutoConfig": {
+      "AutoDetect": false,
+      "AutoConfigURLPresent": false
+    },
+    "TimeZone": "China Standard Time",
+    "Culture": "zh-CN",
+    "UICulture": "zh-CN",
+    "SystemLocale": "zh-CN",
+    "UserLanguageList": ["zh-CN"],
+    "Teredo": {
+      "Available": true,
+      "Type": "Disabled",
+      "Disabled": true
+    },
+    "ActiveAdapterIPv6Bindings": [
+      {"Classification": "Physical", "Enabled": false},
+      {"Classification": "TunnelOrVpn", "Enabled": true}
+    ],
+    "LocalDnsServers": [
+      {"Classification": "TunnelOrVpn", "Family": "2", "ServerClasses": ["FakeIp"]}
+    ],
+    "ProxyEnvironmentVariables": [],
+    "DefaultRoute": {
+      "HasPhysicalDefault": true,
+      "HasTunnelDefault": true,
+      "PhysicalMetricLower": false
+    },
+    "BrowserSecureDns": {
+      "Chrome": "off",
+      "Edge": "unknown"
+    }
+  },
+  "Mihomo": {
+    "AppConfigPresent": true,
+    "RuntimeConfigPresent": true,
+    "Mode": "Rule",
+    "AllowLan": false,
+    "TunEnabled": true,
+    "StrictRoute": true,
+    "TunStack": "gvisor",
+    "DnsEnabled": true,
+    "DnsRespectRules": true,
+    "DnsMode": "fake-ip",
+    "DnsIPv6": false,
+    "IPv6": false,
+    "DnsHijackAny53": true,
+    "EncryptedDnsUpstreams": [{"Scheme": "https"}]
+  },
+  "Browsers": {
+    "Chrome": {
+      "Installed": true,
+      "ManagedWebRtcPolicyPresent": false,
+      "RestrictiveWebRtcPolicyDetected": false
+    },
+    "Edge": {
+      "Installed": true,
+      "ManagedWebRtcPolicyPresent": false,
+      "RestrictiveWebRtcPolicyDetected": false
+    }
+  },
+  "ClaudeCode": {
+    "DisableTelemetryActive": false,
+    "DisableErrorReportingActive": false,
+    "DisableNonessentialTrafficActive": false,
+    "SkipPromptHistoryActive": false,
+    "SubprocessEnvScrubActive": false,
+    "OtelLogUserPromptsActive": false,
+    "OtelLogToolContentActive": false,
+    "OtelLogToolDetailsActive": false,
+    "OtelLogRawApiBodiesActive": false,
+    "DeviceIdArtifactPresent": false,
+    "TelemetryCachePresent": false,
+    "LocalArtifacts": []
+  }
+}
