@@ -741,6 +741,55 @@ foreach ($cn in $clientNames) {
     }
 }
 
+# Local Claude/telemetry artifacts: presence only (never read file contents / IDs).
+function Get-PathPresence {
+    param([string]$Label, [string]$Path)
+    $item = Get-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+    $present = $null -ne $item
+    $kind = if (-not $present) { 'missing' } elseif ($item.PSIsContainer) { 'directory' } else { 'file' }
+    $size = $null
+    if ($present -and -not $item.PSIsContainer) {
+        $size = [int64]$item.Length
+    } elseif ($present -and $item.PSIsContainer) {
+        try {
+            $size = [int64]((Get-ChildItem -LiteralPath $Path -Force -Recurse -File -ErrorAction SilentlyContinue |
+                Measure-Object -Property Length -Sum).Sum)
+        } catch { $size = $null }
+    }
+    return [ordered]@{
+        Label = $Label
+        Present = $present
+        Kind = $kind
+        # Size only — never path contents or identifiers
+        SizeBytes = $size
+    }
+}
+
+$homeDir = $env:USERPROFILE
+$localApp = $env:LOCALAPPDATA
+$roamApp = $env:APPDATA
+$deviceIdCandidates = @(
+    (Get-PathPresence -Label 'claude_home_dir' -Path (Join-Path $homeDir '.claude')),
+    (Get-PathPresence -Label 'claude_json' -Path (Join-Path $homeDir '.claude.json')),
+    (Get-PathPresence -Label 'claude_device_id_candidates' -Path (Join-Path $homeDir '.claude\.device_id')),
+    (Get-PathPresence -Label 'claude_statsig_dir' -Path (Join-Path $homeDir '.claude\statsig')),
+    (Get-PathPresence -Label 'claude_telemetry_dir' -Path (Join-Path $homeDir '.claude\telemetry')),
+    (Get-PathPresence -Label 'claude_cache_dir' -Path (Join-Path $homeDir '.claude\cache')),
+    (Get-PathPresence -Label 'claude_settings_json' -Path (Join-Path $homeDir '.claude\settings.json')),
+    (Get-PathPresence -Label 'appdata_claude' -Path (Join-Path $roamApp 'Claude')),
+    (Get-PathPresence -Label 'localappdata_claude' -Path (Join-Path $localApp 'Claude')),
+    (Get-PathPresence -Label 'localappdata_anthropic' -Path (Join-Path $localApp 'Anthropic'))
+)
+$telemetryCachePresent = [bool](@($deviceIdCandidates | Where-Object {
+    $_.Present -and ($_.Label -match 'statsig|telemetry|cache')
+}).Count -gt 0)
+$deviceIdArtifactPresent = [bool](@($deviceIdCandidates | Where-Object {
+    $_.Present -and ($_.Label -match 'device_id|claude_json|claude_home_dir|appdata_claude|localappdata_claude|localappdata_anthropic')
+}).Count -gt 0)
+$settingsJsonPresent = [bool](@($deviceIdCandidates | Where-Object {
+    $_.Present -and $_.Label -eq 'claude_settings_json'
+}).Count -gt 0)
+
 $claudeAudit = [ordered]@{
     DisableTelemetryVars = $claudeDisableTelemetry
     DisableTelemetryActive = [bool]($claudeDisableTelemetry[0].Active)
@@ -760,6 +809,10 @@ $claudeAudit = [ordered]@{
     OtelLogToolDetailsActive = [bool]($otelLogToolDetails[0].Active)
     OtelLogRawApiBodiesVars = $otelLogRawApiBodies
     OtelLogRawApiBodiesActive = [bool]($otelLogRawApiBodies[0].Active)
+    LocalArtifacts = $deviceIdCandidates
+    DeviceIdArtifactPresent = $deviceIdArtifactPresent
+    TelemetryCachePresent = $telemetryCachePresent
+    SettingsJsonPresent = $settingsJsonPresent
 }
 
 $dnsHijackAny53 = $combinedConfig -match "(?im)^\s*-\s*['`"]?any:53['`"]?\s*(?:#.*)?$"

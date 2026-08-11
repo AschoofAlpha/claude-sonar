@@ -121,6 +121,8 @@ pwsh -NoProfile -File .\scripts\remediate_windows_network.ps1 -Apply
 
 脚本会写备份并打印精确的回滚命令。宽泛的非必要流量开关可能禁用 Claude Code 的某些可选功能，仅在明确接受该权衡时启用。POSIX 下 `--apply` 只创建私有环境文件并打印 `source` 命令，不修改 shell 配置或网络设置。
 
+报告在发现本地 Claude 目录/缓存或浏览器 WebRTC 策略偏松时，可以**建议**是否做本地 device-ID 重置、清理遥测缓存、加强浏览器隐私/WebRTC 设置；这些建议默认不自动执行，**不能**清除服务端设备标记，也**不**推荐反检测浏览器或指纹伪装。
+
 ## 安全边界
 
 - 不伪造指纹、不隐藏自动化、不绕过验证码，也不做多账号工具。

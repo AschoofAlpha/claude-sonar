@@ -262,3 +262,8 @@ State uncertainty explicitly. Reputation scores, TCP/IP inference, and RTT are n
 ## Verification
 
 After explicit approval, re-run controlled public tests after a node, network, or configuration change. Use a fresh unique hostname for DNS so cached answers do not hide the active resolver path. A healthy result is internally consistent and free of confirmed bypasses; it does not need every heuristic detector to show green. Do not mark the audit complete while any required item is `unknown` or `ManualCheckRequired`.
+
+
+## Local identity / cache / fingerprint recommendations
+
+When local Claude paths or unrestricted WebRTC posture are observed, the report may recommend **optional** local device-id reset, telemetry-cache hygiene, or browser WebRTC hardening. These never auto-run, never spoof fingerprints, and **cannot** clear server-side device marks or unban accounts.

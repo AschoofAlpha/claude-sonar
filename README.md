@@ -75,7 +75,7 @@ Library defaults: `run_full_audit(include_recommendations=True)` returns `report
 - A full read-only Windows collector for proxy, DNS, IPv6, system, and documented Claude Code privacy settings, plus a limited POSIX environment summary.
 - Clash Verge/Mihomo checks for rule mode, system proxy, service/TUN state, `strict-route`, fake-IP, DNS hijacking, LAN access, and the actual policy selection when its local controller is available.
 - Recommendations split into **Must fix**, **Optional consistency**, and **Leave alone**.
-- Optional, reversible privacy environment-variable remediation. No automatic DNS, route, firewall, VPN, IPv6-adapter, device-ID, cache, or browser-fingerprint changes.
+- Optional, reversible privacy environment-variable remediation. No automatic DNS, route, firewall, VPN, or IPv6-adapter changes. Device-ID/cache/fingerprint items appear only as optional recommendations with explicit limits (local hygiene only; not server unban; no anti-detect stacks).
 
 The audit is local evidence, not a prediction of account approval or suspension.
 
@@ -127,7 +127,7 @@ The script writes a backup and prints the exact rollback command. The broad non-
 
 - No fingerprint spoofing, automation concealment, CAPTCHA bypass, or multi-account tooling.
 - No fabricated identity, residence, billing, tax, or payment information.
-- No automatic device-ID deletion, telemetry-cache deletion, or global network modifications.
+- May recommend optional local device-id/cache hygiene or browser WebRTC hardening when artifacts are present; does not auto-delete IDs, does not spoof fingerprints, and cannot clear server-side marks or unban accounts.
 - No claim that a configuration prevents account review or suspension.
 
 Use current primary documentation for Claude Code privacy controls and rate limits. Treat third-party detector labels as opinions until live routing evidence corroborates them.

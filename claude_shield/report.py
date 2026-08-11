@@ -42,6 +42,9 @@ _OPTIONAL_IDS = frozenset({
     "privacy.otel_tool_content",
     "privacy.otel_tool_details",
     "privacy.otel_raw_api",
+    "privacy.local_device_id",
+    "privacy.telemetry_cache",
+    "privacy.browser_fingerprint",
 })
 
 _ACTION_ORDER = ("must_fix", "optional_consistency", "leave_alone")
@@ -96,6 +99,9 @@ _CHECK_PLAIN = {
         "privacy.otel_tool_content": "监控系统会不会记下工具调用内容（补充项）",
         "privacy.otel_tool_details": "监控系统会不会记下工具细节（补充项）",
         "privacy.otel_raw_api": "监控系统会不会记下原始 API 正文（补充项）",
+        "privacy.local_device_id": "本机是否残留 Claude/设备身份相关目录（只看有没有，不读 ID）",
+        "privacy.telemetry_cache": "本机是否有遥测/缓存目录可清理（本地卫生，不是解封）",
+        "privacy.browser_fingerprint": "浏览器 WebRTC/指纹姿态：只建议正规隐私设置，不建议伪装浏览器",
         "network.service": "代理软件（Mihomo）是否在正常运行、端口是否在听",
         "network.teredo": "系统有没有开可能绕过代理的 IPv6 隧道（Teredo）",
         "network.ipv6_binding": "网卡 IPv6 会不会从物理网络直接出去",
@@ -136,6 +142,9 @@ _CHECK_PLAIN = {
         "privacy.otel_tool_content": "Optional: whether OpenTelemetry logs tool content",
         "privacy.otel_tool_details": "Optional: whether OpenTelemetry logs tool details",
         "privacy.otel_raw_api": "Optional: whether OpenTelemetry logs raw API bodies",
+        "privacy.local_device_id": "Whether local Claude/device identity paths exist (presence only)",
+        "privacy.telemetry_cache": "Whether local telemetry/cache dirs exist (hygiene, not unban)",
+        "privacy.browser_fingerprint": "Browser WebRTC/fingerprint posture; policy hardening only, no anti-detect",
         "network.service": "Whether the Mihomo proxy process/service and port are up",
         "network.teredo": "Whether Teredo (an IPv6 tunnel that can bypass the proxy) is off",
         "network.ipv6_binding": "Whether physical NICs expose IPv6 that could bypass the tunnel",
