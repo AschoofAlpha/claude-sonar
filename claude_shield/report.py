@@ -1121,31 +1121,35 @@ def _footer_lines(lang: str) -> List[str]:
     """Soft recommend-only boundary: what this tool never auto-applies."""
     if lang == "en":
         return [
-            "## What this tool does not do automatically",
+            "## How this tool helps you change settings",
             "",
-            "Claude Shield **only recommends**. It will **not** automatically:",
+            "It **personalizes manual steps** for the proxy client it detects (timezone vs exit, local hygiene, DNS / route / TUN / IPv6 / system proxy).",
             "",
-            "- spoof browser / device **fingerprints**",
-            "- force **timezone** to follow the proxy node",
-            "- wipe / “launder” the local environment",
+            "It will **not auto-apply** any of the following (you confirm and change them yourself):",
+            "",
+            "- spoof browser / device **fingerprints** (only normal privacy hardening tips)",
+            "- force **timezone** to follow the node (may *suggest* manual align)",
+            "- wipe / “launder” the environment (may *suggest* local hygiene; not unban)",
             "- invent an **anti-ban** or stealth score disguise",
-            "- change **DNS**, routes, TUN, IPv6 adapters, or system proxy for you",
+            "- change **DNS**, routes, TUN, IPv6 adapters, or system proxy for you (may *suggest* steps)",
             "",
-            "_Any change still needs your explicit approval. Remediation scripts, when used, only touch documented privacy environment variables._",
+            "_Any change still needs your explicit approval. Remediation scripts, when used, still default to documented privacy env vars only._",
             "",
         ]
     return [
-        "## 本工具不会自动做的事",
+        "## 本工具如何协助你改配置",
         "",
-        "本工具**只给建议**，**不会自动**：",
+        "会根据你正在用的梯子**给出个性化手动步骤**（时区对齐出口、本地卫生、DNS / 路由 / TUN / IPv6 / 系统代理等）。",
         "",
-        "- 改指纹 / 伪装浏览器",
-        "- 时区跟随节点",
-        "- 清环境洗白",
-        "- 防封评分伪装",
-        "- 改 DNS · 路由 · TUN · IPv6 或系统代理",
+        "**不会自动执行**下列操作（需你确认后自己改）：",
         "",
-        "_任何修改都需要你明确同意。修复脚本（若使用）也仅处理文档中的隐私环境变量。_",
+        "- 改指纹 / 伪装浏览器（仅建议正规隐私设置）",
+        "- 时区跟随节点 / 出口（可建议，不代改）",
+        "- 清环境洗白（可建议本机卫生，不解封）",
+        "- 防封评分伪装（不做）",
+        "- 改 DNS · 路由 · TUN · IPv6 或系统代理（可建议，不代改）",
+        "",
+        "_任何修改都需要你明确同意。修复脚本（若使用）默认仍只处理文档中的隐私环境变量。_",
         "",
     ]
 
@@ -1208,6 +1212,10 @@ def format_report(
     summary: Optional[Mapping[str, Any]] = None,
     lang: str = "zh",
     compact: bool = False,
+    snapshot: Optional[Mapping[str, Any]] = None,
+    intended_mode: Optional[str] = None,
+    intended_region: Optional[str] = None,
+    **_kwargs: Any,
 ) -> str:
     """Render checks as markdown tables for AI/chat display.
 
@@ -1360,6 +1368,22 @@ def format_report(
                 "configuration alone are not proof of a leak._"
             )
         lines.append("")
+
+    # Personalized proxy client + manual action guidance
+    try:
+        from .personalize import build_personal_guidance, format_personal_section
+
+        _guide = build_personal_guidance(
+            snapshot,
+            checks,
+            intended_mode=intended_mode,
+            intended_region=intended_region,
+            lang=lang,
+        )
+        lines.append(format_personal_section(_guide, lang=lang))
+    except Exception:
+        pass
+
     lines.extend(_footer_lines(lang))
     return "\n".join(lines)
 

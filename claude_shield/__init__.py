@@ -17,6 +17,11 @@ except ImportError:  # pragma: no cover - allow version-only import during packa
     pass
 
 try:
+    from .personalize import (
+        build_personal_guidance,
+        detect_active_proxy,
+        format_personal_section,
+    )
     from .report import format_report, group_checks, plain_check, plain_status, score_checks
 except ImportError:  # pragma: no cover
     format_report = None  # type: ignore[assignment]

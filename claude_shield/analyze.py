@@ -106,6 +106,11 @@ def analyze_snapshot(data, include_recommendations=True, redactor=None, intended
             return fn(*args)
 
     _call(collect_privacy_checks, data, builder)
+    try:
+        from .personalize import collect_client_profile_check
+        collect_client_profile_check(data, builder)
+    except Exception:
+        pass
     _call(collect_system_checks, data, builder)
     _call(collect_browser_checks, data, builder)
     early_stop = _call(collect_mihomo_checks, data, builder)
@@ -228,7 +233,13 @@ def run_full_audit(
     if formatter is not None:
         try:
             report_markdown = formatter(
-                checks, summary=report.summary, lang=lang, compact=compact
+                checks,
+                summary=report.summary,
+                lang=lang,
+                compact=compact,
+                snapshot=snapshot,
+                intended_mode=intended_mode,
+                intended_region=intended_region,
             )
         except TypeError:
             try:

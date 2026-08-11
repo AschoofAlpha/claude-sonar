@@ -858,9 +858,50 @@ $otherProxyClientsRunning = @()
 $clientNames = @(
     'v2rayN', 'v2ray', 'xray', 'sing-box', 'hysteria', 'hysteria2',
     'trojan', 'ss-local', 'shadowsocks', 'Hiddify', 'nestbox', 'nekobox',
-    'clash-meta', 'Clash for Windows', 'netch', 'ssr'
+    'clash-meta', 'Clash for Windows', 'netch', 'ssr',
+    'Clash Verge', 'clash-verge', 'ClashVerge', 'Clash Verge Rev',
+    'clash-verge-rev', 'ClashVergeRev', 'verge-mihomo', 'mihomo',
+    'ClashCore', 'clash', 'HiddifyCli', 'nekoray'
 )
+# Primary proxy processes: broader match (name contains) for personalization
+$primaryProxyProcesses = @()
+$primaryPatterns = @(
+    @{ Pattern = 'verge'; Label = 'Clash Verge' },
+    @{ Pattern = 'mihomo'; Label = 'Mihomo' },
+    @{ Pattern = 'clash'; Label = 'Clash' },
+    @{ Pattern = 'v2ray'; Label = 'v2rayN' },
+    @{ Pattern = 'xray'; Label = 'Xray' },
+    @{ Pattern = 'sing-box'; Label = 'sing-box' },
+    @{ Pattern = 'hiddify'; Label = 'Hiddify' },
+    @{ Pattern = 'neko'; Label = 'NekoBox' },
+    @{ Pattern = 'hysteria'; Label = 'Hysteria' },
+    @{ Pattern = 'netch'; Label = 'Netch' }
+)
+try {
+    $allProcs = Get-Process -ErrorAction SilentlyContinue | Select-Object -Property Name -Unique
+    foreach ($p in $allProcs) {
+        $n = [string]$p.Name
+        if ([string]::IsNullOrWhiteSpace($n)) { continue }
+        $nl = $n.ToLowerInvariant()
+        foreach ($pat in $primaryPatterns) {
+            if ($nl.Contains([string]$pat.Pattern)) {
+                $primaryProxyProcesses += [pscustomobject][ordered]@{
+                    Name = $n
+                    Label = $pat.Label
+                    Running = $true
+                }
+                break
+            }
+        }
+    }
+} catch {
+    $primaryProxyProcesses = @()
+}
+$primaryNames = @($primaryProxyProcesses | ForEach-Object { $_.Name.ToLowerInvariant() })
 foreach ($cn in $clientNames) {
+    if ($primaryNames -contains $cn.ToLowerInvariant()) {
+        continue
+    }
     $proc = $null
     try {
         $proc = Get-Process -Name $cn -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -1011,6 +1052,7 @@ $result = [ordered]@{
         MihomoProcessRunning = $processRunning
         OtherProxyClientCount = $otherProxyClientCount
         OtherProxyClientsRunning = $otherProxyClientsRunning
+        PrimaryProxyProcesses = @($primaryProxyProcesses)
         ServiceModeActive = $serviceModeActive
         MixedPort = $mixedPort
         MixedPortListening = $portListening

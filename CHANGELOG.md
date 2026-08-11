@@ -2,7 +2,20 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-08-11
+
+### Added
+- Personalized guidance: auto-detect the active proxy client (Clash Verge / Mihomo / v2rayN / Xray / sing-box / Hiddify / NekoBox / Hysteria / Netch, …) and show app-specific manual tips.
+- Report section "个性化（检测到的代理）": primary client, engine, confidence, plus manual action list — timezone align to exit/node, local hygiene, DNS/route/TUN/IPv6/system proxy — all recommend-only, never auto-applied.
+- New check `client.profile` (informational).
+- Windows collector: `PrimaryProxyProcesses` (name + label, no paths); other-client list now excludes the primary client to avoid false "extra client" noise.
+
+### Changed
+- Footer renamed to "本工具如何协助你改配置 / How this tool helps you change settings": clarifies it *can* suggest manual steps (timezone follow node, hygiene, DNS/route/TUN/IPv6/system proxy) but will never auto-apply them.
+- Version 1.4.1 across metadata/badges/docs.
+
 ## [1.4.0] - 2026-08-11
+
 
 ### Added
 - CLI flags: `--out PATH` (write report file and still print to stdout), `--diff PATH` (compare against a previous JSON `report_dict` / CLI `--json` payload), `--intended-mode {system_proxy,full_tunnel}`, `--compact` (short markdown), `--full` (explicit full report; overrides `--compact`).

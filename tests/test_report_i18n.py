@@ -147,7 +147,7 @@ class TestCompactFormat(unittest.TestCase):
         self.assertNotIn("## 保持不动", md)
         self.assertNotIn("## 名词解释", md)
         # footer still present
-        self.assertIn("## 本工具不会自动做的事", md)
+        self.assertIn("## 本工具如何协助你改配置", md)
         self.assertIn("network.allow_lan", md)
 
     def test_full_still_has_all_results(self):
@@ -169,7 +169,7 @@ class TestCompactFormat(unittest.TestCase):
         self.assertNotIn("## Leave alone", md)
         self.assertIn("## Must fix", md)
         self.assertIn("## Optional consistency", md)
-        self.assertIn("## What this tool does not do automatically", md)
+        self.assertIn("## How this tool helps you change settings", md)
 
 
 if __name__ == "__main__":

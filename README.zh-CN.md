@@ -8,7 +8,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/AschoofAlpha/claude-shield/ci.yml?style=flat-square&label=CI" alt="CI">
-  <img src="https://img.shields.io/badge/version-1.4.0-2DD4BF?style=flat-square" alt="v1.4.0">
+  <img src="https://img.shields.io/badge/version-1.4.1-2DD4BF?style=flat-square" alt="v1.4.1">
   <img src="https://img.shields.io/badge/default-read--only-2DD4BF?style=flat-square" alt="默认只读">
   <img src="https://img.shields.io/badge/platform-Windows-4F7CFF?style=flat-square" alt="Windows">
   <img src="https://img.shields.io/badge/license-MIT-64748B?style=flat-square" alt="MIT License">

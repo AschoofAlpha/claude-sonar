@@ -83,21 +83,21 @@ class TestReportPlain(unittest.TestCase):
     def test_footer_recommend_only_zh_en(self):
         md_zh = format_report([_check(id="network.mode", status="pass")], lang="zh")
         md_en = format_report([_check(id="network.mode", status="pass")], lang="en")
-        self.assertIn("## 本工具不会自动做的事", md_zh)
+        self.assertIn("## 本工具如何协助你改配置", md_zh)
         self.assertIn("改指纹", md_zh)
         self.assertIn("时区跟随节点", md_zh)
         self.assertIn("清环境洗白", md_zh)
         self.assertIn("防封评分伪装", md_zh)
         self.assertIn("DNS", md_zh)
         self.assertIn("TUN", md_zh)
-        self.assertIn("只给建议", md_zh)
+        self.assertIn("不会自动执行", md_zh)
 
-        self.assertIn("## What this tool does not do automatically", md_en)
+        self.assertIn("## How this tool helps you change settings", md_en)
         self.assertIn("fingerprint", md_en.lower())
         self.assertIn("timezone", md_en.lower())
         self.assertIn("anti-ban", md_en.lower())
         self.assertIn("DNS", md_en)
-        self.assertIn("only recommends", md_en.lower())
+        self.assertIn("not auto-apply", md_en.lower())
 
     def test_score_named_consistency_not_ban(self):
         s = score_checks([_check(id="network.mode", status="pass")])
