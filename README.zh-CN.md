@@ -8,7 +8,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/AschoofAlpha/claude-shield/ci.yml?style=flat-square&label=CI" alt="CI">
-  <img src="https://img.shields.io/badge/version-1.3.2-2DD4BF?style=flat-square" alt="v1.3.2">
+  <img src="https://img.shields.io/badge/version-1.3.3-2DD4BF?style=flat-square" alt="v1.3.3">
   <img src="https://img.shields.io/badge/default-read--only-2DD4BF?style=flat-square" alt="默认只读">
   <img src="https://img.shields.io/badge/platform-Windows-4F7CFF?style=flat-square" alt="Windows">
   <img src="https://img.shields.io/badge/license-MIT-64748B?style=flat-square" alt="MIT License">
@@ -46,8 +46,13 @@
 ## 快速开始
 
 ```bash
-pip install claude-shield
+pip install -U claude-shield
 ```
+
+完整报告能力（说明列、配置自洽分、代理分层检查等）请使用 **1.3.3+**。  
+**关于 1.3.2：** PyPI 上的 `1.3.2` 轮子 主要是删除了假演示截图；之后在 git 上仍标 1.3.2、但未再发 PyPI 的功能，已收进 **1.3.3**。请 `pip install -U claude-shield`，或以本仓库安装。  
+旧包名 **`anti-claude-check`** 已停用，请只安装 **`claude-shield`**。
+
 
 作为 Agent Skill（Codex / Claude Code）：
 

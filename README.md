@@ -8,7 +8,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/AschoofAlpha/claude-shield/ci.yml?style=flat-square&label=CI" alt="CI">
-  <img src="https://img.shields.io/badge/version-1.3.2-2DD4BF?style=flat-square" alt="v1.3.2">
+  <img src="https://img.shields.io/badge/version-1.3.3-2DD4BF?style=flat-square" alt="v1.3.3">
   <img src="https://img.shields.io/badge/default-read--only-2DD4BF?style=flat-square" alt="Read-only by default">
   <img src="https://img.shields.io/badge/platform-Windows-4F7CFF?style=flat-square" alt="Windows">
   <img src="https://img.shields.io/badge/license-MIT-64748B?style=flat-square" alt="MIT License">
@@ -46,8 +46,13 @@
 ## Install
 
 ```bash
-pip install claude-shield
+pip install -U claude-shield
 ```
+
+Requires **1.3.3+** for the full report (plain-language column, consistency score, proxy-layer checks).  
+**Note on 1.3.2:** the PyPI `1.3.2` wheel mainly dropped the fake demo screenshot; later features stayed on git under the same version label until **1.3.3**. Prefer `pip install -U claude-shield` or install from this repo.  
+Legacy package **`anti-claude-check`** is retired — use **`claude-shield`** only.
+
 
 As an agent skill (Codex / Claude Code):
 
