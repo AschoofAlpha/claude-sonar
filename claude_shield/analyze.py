@@ -165,6 +165,7 @@ def run_full_audit(
     lang="zh",
     intended_mode=None,
     compact=False,
+    cli_agent=None,
 ):
     """One-call audit: run the collector, analyze locally, and optionally probe online.
 
@@ -177,6 +178,8 @@ def run_full_audit(
     - ``report_markdown``: markdown string from ``format_report`` when available
 
     ``lang`` selects the plain-language layer for ``report_markdown`` (``zh`` or ``en``).
+    ``cli_agent`` (bool/None) marks CLI-agent use (Claude Code/Codex) for the personalized
+    TUN/global recommendation; None auto-detects from the snapshot.
     ``intended_mode`` is optional (``system_proxy`` / ``full_tunnel``) and is
     forwarded into ``analyze_snapshot`` when collectors support it.
     ``compact`` shortens ``report_markdown`` when the formatter supports it.
@@ -240,6 +243,7 @@ def run_full_audit(
                 snapshot=snapshot,
                 intended_mode=intended_mode,
                 intended_region=intended_region,
+                cli_agent=cli_agent,
             )
         except TypeError:
             try:

@@ -45,6 +45,49 @@ def _norm_name(name: str) -> str:
     return str(name or "").strip().lower().replace(".exe", "").replace("_", "-")
 
 
+_CLI_AGENT_HINTS = (
+    "claude", "codex", "opencode", "gemini-cli", "aider", "cursor",
+)
+
+
+def detect_cli_agent(snapshot: Optional[dict]) -> bool:
+    """Best-effort: is a terminal/CLI coding agent in use on this machine?
+
+    Looks at Claude Code config/env presence in the snapshot (ClaudeCode
+    section) plus common CLI-agent process names. Absence is not proof the
+    user never uses a CLI — the report treats it as advisory.
+    """
+    data = snapshot if isinstance(snapshot, dict) else {}
+    claude = data.get("ClaudeCode")
+    if isinstance(claude, dict):
+        # Any meaningful Claude Code signal counts as "likely CLI use".
+        keys = [
+            "DisableTelemetryVars",
+            "DisableErrorReportingVars",
+            "DisableNonessentialTrafficVars",
+            "SkipPromptHistoryVars",
+            "LocalArtifacts",
+        ]
+        for k in keys:
+            v = claude.get(k)
+            if isinstance(v, list) and v:
+                return True
+            if v:
+                return True
+    system = data.get("System")
+    if isinstance(system, dict):
+        procs = system.get("PrimaryProxyProcesses") or []
+        other = system.get("OtherProxyClientsRunning") or []
+        for lst in (procs, other):
+            if not isinstance(lst, list):
+                continue
+            for item in lst:
+                name = str(item.get("Name", "") if isinstance(item, dict) else item).lower()
+                if any(h in name for h in _CLI_AGENT_HINTS):
+                    return True
+    return False
+
+
 def _label_for(name: str) -> str:
     key = _norm_name(name)
     if key in _PROCESS_LABELS:
@@ -161,6 +204,8 @@ def _client_tips(primary: str, lang: str) -> List[str]:
                 "TUN 全隧道：设置 → 开启 TUN（需管理员）；适合 `full_tunnel` 意图。",
                 "DNS：推荐 fake-ip + 劫持 53 + 加密上游（DoH）；浏览器 Secure DNS 建议关闭以免双轨。",
                 "节点：策略组用**手动固定**，避免自动测速乱跳。",
+                "**叫法对照：** 虚拟网卡模式 = TUN 模式（Clash Verge/Mihomo/Clash 系均如此叫）；"
+                "有的客户端叫「全局模式」（但不一定接管全部流量），以「TUN/虚拟网卡」字样为准。",
             ]
         return [
             "Open Clash Verge / Mihomo → enable System Proxy or TUN as intended.",
@@ -168,6 +213,7 @@ def _client_tips(primary: str, lang: str) -> List[str]:
             "TUN needs elevation; use for full_tunnel intent.",
             "Prefer fake-ip + port-53 hijack + DoH; turn off browser Secure DNS if dual-path.",
             "Keep policy groups on manual/fixed selection.",
+            "Note: “virtual adapter” mode = TUN mode in Clash-family clients; “global mode” alone may not capture everything.",
         ]
     if "v2ray" in p or "xray" in p:
         if zh:
@@ -175,26 +221,31 @@ def _client_tips(primary: str, lang: str) -> List[str]:
                 "打开 **v2rayN / Xray** → 参数设置：系统代理 / 路由模式。",
                 "需要全局时用「自动配置系统代理」或 TUN 类模式（以客户端为准）。",
                 "DNS 与路由规则在核心配置中检查，避免直连绕过。",
+                "**叫法对照：** 虚拟网卡/TUN 在 v2rayN 里常叫「TUN 模式」；Xray 需在核心配置开启 tun 块。",
             ]
         return [
             "Open v2rayN/Xray → system proxy / routing mode.",
             "Use system proxy or TUN-style mode when you want broader capture.",
+            "v2rayN calls TUN “TUN 模式”; Xray enables it via the tun block in config.",
         ]
     if "sing-box" in p or "hiddify" in p or "neko" in p:
         if zh:
             return [
                 f"打开 **{primary}** → 查看系统代理 / TUN / DNS 面板。",
                 "按你的意图开启系统代理或 TUN；DNS 尽量走客户端接管。",
+                "**叫法对照：** sing-box/Hiddify/NekoBox 的虚拟网卡 = TUN（sing-box 配置里是 tun 块；Hiddify 面板里叫 TUN）。",
             ]
-        return [f"Open **{primary}** → system proxy / TUN / DNS panels."]
+        return [f"Open **{primary}** → system proxy / TUN / DNS panels. TUN = virtual adapter."]
     if zh:
         return [
             f"当前识别为：**{primary}**。请在该软件设置中调整系统代理、TUN、DNS。",
             "改网络相关项前先确认只运行一个主力客户端，避免多开抢代理。",
+            "**叫法对照：** 虚拟网卡 = TUN（绝大多数客户端如此命名）；「全局模式」不一定覆盖全部流量。",
         ]
     return [
         f"Detected **{primary}**. Adjust system proxy / TUN / DNS in that app.",
         "Avoid multiple proxy clients fighting for the system proxy.",
+        "“Virtual adapter” usually means TUN mode; “global mode” alone may not cover everything.",
     ]
 
 
@@ -205,6 +256,7 @@ def build_personal_guidance(
     intended_mode: Optional[str] = None,
     intended_region: Optional[str] = None,
     lang: str = "zh",
+    cli_agent: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """Build personalized recommend-only guidance block + optional synthetic notes."""
     lang = "en" if str(lang).lower().startswith("en") else "zh"
@@ -213,10 +265,40 @@ def build_personal_guidance(
     mode = (intended_mode or "").strip().lower().replace("-", "_")
     tips = _client_tips(str(profile.get("primary") or ""), lang)
 
+    # CLI-agent detection: explicit override wins, else best-effort snapshot sniff.
+    if cli_agent is None:
+        cli_agent = detect_cli_agent(snapshot)
+
     actions: List[Dict[str, str]] = []
 
     def add_action(kind: str, title: str, detail: str) -> None:
         actions.append({"kind": kind, "title": title, "detail": detail})
+
+    # CLI coding agents (Claude Code / Codex / …) often ignore the OS system
+    # proxy — recommend global + TUN/virtual-adapter capture, app-named.
+    if cli_agent:
+        add_action(
+            "cli_tun",
+            (
+                "CLI 端 Claude/Codex 建议：开全局 + 虚拟网卡(TUN)"
+                if lang == "zh"
+                else "CLI Claude/Codex: enable global + virtual adapter (TUN)"
+            ),
+            (
+                f"CLI 工具（Claude Code / Codex 等）很多不读 Windows 系统代理，只认环境变量或直连。"
+                f"若要让 CLI 流量也走梯子：在 **{profile.get('primary')}** 里开 **全局 + 虚拟网卡(TUN)** 模式"
+                f"（各客户端叫法：Clash Verge/Mihomo 叫 TUN 或虚拟网卡；v2rayN 叫 TUN 模式；"
+                f"sing-box/Hiddify 叫 TUN；部分叫「全局模式」但不一定覆盖全部流量）。"
+                f"也可给终端设 HTTPS_PROXY 指向 {profile.get('primary')} 的端口。"
+                f"本工具不会自动改 TUN 或代理设置。"
+                if lang == "zh"
+                else f"CLI agents (Claude Code / Codex …) often bypass the OS system proxy. "
+                f"To route them too: enable **global + virtual adapter (TUN)** in **{profile.get('primary')}** "
+                f"(names vary: Clash Verge/Mihomo call it TUN/virtual adapter, v2rayN TUN 模式, "
+                f"sing-box/Hiddify TUN; “global mode” alone may not cover everything), "
+                f"or export HTTPS_PROXY for the terminal. This tool will not change TUN/proxy settings."
+            ),
+        )
 
     # TUN
     tun = by_id.get("network.tun")
@@ -234,15 +316,32 @@ def build_personal_guidance(
             ),
         )
     elif mode in ("system_proxy", "systemproxy") and tun_st == "pass":
-        add_action(
-            "tun",
-            "保持 TUN 关闭（系统代理模式）" if lang == "zh" else "Keep TUN off (system proxy mode)",
-            (
-                "当前意图为系统代理，TUN 关闭是合理的；无需改。"
+        if cli_agent:
+            add_action(
+                "tun",
+                "系统代理模式下 TUN 可保持关闭；CLI 全覆盖才需要开 TUN"
                 if lang == "zh"
-                else "TUN off matches system_proxy intent; no change needed."
-            ),
-        )
+                else "TUN may stay off in system_proxy mode; enable only for CLI-wide capture",
+                (
+                    f"当前 intent 为 system_proxy，TUN 关闭是合理的（GUI/浏览器走系统代理）。"
+                    f"若你确实需要 **CLI 流量也全覆盖**，再在 **{profile.get('primary')}** 手动开 TUN（虚拟网卡），"
+                    f"并把使用方式视为 full_tunnel。两条路都可行，按你的实际用法选。"
+                    if lang == "zh"
+                    else f"system_proxy intent means TUN off is fine (GUI/browsers use the OS proxy). "
+                    f"If you truly need CLI-wide capture, enable TUN manually in **{profile.get('primary')}** "
+                    f"and treat usage as full_tunnel. Either is valid — pick by how you actually use it."
+                ),
+            )
+        else:
+            add_action(
+                "tun",
+                "保持 TUN 关闭（系统代理模式）" if lang == "zh" else "Keep TUN off (system proxy mode)",
+                (
+                    "当前意图为系统代理，TUN 关闭是合理的；无需改。"
+                    if lang == "zh"
+                    else "TUN off matches system_proxy intent; no change needed."
+                ),
+            )
 
     # System proxy
     sp = by_id.get("network.system_proxy")
@@ -395,6 +494,7 @@ def build_personal_guidance(
         "client_tips": tips,
         "actions": actions,
         "lang": lang,
+        "cli_agent": bool(cli_agent),
     }
 
 
@@ -405,6 +505,7 @@ def format_personal_section(guidance: Dict[str, Any], lang: Optional[str] = None
     profile = guidance.get("profile") or {}
     tips: Sequence[str] = guidance.get("client_tips") or []
     actions: Sequence[Dict[str, str]] = guidance.get("actions") or []
+    cli_agent = bool(guidance.get("cli_agent"))
 
     lines: List[str] = []
     if lang == "zh":
@@ -417,6 +518,8 @@ def format_personal_section(guidance: Dict[str, Any], lang: Optional[str] = None
                 f"- **置信度：** {profile.get('confidence') or 'unknown'}",
             ]
         )
+        if cli_agent:
+            lines.append("- **检测到 CLI 端 Agent：** 是（Claude Code / Codex 类）")
         labs = profile.get("labels") or []
         if labs:
             lines.append(f"- **相关进程/客户端：** {', '.join(str(x) for x in labs)}")

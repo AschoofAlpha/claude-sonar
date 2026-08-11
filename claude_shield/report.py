@@ -1379,6 +1379,7 @@ def format_report(
             intended_mode=intended_mode,
             intended_region=intended_region,
             lang=lang,
+            cli_agent=_kwargs.get("cli_agent"),
         )
         lines.append(format_personal_section(_guide, lang=lang))
     except Exception:

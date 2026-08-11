@@ -2,7 +2,22 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.2] - 2026-08-11
+
+### Added
+- CLI-agent personalization: detects Claude Code / Codex / other terminal agents (snapshot + process hints, explicit `cli_agent` override accepted).
+- When a CLI agent is in use, the report recommends **global + virtual-adapter (TUN)** routing with per-client terminology mapping:
+  - Clash Verge / Mihomo / Clash 系: TUN / 虚拟网卡
+  - v2rayN: TUN 模式; Xray: tun block
+  - sing-box / Hiddify / NekoBox: TUN (tun block / panel)
+  - "全局模式" alone may not capture all traffic
+- New report marker "检测到 CLI 端 Agent" plus coordinated TUN action when intent is system_proxy.
+
+### Changed
+- Version **1.4.2** across metadata/badges/docs.
+
 ## [1.4.1] - 2026-08-11
+
 
 ### Added
 - Personalized guidance: auto-detect the active proxy client (Clash Verge / Mihomo / v2rayN / Xray / sing-box / Hiddify / NekoBox / Hysteria / Netch, …) and show app-specific manual tips.
