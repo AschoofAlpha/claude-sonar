@@ -110,13 +110,14 @@ class TestReportPlain(unittest.TestCase):
         md_en = format_report([_check(id="network.mode", status="pass")], lang="en")
         self.assertIn("## 配置自洽分", md_zh)
         self.assertIn("| 配置自洽分 |", md_zh)
-        self.assertIn("不是**防封分", md_zh.replace(" ", ""))
+        self.assertIn("只读检查结果", md_zh)
+        self.assertIn("彼此是否对得上", md_zh)
         self.assertNotIn("## 防封", md_zh)
         self.assertNotIn("anti-ban score |", md_en.lower())
         self.assertIn("## Consistency score", md_en)
         self.assertIn("consistency score", md_en.lower())
-        self.assertIn("configuration self-consistency", md_en.lower())
-        self.assertIn("not** an anti-ban", md_en.lower())
+        self.assertIn("Read-only results", md_en)
+        self.assertIn("configuration consistency score", md_en.lower())
 
 
 if __name__ == "__main__":

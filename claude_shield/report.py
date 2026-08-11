@@ -525,13 +525,13 @@ def _md_escape_cell(value: Any) -> str:
 def _intro_lines(lang: str) -> List[str]:
     if lang == "en":
         return [
-            "Local evidence only — not a prediction of account review or bans.",
-            "The numeric score is a **configuration self-consistency** score (0–100), not an anti-ban score.",
+            "Read-only results from this machine.",
+            "The number below is a **configuration consistency score** (0–100): how well the observed settings line up with each other.",
             "",
         ]
     return [
-        "本机检查结果，不是「账号会不会被封」的预测。",
-        "下方数字是 **配置自洽分**（0–100），不是防封评分，也不表示「像不像某国」。",
+        "以下是本机的只读检查结果。",
+        "下方数字是 **配置自洽分**（0–100），表示各项设置彼此是否对得上，便于对照。",
         "",
     ]
 
@@ -645,8 +645,7 @@ def format_report(
             f"| 可选一致性扣分 | -{scored['breakdown']['optional_penalty']}（{scored['breakdown']['optional_consistency']} 项） |",
             f"| 证据不足扣分 | -{scored['breakdown']['incomplete_penalty']} |",
             "",
-            "_满分 100 的**配置自洽分**（配置是否前后一致），**不是**防封分，也**不是**「像不像某国」。"
-            "必须处理扣得多，可选一致性扣得少；未配置的补充隐私项只扣 1 分。_",
+            "_配置自洽分满分 100：看配置是否前后一致。必须处理扣分多，可选一致性扣分少；未配置的补充隐私项每项只扣 1 分。_",
             "",
         ])
     else:
@@ -661,8 +660,8 @@ def format_report(
             f"| optional penalty | -{scored['breakdown']['optional_penalty']} ({scored['breakdown']['optional_consistency']} items) |",
             f"| incomplete evidence | -{scored['breakdown']['incomplete_penalty']} |",
             "",
-            "_0–100 **configuration self-consistency** score — **not** an anti-ban score and "
-            "**not** “looks like country X”. Must-fix costs more than optional consistency; "
+            "_Consistency score out of 100: how aligned the settings are. "
+            "Must-fix costs more than optional consistency; "
             "not_configured privacy add-ons cost 1 each._",
             "",
         ])
