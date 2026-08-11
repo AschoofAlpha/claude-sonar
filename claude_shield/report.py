@@ -246,29 +246,91 @@ def plain_action(action: str, lang: str = "zh") -> str:
 
 
 def plain_check(check_id: str, lang: str = "zh") -> str:
-    """Return a one-line plain explanation of what this check means."""
+    """Return a one-line plain explanation of what this check means.
+
+    Known ids use the map; unknown ids fall back by prefix so every row still
+    has a de-jargon 说明/meaning line (never empty).
+    """
     lang = _norm_lang(lang)
     table = _CHECK_PLAIN.get(lang, _CHECK_PLAIN["zh"])
-    check_id = str(check_id or "")
+    check_id = str(check_id or "").strip()
     if check_id in table:
         return table[check_id]
-    # prefix fallbacks for dynamic ids
+
+    # Dynamic / future-id prefix fallbacks (de-jargon, not raw status dumps)
+    zh = lang == "zh"
     if check_id.startswith("network.egress.runtime_consistency"):
         return (
             "在线对比不同方式看到的出口是否一致"
-            if lang == "zh"
+            if zh
             else "Online: whether different runtimes see the same egress"
+        )
+    if check_id.startswith("network.egress."):
+        return (
+            "在线出口探测：本机实际出去的路径是否和预期一致"
+            if zh
+            else "Online egress probe: whether traffic leaves as expected"
+        )
+    if check_id.startswith("network.dns."):
+        return (
+            "DNS 相关在线/配置检查（解析路径是否合理）"
+            if zh
+            else "DNS-related online/config check (resolver path sanity)"
+        )
+    if check_id.startswith("network.cross_site."):
+        return (
+            "跨站在线对比：多个网站看到的出口是否一致"
+            if zh
+            else "Cross-site online check: whether several sites see the same exit"
+        )
+    if check_id.startswith("network.ip_"):
+        return (
+            "出口 IP 的第三方标签/声誉（看法，不是判决）"
+            if zh
+            else "Exit-IP third-party labels/reputation (opinion, not a verdict)"
+        )
+    if check_id.startswith("network."):
+        return (
+            "代理/网络配置项：路由、DNS、隧道或代理客户端状态"
+            if zh
+            else "Proxy/network setting: routing, DNS, tunnel, or client state"
         )
     if check_id.startswith("browser.webrtc."):
         return (
-            "浏览器 WebRTC 策略（不是网页实测）"
-            if lang == "zh"
-            else "Browser WebRTC policy only (not a live page test)"
+            "浏览器 WebRTC 策略（不是网页实测；仅可选建议）"
+            if zh
+            else "Browser WebRTC policy only (not a live page test; optional advice)"
         )
+    if check_id.startswith("browser."):
+        return (
+            "浏览器相关策略/隐私姿态（只读建议，不改浏览器）"
+            if zh
+            else "Browser policy/privacy posture (read-only advice; no browser changes)"
+        )
+    if check_id.startswith("privacy."):
+        return (
+            "隐私相关设置或本地残留：只给可选建议，不会自动改"
+            if zh
+            else "Privacy setting or local residue: optional advice only, never auto-applied"
+        )
+    if check_id.startswith("system."):
+        return (
+            "系统语言/时区等本机设置是否自洽（一致性，不是泄漏判决）"
+            if zh
+            else "OS language/timezone consistency (consistency, not a leak verdict)"
+        )
+    if check_id.startswith("consistency."):
+        return (
+            "配置是否自洽：各项设置彼此是否对得上"
+            if zh
+            else "Configuration self-consistency: whether settings agree with each other"
+        )
+    # Generic future-id fallback — still plain language, never blank
+    short = check_id.split(".")[-1].replace("_", " ") if check_id else "item"
     return (
-        "本项检查的技术细节见上方英文/原始说明"
-        if lang == "zh"
-        else "See the technical explanation above"
+        f"本项「{short}」的配置/证据自检（见详情；不是防封评分）"
+        if zh
+        else f"Config/evidence self-check for “{short}” (see detail; not an anti-ban score)"
     )
 
 
@@ -348,8 +410,11 @@ def group_checks(checks: Iterable[Any]) -> Dict[str, List[Any]]:
 
 
 def score_checks(checks: Iterable[Any]) -> Dict[str, Any]:
-    """Compute a 0-100 audit score from classified checks.
+    """Compute a 0-100 **configuration self-consistency** score.
 
+    Measures how coherent the local audit findings are (must-fix vs optional
+    consistency vs incomplete evidence). This is **not** “looks like country X”
+    and **not** an anti-ban / stealth score.
     Starts at 100 and subtracts weighted penalties. Floor 0, ceiling 100.
     """
     checks = list(checks or [])
@@ -415,13 +480,13 @@ def score_checks(checks: Iterable[Any]) -> Dict[str, Any]:
 
     score = max(0, min(100, int(score)))
     if score >= 90:
-        grade, label_zh, label_en = "A", "优秀", "Excellent"
+        grade, label_zh, label_en = "A", "配置较自洽", "Highly consistent"
     elif score >= 75:
-        grade, label_zh, label_en = "B", "良好", "Good"
+        grade, label_zh, label_en = "B", "大体自洽", "Mostly consistent"
     elif score >= 60:
-        grade, label_zh, label_en = "C", "一般", "Fair"
+        grade, label_zh, label_en = "C", "一般自洽", "Partly consistent"
     else:
-        grade, label_zh, label_en = "D", "较差", "Poor"
+        grade, label_zh, label_en = "D", "自洽性偏弱", "Low consistency"
 
     return {
         "score": score,
@@ -429,6 +494,7 @@ def score_checks(checks: Iterable[Any]) -> Dict[str, Any]:
         "grade": grade,
         "label_zh": label_zh,
         "label_en": label_en,
+        "score_kind": "configuration_self_consistency",
         "breakdown": breakdown,
         "deductions": deductions,
     }
@@ -460,10 +526,45 @@ def _intro_lines(lang: str) -> List[str]:
     if lang == "en":
         return [
             "Local evidence only — not a prediction of account review or bans.",
+            "The numeric score is a **configuration self-consistency** score (0–100), not an anti-ban score.",
             "",
         ]
     return [
         "本机检查结果，不是「账号会不会被封」的预测。",
+        "下方数字是 **配置自洽分**（0–100），不是防封评分，也不表示「像不像某国」。",
+        "",
+    ]
+
+
+def _footer_lines(lang: str) -> List[str]:
+    """Soft recommend-only boundary: what this tool never auto-applies."""
+    if lang == "en":
+        return [
+            "## What this tool does not do automatically",
+            "",
+            "Claude Shield **only recommends**. It will **not** automatically:",
+            "",
+            "- spoof browser / device **fingerprints**",
+            "- force **timezone** to follow the proxy node",
+            "- wipe / “launder” the local environment",
+            "- invent an **anti-ban** or stealth score disguise",
+            "- change **DNS**, routes, TUN, IPv6 adapters, or system proxy for you",
+            "",
+            "_Any change still needs your explicit approval. Remediation scripts, when used, only touch documented privacy environment variables._",
+            "",
+        ]
+    return [
+        "## 本工具不会自动做的事",
+        "",
+        "本工具**只给建议**，**不会自动**：",
+        "",
+        "- 改指纹 / 伪装浏览器",
+        "- 时区跟随节点",
+        "- 清环境洗白",
+        "- 防封评分伪装",
+        "- 改 DNS · 路由 · TUN · IPv6 或系统代理",
+        "",
+        "_任何修改都需要你明确同意。修复脚本（若使用）也仅处理文档中的隐私环境变量。_",
         "",
     ]
 
@@ -534,32 +635,35 @@ def format_report(
     scored = score_checks(checks)
     if lang == "zh":
         lines.extend([
-            "## 评分",
+            "## 配置自洽分",
             "",
             "| 项目 | 值 |",
             "| --- | --- |",
-            f"| 得分 | **{scored['score']}** / {scored['max_score']} |",
+            f"| 配置自洽分 | **{scored['score']}** / {scored['max_score']} |",
             f"| 等级 | {scored['grade']}（{scored['label_zh']}） |",
             f"| 必须处理扣分 | -{scored['breakdown']['must_fix_penalty']}（{scored['breakdown']['must_fix']} 项） |",
             f"| 可选一致性扣分 | -{scored['breakdown']['optional_penalty']}（{scored['breakdown']['optional_consistency']} 项） |",
             f"| 证据不足扣分 | -{scored['breakdown']['incomplete_penalty']} |",
             "",
-            "_满分 100。必须处理扣得多，可选一致性扣得少；未配置的补充隐私项只扣 1 分。_",
+            "_满分 100 的**配置自洽分**（配置是否前后一致），**不是**防封分，也**不是**「像不像某国」。"
+            "必须处理扣得多，可选一致性扣得少；未配置的补充隐私项只扣 1 分。_",
             "",
         ])
     else:
         lines.extend([
-            "## Score",
+            "## Consistency score",
             "",
             "| item | value |",
             "| --- | --- |",
-            f"| score | **{scored['score']}** / {scored['max_score']} |",
+            f"| consistency score | **{scored['score']}** / {scored['max_score']} |",
             f"| grade | {scored['grade']} ({scored['label_en']}) |",
             f"| must-fix penalty | -{scored['breakdown']['must_fix_penalty']} ({scored['breakdown']['must_fix']} items) |",
             f"| optional penalty | -{scored['breakdown']['optional_penalty']} ({scored['breakdown']['optional_consistency']} items) |",
             f"| incomplete evidence | -{scored['breakdown']['incomplete_penalty']} |",
             "",
-            "_Out of 100. Must-fix costs more than optional consistency; not_configured privacy add-ons cost 1 each._",
+            "_0–100 **configuration self-consistency** score — **not** an anti-ban score and "
+            "**not** “looks like country X”. Must-fix costs more than optional consistency; "
+            "not_configured privacy add-ons cost 1 each._",
             "",
         ])
 
@@ -655,6 +759,7 @@ def format_report(
             "configuration alone are not proof of a leak._"
         )
     lines.append("")
+    lines.extend(_footer_lines(lang))
     return "\n".join(lines)
 
 

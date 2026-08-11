@@ -627,17 +627,63 @@ if (Get-Command Get-NetTCPConnection -ErrorAction SilentlyContinue) {
 $internetSettings = Get-ItemProperty -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' -ErrorAction SilentlyContinue
 $proxyEnabled = $false
 $proxyPointsToLoopback = $false
+$proxyServer = ''
+$autoDetect = $null
+$autoConfigURLPresent = $null
 if ($null -ne $internetSettings) {
     $proxyEnabledProperty = $internetSettings.PSObject.Properties['ProxyEnable']
     $proxyServerProperty = $internetSettings.PSObject.Properties['ProxyServer']
     if ($null -ne $proxyEnabledProperty) {
         $proxyEnabled = [bool]$proxyEnabledProperty.Value
     }
-    $proxyServer = ''
     if ($null -ne $proxyServerProperty) {
         $proxyServer = [string]$proxyServerProperty.Value
     }
     $proxyPointsToLoopback = Test-ProxyServerLoopback -ProxyServer $proxyServer
+
+    # PAC/WPAD flags only — never emit full AutoConfigURL (may contain IPs/hosts)
+    $autoDetectProperty = $internetSettings.PSObject.Properties['AutoDetect']
+    if ($null -ne $autoDetectProperty -and $null -ne $autoDetectProperty.Value) {
+        $autoDetect = [bool]$autoDetectProperty.Value
+    }
+    $autoConfigURLProperty = $internetSettings.PSObject.Properties['AutoConfigURL']
+    if ($null -ne $autoConfigURLProperty) {
+        $autoConfigURLPresent = -not [string]::IsNullOrWhiteSpace([string]$autoConfigURLProperty.Value)
+    } else {
+        $autoConfigURLPresent = $false
+    }
+}
+
+# WinHTTP proxy layer (netsh) — booleans/classes only; never emit host:port strings
+$winHttpEnabled = $null
+$winHttpPointsToLoopback = $null
+$winHttpHasProxyList = $null
+try {
+    $winHttpRaw = & netsh.exe winhttp show proxy 2>$null | Out-String
+    if (-not [string]::IsNullOrWhiteSpace($winHttpRaw)) {
+        if ($winHttpRaw -match '(?i)Direct access\s*\(no proxy server\)') {
+            $winHttpEnabled = $false
+            $winHttpPointsToLoopback = $false
+            $winHttpHasProxyList = $false
+        } elseif ($winHttpRaw -match '(?im)Proxy Server\(s\)\s*:\s*(.+)$') {
+            $winHttpProxyLine = $Matches[1].Trim()
+            $winHttpEnabled = $true
+            $winHttpHasProxyList = -not [string]::IsNullOrWhiteSpace($winHttpProxyLine)
+            $winHttpPointsToLoopback = Test-ProxyServerLoopback -ProxyServer $winHttpProxyLine
+            # Drop raw line immediately — do not retain for JSON emission
+            $winHttpProxyLine = $null
+        }
+    }
+} catch {
+    $winHttpEnabled = $null
+    $winHttpPointsToLoopback = $null
+    $winHttpHasProxyList = $null
+}
+
+# Optional: whether IE/system ProxyServer port class matches MixedPort (no raw values)
+$portLooksLikeMixed = $null
+if ($proxyEnabled -and -not [string]::IsNullOrWhiteSpace($proxyServer) -and $mixedPort -gt 0) {
+    $portLooksLikeMixed = [bool]($proxyServer -match [regex]::Escape(":$mixedPort"))
 }
 
 $teredo = [ordered]@{ Available = $false; Type = $null; Disabled = $null }
@@ -732,12 +778,28 @@ $otelLogToolContent = @(Get-EnvironmentStatusRows -Name 'OTEL_LOG_TOOL_CONTENT')
 $otelLogToolDetails = @(Get-EnvironmentStatusRows -Name 'OTEL_LOG_TOOL_DETAILS')
 $otelLogRawApiBodies = @(Get-EnvironmentStatusRows -Name 'OTEL_LOG_RAW_API_BODIES' -ContentValue)
 
+# Other proxy clients: count + running names only (no paths/args). Primary Mihomo
+# process names are tracked separately under MihomoProcessRunning.
 $otherProxyClientCount = 0
-$clientNames = @('sing-box','v2rayN','v2ray','xray','nekobox')
+$otherProxyClientsRunning = @()
+$clientNames = @(
+    'v2rayN', 'v2ray', 'xray', 'sing-box', 'hysteria', 'hysteria2',
+    'trojan', 'ss-local', 'shadowsocks', 'Hiddify', 'nestbox', 'nekobox',
+    'clash-meta', 'Clash for Windows', 'netch', 'ssr'
+)
 foreach ($cn in $clientNames) {
-    $proc = Get-Process -Name $cn -ErrorAction SilentlyContinue | Select-Object -First 1
+    $proc = $null
+    try {
+        $proc = Get-Process -Name $cn -ErrorAction SilentlyContinue | Select-Object -First 1
+    } catch {
+        $proc = $null
+    }
     if ($null -ne $proc) {
         $otherProxyClientCount++
+        $otherProxyClientsRunning += [pscustomobject][ordered]@{
+            Name = $cn
+            Running = $true
+        }
     }
 }
 
@@ -836,12 +898,23 @@ $result = [ordered]@{
         IsAdministrator = $isAdministrator
         MihomoProcessRunning = $processRunning
         OtherProxyClientCount = $otherProxyClientCount
+        OtherProxyClientsRunning = $otherProxyClientsRunning
         ServiceModeActive = $serviceModeActive
         MixedPort = $mixedPort
         MixedPortListening = $portListening
         SystemProxy = [ordered]@{
             Enabled = $proxyEnabled
             PointsToLoopback = $proxyPointsToLoopback
+            PortLooksLikeMixed = $portLooksLikeMixed
+        }
+        WinHttpProxy = [ordered]@{
+            Enabled = $winHttpEnabled
+            PointsToLoopback = $winHttpPointsToLoopback
+            HasProxyList = $winHttpHasProxyList
+        }
+        ProxyAutoConfig = [ordered]@{
+            AutoDetect = $autoDetect
+            AutoConfigURLPresent = $autoConfigURLPresent
         }
         TimeZone = (Get-TimeZone).Id
         Culture = (Get-Culture).Name

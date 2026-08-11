@@ -106,9 +106,11 @@ def collect_privacy_checks(data, builder):
             "info",
             "Local Claude-related paths are present (presence only; IDs are not read). "
             "This does not prove the account or device is marked server-side.",
-            "Optional: reset local device-id/home artifacts only if you want a fresh *local* identity. "
+            "OPTIONAL RECOMMENDATION ONLY — never auto-applied by this tool or its remediation scripts: "
+            "you may choose to reset local device-id/home artifacts if you want a fresh *local* identity. "
             "This cannot clear Anthropic server-side device/account marks, cannot unban, and is not required for a healthy proxy audit. "
-            "Prefer backup-then-delete of known local paths; do not use fingerprint-spoofing tools.",
+            "Prefer backup-then-delete of known local paths; do not use fingerprint-spoofing or anti-detect tools. "
+            "Scripts never reset device IDs for you.",
             evidence=[evidence("local_artifact", "device_id_artifact_present", True)],
         )
     else:
@@ -119,7 +121,7 @@ def collect_privacy_checks(data, builder):
             "pass",
             "info",
             "No common local Claude device-id/home artifacts were observed.",
-            "No local device-id reset recommended from this scan.",
+            "No local device-id reset recommended from this scan. (Any future reset would remain optional and manual.)",
         )
 
     if cache_present:
@@ -130,9 +132,10 @@ def collect_privacy_checks(data, builder):
             "unknown",
             "info",
             "Local telemetry/cache-related paths under Claude home are present (sizes only; contents not read).",
-            "Optional privacy hygiene: clear local telemetry/cache directories after backup if you want less residual local data. "
-            "Disabling DISABLE_TELEMETRY / related env vars matters more for future collection. "
-            "Clearing cache does not remove server-side history or device marks.",
+            "OPTIONAL RECOMMENDATION ONLY — never auto-applied: clear local telemetry/cache directories after backup "
+            "if you want less residual local data. Disabling DISABLE_TELEMETRY / related env vars matters more for future collection. "
+            "Clearing cache does not remove server-side history or device marks and is not an “environment wipe” or unban step. "
+            "Scripts never delete caches for you.",
             evidence=[evidence("local_artifact", "telemetry_cache_present", True)],
         )
     else:
@@ -143,10 +146,10 @@ def collect_privacy_checks(data, builder):
             "pass",
             "info",
             "No common local telemetry/cache artifact paths were observed.",
-            "No local cache clear recommended from this scan.",
+            "No local cache clear recommended from this scan. (Any future clear would remain optional and manual.)",
         )
 
-    # Browser fingerprint posture: policy-level recommendation only
+    # Browser fingerprint posture: OPTIONAL policy-level recommendation only; never auto; no anti-detect
     browsers = data.get("Browsers")
     if isinstance(browsers, dict) and browsers:
         any_installed = False
@@ -168,8 +171,9 @@ def collect_privacy_checks(data, builder):
                     "privacy",
                     "pass",
                     "info",
-                    "Installed browsers show restrictive WebRTC policy signals.",
-                    "No fingerprint spoofing recommended. Keep policy-based WebRTC restrictions; avoid anti-detect browsers.",
+                    "Installed browsers show restrictive WebRTC policy signals (policy layer only).",
+                    "OPTIONAL only: keep policy-based WebRTC restrictions. "
+                    "Do not use anti-detect browsers or spoof fingerprints — this tool never auto-changes fingerprints.",
                 )
             else:
                 add(
@@ -179,7 +183,9 @@ def collect_privacy_checks(data, builder):
                     "unknown",
                     "info",
                     "Browser WebRTC runtime was not fully verified, or restrictive policy was not observed on all installed browsers.",
-                    "Optional: tighten real browser WebRTC/privacy settings (policy or browser flags). "
-                    "Do not recommend anti-detect browsers or fabricated fingerprints — they do not clear server marks and fight the product boundary. "
-                    "If using Claude in browser, prefer a normal profile with proxy + WebRTC restrictions over spoofing stacks.",
+                    "OPTIONAL RECOMMENDATION ONLY — never auto-applied: tighten real browser WebRTC/privacy settings "
+                    "(policy or browser flags) if you want that posture. "
+                    "Do not use anti-detect browsers or fabricated fingerprints — they do not clear server marks "
+                    "and are outside this product’s boundary. Prefer a normal profile with proxy + WebRTC restrictions "
+                    "over spoofing stacks. Fingerprint spoof is recommend-only and never applied by scripts.",
                 )

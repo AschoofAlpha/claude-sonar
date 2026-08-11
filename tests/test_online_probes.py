@@ -37,9 +37,11 @@ def _gai_dual(*_a, **_k):
 
 
 class TestRunProbesOffline(unittest.TestCase):
-    def test_offline_returns_empty(self):
-        self.assertEqual(run_probes(online=False), [])
-        self.assertEqual(run_probes(), [])
+    def test_offline_returns_webrtc_guidance_only(self):
+        # Cheap offline WebRTC guidance only — no network contact.
+        for results in (run_probes(online=False), run_probes()):
+            ids = [r.id for r in results]
+            self.assertEqual(ids, ["browser.webrtc.guidance"])
 
     def test_signature_accepts_new_kwargs(self):
         params = inspect.signature(run_probes).parameters
@@ -47,13 +49,15 @@ class TestRunProbesOffline(unittest.TestCase):
         self.assertIn("intended_region", params)
         self.assertIn("cross_site_urls", params)
 
+    @patch("claude_shield.probes.stability.check_egress_stability")
+    @patch("claude_shield.probes.egress.check_dual_stack_egress")
     @patch("claude_shield.probes.cross_site.check_cross_site_routing")
     @patch("claude_shield.probes.reputation.check_ip_reputation")
     @patch("claude_shield.probes.dns_probe.check_dns_consistency")
     @patch("claude_shield.probes.egress.check_egress_consistency")
     @patch("claude_shield.probes.endpoints.get_all_endpoints")
     def test_online_wires_all_probes(
-        self, mock_eps, mock_egress, mock_dns, mock_rep, mock_cross
+        self, mock_eps, mock_egress, mock_dns, mock_rep, mock_cross, mock_dual, mock_stab
     ):
         mock_eps.return_value = [{
             "id": "ipify-ipv4",
@@ -69,23 +73,30 @@ class TestRunProbesOffline(unittest.TestCase):
         mock_dns.return_value = MagicMock(id="network.dns.consistency")
         mock_rep.return_value = MagicMock(id="network.ip_reputation")
         mock_cross.return_value = MagicMock(id="network.cross_site.routing")
+        mock_dual.return_value = MagicMock(id="network.egress.dual_stack")
+        mock_stab.return_value = MagicMock(id="network.egress.stability")
 
         results = run_probes(online=True, timeout=3, intended_region="US")
         ids = [r.id for r in results]
+        self.assertIn("browser.webrtc.guidance", ids)
         self.assertIn("network.dns.consistency", ids)
         self.assertIn("network.ip_reputation", ids)
         self.assertIn("network.cross_site.routing", ids)
+        self.assertIn("network.egress.dual_stack", ids)
+        self.assertIn("network.egress.stability", ids)
         mock_rep.assert_called_once()
         self.assertEqual(mock_rep.call_args.kwargs.get("intended_region"), "US")
         mock_cross.assert_called_once()
 
+    @patch("claude_shield.probes.stability.check_egress_stability")
+    @patch("claude_shield.probes.egress.check_dual_stack_egress")
     @patch("claude_shield.probes.cross_site.check_cross_site_routing")
     @patch("claude_shield.probes.reputation.check_ip_reputation")
     @patch("claude_shield.probes.dns_probe.check_dns_consistency")
     @patch("claude_shield.probes.egress.check_egress_consistency")
     @patch("claude_shield.probes.safety.validate_url")
     def test_custom_endpoint_without_online_skips_extended(
-        self, mock_val, mock_egress, mock_dns, mock_rep, mock_cross
+        self, mock_val, mock_egress, mock_dns, mock_rep, mock_cross, mock_dual, mock_stab
     ):
         mock_val.return_value = True
         mock_egress.return_value = MagicMock(id="network.egress.runtime_consistency.custom")
@@ -97,9 +108,12 @@ class TestRunProbesOffline(unittest.TestCase):
             timeout=3,
         )
         ids = [r.id for r in results]
+        self.assertIn("browser.webrtc.guidance", ids)
         self.assertIn("network.dns.consistency", ids)
         mock_rep.assert_not_called()
         mock_cross.assert_not_called()
+        mock_dual.assert_not_called()
+        mock_stab.assert_not_called()
         self.assertNotIn("network.ip_reputation", ids)
 
 

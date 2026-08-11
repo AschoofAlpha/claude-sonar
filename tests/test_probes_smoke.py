@@ -12,11 +12,12 @@ class TestProbesSmoke(unittest.TestCase):
         from claude_shield.probes.base import run_probes
         self.assertTrue(callable(run_probes))
 
-    def test_probes_offline_run_returns_empty(self):
-        # Default offline path must not contact the network.
+    def test_probes_offline_run_is_local_only(self):
+        # Default offline path must not contact the network; WebRTC guidance is cheap/local.
         from claude_shield.probes.base import run_probes
         results = run_probes(None, timeout=3, online=False)
-        self.assertEqual(results, [])
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].id, "browser.webrtc.guidance")
 
     def test_probes_accepts_online_kwarg(self):
         from claude_shield.probes.base import run_probes

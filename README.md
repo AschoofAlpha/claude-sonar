@@ -76,6 +76,7 @@ Library defaults: `run_full_audit(include_recommendations=True)` returns `report
 - Clash Verge/Mihomo checks for rule mode, system proxy, service/TUN state, `strict-route`, fake-IP, DNS hijacking, LAN access, and the actual policy selection when its local controller is available.
 - Recommendations split into **Must fix**, **Optional consistency**, and **Leave alone**.
 - Optional, reversible privacy environment-variable remediation. No automatic DNS, route, firewall, VPN, or IPv6-adapter changes. Device-ID/cache/fingerprint items appear only as optional recommendations with explicit limits (local hygiene only; not server unban; no anti-detect stacks).
+- Report plain-language **说明/meaning** on every check, a **configuration self-consistency** score (not anti-ban), and a soft footer listing what is **recommend-only never auto** (fingerprint, timezone-follow-node, env wipe, anti-ban score disguise, DNS/route/TUN).
 
 The audit is local evidence, not a prediction of account approval or suspension.
 

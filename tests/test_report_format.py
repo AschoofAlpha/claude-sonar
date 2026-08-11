@@ -215,8 +215,9 @@ class TestReportFormat(unittest.TestCase):
         self.assertLess(s2["score"], 100)
         self.assertGreaterEqual(s2["score"], 0)
         md = format_report(bad, lang="zh")
-        self.assertIn("## 评分", md)
+        self.assertIn("## 配置自洽分", md)
         self.assertIn("/ 100", md)
+        self.assertNotIn("## 防封", md)
 
 
 if __name__ == "__main__":

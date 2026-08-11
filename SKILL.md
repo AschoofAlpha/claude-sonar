@@ -200,6 +200,20 @@ Follow this sequence, incorporating lessons from prior Windows and Clash Verge r
 10. Change one layer at a time, restart only the affected app or service, and verify runtime state rather than trusting a UI checkbox.
 11. Re-run the local collector and one live network test pass. Roll back if a confirmed leak appears or routing breaks.
 
+### Recommend-only — never auto-apply
+
+These actions may appear in the report as **optional recommendations** only. Agents and scripts must **never** perform them automatically; the user must approve any manual change, and remediation scripts stay limited to documented privacy environment variables:
+
+| Recommend-only (never auto) | Notes |
+| --- | --- |
+| Fingerprint spoof / anti-detect browsers | Policy-level WebRTC hardening advice only; no fabricated fingerprints |
+| Timezone follow node | Timezone stays truthful consistency advice; never force-match exit country |
+| Environment wipe / “launder” | No bulk clean of profiles, caches, or identity to look “fresh” |
+| Anti-ban / stealth score disguise | Score is **configuration self-consistency** only — not unban or country look-alike |
+| Auto network: DNS · route · TUN · IPv6 · system proxy | Report may suggest; user applies via their proxy app after approval |
+
+**Remediation scripts** (`remediate_*.ps1` / `remediate_posix_network.py`) remain **privacy env vars only**. They do **not** reset device IDs, clear caches, spoof fingerprints, follow timezone to the node, or change DNS/routes/TUN/IPv6.
+
 Remember that Clash Verge UI state and generated Mihomo runtime configuration may live in different files. A listener can be owned by `verge-mihomo`; process-name checks should include it. After changing system language order, verify the running locale. A matching proxy-provided IPv6 is not evidence that the local IPv6 binding was re-enabled.
 
 ## Mihomo Baseline for Full-Tunnel Leak Prevention
@@ -243,13 +257,15 @@ print(result["report_markdown"])
 Present the result **as markdown tables in the chat** (do not dump a long prose essay). Prefer `result["report_markdown"]` / `format_report(..., lang="zh")`.
 
 The library markdown includes:
-- a short legend table (status / group meanings)
-- **总览** counts table
-- **全部结果** table with columns: 检查项 / 状态 / 说明 / 详情 / 分组 / 建议
-- section tables: 必须处理 / 可选一致性 / 保持不动
+- intro noting local evidence only + **配置自洽分 / consistency score** (not anti-ban)
+- **配置自洽分** / **Consistency score** table (0–100 configuration self-consistency)
+- **全部结果** table with columns: 检查项 / 状态 / **说明** / 详情 / 分组 / 建议  
+  (English: check / status / **meaning** / detail / group / recommendation)
+- section tables: 必须处理 / 可选一致性 / 保持不动 — each row still has a **说明/meaning** plain-language line
 - **名词解释** glossary table
+- footer: what the tool will **not** auto-do (fingerprint, timezone-follow-node, env wipe, anti-ban score disguise, DNS/route/TUN)
 
-Ordinary explanations go in the **说明** column — never use a label like说明列or「plain:」.
+Every listed check must keep a clear 说明/meaning column (from `plain_check`). Ordinary explanations go there — never a separate label like `plain:`.
 
 If you must hand-build the reply, still use tables and put jargon explanations in a 说明/meaning column. Sections:
 
@@ -257,7 +273,7 @@ If you must hand-build the reply, still use tables and put jargon explanations i
 2. 可选一致性 — non-leak mismatches
 3. 保持不动 — healthy or no action
 
-State uncertainty explicitly. Reputation scores, TCP/IP inference, and RTT are not standalone proof of proxy use or abuse. Never promise that a configuration will prevent account review, suspension, or platform detection.
+State uncertainty explicitly. Reputation scores, TCP/IP inference, and RTT are not standalone proof of proxy use or abuse. Never promise that a configuration will prevent account review, suspension, or platform detection. Do not present the numeric score as an anti-ban or “looks like country X” score.
 
 ## Verification
 

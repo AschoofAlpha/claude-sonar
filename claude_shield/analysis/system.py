@@ -170,27 +170,55 @@ def collect_system_checks(data, builder):
                 )
 
         # Environment proxy variables (existence only — values are never revealed)
+        system_proxy = system.get("SystemProxy") if isinstance(system.get("SystemProxy"), dict) else {}
+        sys_proxy_enabled = system_proxy.get("Enabled")
+        sys_proxy_loopback = system_proxy.get("PointsToLoopback")
+        system_loopback_ok = sys_proxy_enabled is True and sys_proxy_loopback is True
+
         env_proxies = system.get("ProxyEnvironmentVariables")
+        env_present_names = []
         if isinstance(env_proxies, list):
-            present = sorted({
+            env_present_names = sorted({
                 p.get("Name") for p in env_proxies
-                if isinstance(p, dict) and p.get("Present")
+                if isinstance(p, dict) and p.get("Present") and p.get("Name")
             })
-            if present:
-                add(
-                    "network.env_proxy",
-                    "Environment proxy variables",
-                    "network",
-                    "unknown",
-                    "info",
-                    (
-                        f"Proxy environment variables present: {', '.join(present)}. "
-                        "Values are not shown; confirm each is intentional. "
-                        "System proxy loopback is assessed separately (network.system_proxy)."
-                    ),
-                    "Explain whether each is intentional; values are never revealed.",
-                    evidence=[evidence("env", "proxy env var names", {"names": list(present)})],
-                )
+            if env_present_names:
+                if system_loopback_ok:
+                    # Env vars alongside an intentional loopback system proxy are common
+                    # (CLI tools); treat as pass with an advisory note — never print values.
+                    add(
+                        "network.env_proxy",
+                        "Environment proxy variables",
+                        "network",
+                        "pass",
+                        "info",
+                        (
+                            f"Proxy environment variables present: {', '.join(env_present_names)}. "
+                            "Values are not shown. They exist alongside a loopback system proxy "
+                            "(network.system_proxy); confirm each is intentional."
+                        ),
+                        "Consider confirming each env proxy name is intentional; values are never revealed.",
+                        evidence=[evidence(
+                            "env",
+                            "proxy env var names",
+                            {"names": list(env_present_names), "alongside_loopback_system_proxy": True},
+                        )],
+                    )
+                else:
+                    add(
+                        "network.env_proxy",
+                        "Environment proxy variables",
+                        "network",
+                        "unknown",
+                        "info",
+                        (
+                            f"Proxy environment variables present: {', '.join(env_present_names)}. "
+                            "Values are not shown; confirm each is intentional. "
+                            "System proxy loopback is assessed separately (network.system_proxy)."
+                        ),
+                        "Consider confirming whether each is intentional; values are never revealed.",
+                        evidence=[evidence("env", "proxy env var names", {"names": list(env_present_names)})],
+                    )
             else:
                 add(
                     "network.env_proxy",
@@ -202,38 +230,280 @@ def collect_system_checks(data, builder):
                     "",
                 )
 
-        system_proxy = system.get("SystemProxy")
-        if isinstance(system_proxy, dict):
+        if isinstance(system_proxy, dict) and system_proxy:
             enabled, loopback = system_proxy.get("Enabled"), system_proxy.get("PointsToLoopback")
             status = "pass" if enabled is True and loopback is True else "unknown"
+            port_mixed = system_proxy.get("PortLooksLikeMixed")
+            expl = (
+                "System proxy is enabled and points to loopback."
+                if status == "pass"
+                else "System proxy settings are static configuration only; runtime routing was not verified."
+            )
+            if status == "pass" and port_mixed is True:
+                expl += " Port class looks like the configured mixed-port."
+            elif status == "pass" and port_mixed is False:
+                expl += " Port class does not match the configured mixed-port (confirm intentional)."
             add(
                 "network.system_proxy",
                 "System proxy setting",
                 "network",
                 status,
                 "info",
-                "System proxy is enabled and points to loopback." if status == "pass"
-                else "System proxy settings are static configuration only; runtime routing was not verified.",
+                expl,
                 "",
                 evidence=[evidence(
                     "system_proxy",
                     "system proxy flags",
-                    {"enabled": enabled, "points_to_loopback": loopback},
+                    {
+                        "enabled": enabled,
+                        "points_to_loopback": loopback,
+                        "port_looks_like_mixed": port_mixed,
+                    },
                 )],
             )
+
+        winhttp = system.get("WinHttpProxy") if isinstance(system.get("WinHttpProxy"), dict) else {}
+        pac = system.get("ProxyAutoConfig") if isinstance(system.get("ProxyAutoConfig"), dict) else {}
+
+        # PAC/WPAD presence (offline flags only) — always surface when System is present
+        auto_detect = pac.get("AutoDetect") if pac else None
+        pac_url_present = pac.get("AutoConfigURLPresent") if pac else None
+        if auto_detect is True or pac_url_present is True:
+            bits = []
+            if auto_detect is True:
+                bits.append("WPAD AutoDetect is enabled")
+            if pac_url_present is True:
+                bits.append("an AutoConfigURL (PAC) is present")
+            add(
+                "network.proxy_autoconfig",
+                "Proxy auto-configuration (PAC/WPAD)",
+                "network",
+                "warning",
+                "info",
+                (
+                    " and ".join(bits) + ". PAC/WPAD may route some apps differently "
+                    "from the explicit system proxy; confirm this is intentional."
+                ),
+                "Consider confirming whether PAC/WPAD is intentional; do not assume it matches system proxy.",
+                evidence=[evidence(
+                    "proxy_autoconfig",
+                    "PAC/WPAD flags",
+                    {"auto_detect": auto_detect, "auto_config_url_present": pac_url_present},
+                )],
+            )
+        elif pac_url_present is False and auto_detect is not True:
+            # No PAC URL. Missing AutoDetect registry value is common and treated as off.
+            ad_txt = (
+                "AutoDetect is off"
+                if auto_detect is False
+                else "AutoDetect registry value not present (typically off)"
+            )
+            add(
+                "network.proxy_autoconfig",
+                "Proxy auto-configuration (PAC/WPAD)",
+                "network",
+                "pass",
+                "info",
+                f"No PAC URL; {ad_txt}.",
+                "",
+                evidence=[evidence(
+                    "proxy_autoconfig",
+                    "PAC/WPAD flags",
+                    {"auto_detect": auto_detect, "auto_config_url_present": pac_url_present},
+                )],
+            )
+        elif "ProxyAutoConfig" not in system or (auto_detect is None and pac_url_present is None and not pac):
+            add(
+                "network.proxy_autoconfig",
+                "Proxy auto-configuration (PAC/WPAD)",
+                "network",
+                "unknown",
+                "info",
+                "Proxy auto-configuration flags were not collected.",
+                "Consider re-running the Windows collector if PAC/WPAD posture matters.",
+            )
+        else:
+            # Partial: e.g. PAC presence unknown while AutoDetect is explicit
+            add(
+                "network.proxy_autoconfig",
+                "Proxy auto-configuration (PAC/WPAD)",
+                "network",
+                "unknown",
+                "info",
+                "Proxy auto-configuration flags are incomplete.",
+                "Consider confirming AutoDetect and PAC URL presence in Internet Settings.",
+                evidence=[evidence(
+                    "proxy_autoconfig",
+                    "PAC/WPAD flags",
+                    {"auto_detect": auto_detect, "auto_config_url_present": pac_url_present},
+                )],
+            )
+
+        # Multi-layer proxy consistency: SystemProxy + WinHTTP + env presence
+        has_layer_keys = (
+            bool(system_proxy)
+            or bool(winhttp)
+            or bool(env_present_names)
+            or bool(pac)
+            or "SystemProxy" in system
+            or "WinHttpProxy" in system
+            or "ProxyAutoConfig" in system
+            or isinstance(system.get("ProxyEnvironmentVariables"), list)
+        )
+        if has_layer_keys:
+            wh_enabled = winhttp.get("Enabled") if winhttp else None
+            wh_loopback = winhttp.get("PointsToLoopback") if winhttp else None
+            wh_has_list = winhttp.get("HasProxyList") if winhttp else None
+            auto_detect = pac.get("AutoDetect") if pac else None
+            pac_url_present = pac.get("AutoConfigURLPresent") if pac else None
+
+            layers_evidence = evidence(
+                "proxy_layers",
+                "proxy layer flags",
+                {
+                    "system_enabled": sys_proxy_enabled,
+                    "system_loopback": sys_proxy_loopback,
+                    "winhttp_enabled": wh_enabled,
+                    "winhttp_loopback": wh_loopback,
+                    "winhttp_has_proxy_list": wh_has_list,
+                    "env_proxy_present": bool(env_present_names),
+                    "auto_detect": auto_detect,
+                    "auto_config_url_present": pac_url_present,
+                },
+            )
+
+            incomplete = (
+                sys_proxy_enabled is None
+                and wh_enabled is None
+                and not env_present_names
+                and auto_detect is None
+                and pac_url_present is None
+            )
+            # WinHTTP "not conflicting": direct (disabled / no list) OR also loopback
+            winhttp_direct = (
+                wh_enabled is False
+                or (wh_has_list is False and wh_enabled is not True)
+            )
+            winhttp_loopback_ok = wh_enabled is True and wh_loopback is True
+            winhttp_ok = winhttp_direct or winhttp_loopback_ok or wh_enabled is None
+            winhttp_conflict = (
+                wh_enabled is True
+                and wh_loopback is False
+                and system_loopback_ok
+            )
+            pac_with_system = system_loopback_ok and (
+                auto_detect is True or pac_url_present is True
+            )
+
+            if incomplete:
+                add(
+                    "network.proxy_layers",
+                    "Proxy layer consistency",
+                    "network",
+                    "unknown",
+                    "info",
+                    "Proxy layer flags are incomplete; cannot compare system, WinHTTP, and env.",
+                    "Consider re-collecting System proxy fields if multi-layer consistency matters.",
+                    evidence=[layers_evidence],
+                )
+            elif winhttp_conflict:
+                add(
+                    "network.proxy_layers",
+                    "Proxy layer consistency",
+                    "network",
+                    "warning",
+                    "info",
+                    (
+                        "System proxy points to loopback but WinHTTP proxy is enabled and "
+                        "does not point to loopback; some apps may bypass the local client."
+                    ),
+                    "Consider aligning WinHTTP with the loopback system proxy, or confirm WinHTTP direct access is intended.",
+                    evidence=[layers_evidence],
+                )
+            elif pac_with_system:
+                add(
+                    "network.proxy_layers",
+                    "Proxy layer consistency",
+                    "network",
+                    "warning",
+                    "info",
+                    (
+                        "System proxy is loopback-enabled while PAC/WPAD auto-config is active; "
+                        "PAC/WPAD may bypass expected routing for some clients."
+                    ),
+                    "Consider confirming whether PAC/WPAD should stay enabled alongside the system proxy.",
+                    evidence=[layers_evidence],
+                )
+            elif system_loopback_ok and winhttp_ok:
+                bits = ["system proxy loopback"]
+                if winhttp_loopback_ok:
+                    bits.append("WinHTTP loopback")
+                elif winhttp_direct:
+                    bits.append("WinHTTP direct/no list")
+                elif wh_enabled is None:
+                    bits.append("WinHTTP not reported")
+                if env_present_names:
+                    bits.append("env proxy names present")
+                add(
+                    "network.proxy_layers",
+                    "Proxy layer consistency",
+                    "network",
+                    "pass",
+                    "info",
+                    "Proxy layers look consistent: " + "; ".join(bits) + ".",
+                    "",
+                    evidence=[layers_evidence],
+                )
+            elif sys_proxy_enabled is True and sys_proxy_loopback is False:
+                add(
+                    "network.proxy_layers",
+                    "Proxy layer consistency",
+                    "network",
+                    "warning",
+                    "info",
+                    "System proxy is enabled but does not point to loopback; confirm the target is intentional.",
+                    "Consider confirming the system proxy target class (values are never shown).",
+                    evidence=[layers_evidence],
+                )
+            else:
+                add(
+                    "network.proxy_layers",
+                    "Proxy layer consistency",
+                    "network",
+                    "unknown",
+                    "info",
+                    (
+                        "Proxy layer comparison is inconclusive from static flags alone "
+                        "(system/WinHTTP/env presence)."
+                    ),
+                    "Consider confirming which proxy layer each app uses; static flags do not prove routing.",
+                    evidence=[layers_evidence],
+                )
 
         other_client_count = system.get("OtherProxyClientCount")
         other_clients = system.get("OtherProxyClientsRunning")
         if isinstance(other_client_count, int) and not isinstance(other_client_count, bool):
+            running_names = []
+            if isinstance(other_clients, list):
+                running_names = [
+                    str(item.get("Name", "unknown"))
+                    for item in other_clients
+                    if isinstance(item, dict) and item.get("Running")
+                ]
+            detail = (
+                f"{other_client_count} other supported proxy client process(es) were observed"
+                + (f" ({', '.join(running_names)})" if running_names else "")
+                + "; process state does not prove a leak."
+            )
             add(
                 "network.other_proxy_clients",
                 "Other proxy clients",
                 "network",
                 "unknown" if other_client_count else "pass",
                 "info",
-                f"{other_client_count} other supported proxy client process(es) were observed; process state does not prove a leak."
-                if other_client_count else "No other supported proxy clients observed.",
-                "",
+                detail if other_client_count else "No other supported proxy clients observed.",
+                "Consider confirming only one intentional proxy client owns system routing."
+                if other_client_count else "",
             )
         elif isinstance(other_clients, list):
             running = [
@@ -249,7 +519,8 @@ def collect_system_checks(data, builder):
                 "info",
                 f"Other proxy client(s) observed: {', '.join(running)}; static process state does not prove a leak."
                 if running else "No other supported proxy clients observed.",
-                "",
+                "Consider confirming only one intentional proxy client owns system routing."
+                if running else "",
             )
 
         # Windows locale consistency — bilingual setups stay warning (optional consistency only)
@@ -274,7 +545,9 @@ def collect_system_checks(data, builder):
                 "primary_language": primary_lang,
             },
         )]
+        locale_status = None
         if mismatches:
+            locale_status = "warning"
             add(
                 "system.locale",
                 "Windows locale consistency",
@@ -286,6 +559,7 @@ def collect_system_checks(data, builder):
                 evidence=locale_evidence,
             )
         elif locale_set:
+            locale_status = "pass"
             add(
                 "system.locale",
                 "Windows locale consistency",
@@ -297,6 +571,7 @@ def collect_system_checks(data, builder):
                 evidence=locale_evidence,
             )
         else:
+            locale_status = "unknown"
             add(
                 "system.locale",
                 "Windows locale consistency",
@@ -341,4 +616,72 @@ def collect_system_checks(data, builder):
                 "info",
                 "TimeZone information is missing.",
                 "Optional consistency only: timezone was not reported by the collector.",
+            )
+
+        # Offline geo stack: TimeZone + Culture/UICulture only.
+        # Never recommend matching timezone to a proxy/node country.
+        geo_cultures = [c for c in (culture, ui_culture) if c]
+        geo_evidence = [evidence(
+            "geo_stack",
+            "timezone and culture",
+            {
+                "timezone": timezone or None,
+                "culture": culture,
+                "ui_culture": ui_culture,
+            },
+        )]
+        geo_recommendation = (
+            "Keep timezone and language truthful for real use; do not auto-follow a proxy/node country. "
+            "Optional alignment only — consider confirming values reflect genuine long-term location and language."
+        )
+        if timezone and geo_cultures:
+            if locale_status == "warning":
+                add(
+                    "consistency.geo_stack",
+                    "Geo stack (timezone + locale)",
+                    "system",
+                    "warning",
+                    "info",
+                    (
+                        f"TimeZone is {timezone}; culture/UI culture present but locale fields "
+                        "already differ (see system.locale). Offline only — not tied to exit IP."
+                    ),
+                    geo_recommendation,
+                    evidence=geo_evidence,
+                )
+            else:
+                add(
+                    "consistency.geo_stack",
+                    "Geo stack (timezone + locale)",
+                    "system",
+                    "pass",
+                    "info",
+                    (
+                        f"TimeZone ({timezone}) and culture/UI culture are present "
+                        f"({', '.join(geo_cultures)}). Offline informational only."
+                    ),
+                    geo_recommendation,
+                    evidence=geo_evidence,
+                )
+        elif timezone or geo_cultures:
+            add(
+                "consistency.geo_stack",
+                "Geo stack (timezone + locale)",
+                "system",
+                "unknown",
+                "info",
+                "Geo stack is partial (timezone and/or culture incomplete).",
+                geo_recommendation,
+                evidence=geo_evidence,
+            )
+        else:
+            add(
+                "consistency.geo_stack",
+                "Geo stack (timezone + locale)",
+                "system",
+                "unknown",
+                "info",
+                "Geo stack fields (TimeZone, Culture/UICulture) were not available.",
+                geo_recommendation,
+                evidence=geo_evidence,
             )
