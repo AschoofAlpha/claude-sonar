@@ -143,6 +143,15 @@ Collector output can contain local identifiers. Keep raw output local and let th
 
 The Skill returns a compact evidence table (`signal`, `status`, `confidence`, `evidence`, `action`) followed by three short sections: **Must fix**, **Optional consistency**, and **Leave alone**. See `SKILL.md` for the exact report format and interpretation rules.
 
+## Manual network alternatives (recommend-only)
+
+When the audit flags DNS/HTTP egress divergence, two standard-tool fixes are worth knowing — both manual, reversible, and never applied for you:
+
+- **socks5h remote DNS** — point Claude Code at a `socks5h://127.0.0.1:<port>` proxy URL instead of `socks5://` or `http://`. The `h` moves domain resolution to the proxy end and removes most local-DNS bypass paths.
+- **SSH dynamic forwarding** — run `ssh -N -D 1080 user@your-vps` in a terminal you keep open (Windows ships OpenSSH), then point the tool at `socks5h://127.0.0.1:1080` for a fixed, self-owned VPS exit with no local client.
+
+These are ordinary proxy techniques, not spoofing; the audit stays read-only and only ever *suggests* them.
+
 ## Privacy opt-outs
 
 Preview first:

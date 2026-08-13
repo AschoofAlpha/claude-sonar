@@ -194,6 +194,7 @@ def test_dns_mismatch_is_warning(monkeypatch):
     assert check.status == "warning"
     assert check.severity == "low"
     assert check.evidence[0].data["match"] is False
+    assert "socks5h" in check.recommendation  # 建议不改执行，只提示
 
 
 # --------------------------------------------------------------------------

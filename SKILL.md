@@ -245,6 +245,35 @@ If the user employs a proxy core other than Mihomo (e.g., Xray, Sing-Box native,
   - Run `netstat -nr -f inet | grep -e "default" -e "0/1" -e "128.0/1"` to verify if the default route or a fake-ip route points to the `utun` interface.
 - Use the remediation scripts only for documented privacy environment variables. Handle proxy-client and IPv6 changes manually, one verified setting at a time, after explicit approval.
 
+## Manual Network Alternatives (recommend-only, never auto-applied)
+
+When the audit shows DNS/HTTP egress divergence or the user wants a cleaner single-exit path, prefer **manual, standard-tool** alternatives over any automated system change. Never run these for the user, never write them into global registry environment variables, and never build a one-click installer for them.
+
+**socks5h remote DNS** (lowest effort, usually the right first step):
+- Point Claude Code's proxy at a `socks5h://` URL (e.g. `socks5h://127.0.0.1:7891`) instead of `socks5://` or `http://`. The `h` makes domain resolution happen at the proxy end, which removes most local-DNS bypass paths.
+- This is an ordinary proxy-usage technique, not spoofing: no identity is altered, and it stays reversible by reverting the URL.
+
+**SSH dynamic forwarding** (for a fixed, self-owned VPS exit without a local client):
+- Start a tunnel manually: `ssh -N -D 1080 user@your-vps` (Windows ships OpenSSH; run it in a terminal you keep open).
+- Point the tool at `socks5h://127.0.0.1:1080`.
+- Keep `AllowTcpForwarding yes` on the server (default). This is standard SSH functionality on the user's own server — but note it also means any other process on the machine that knows the port can use the tunnel, and the VPS operator sees all traffic as usual.
+- Never set this up for the user, never persist proxy environment variables globally, and never daemonize it silently.
+
+## Repository Security Scan (agent guidance)
+
+`claude-shield repo PATH` gives the mechanical scan. The agent adds the reasoning layer — always on code the user owns or is explicitly authorized to review:
+
+1. Run `python -m claude_shield repo PATH` first; read the stack, tool status, and findings tables.
+2. Confirm each finding against the actual code (tool output is a hypothesis): check reachability, trust boundaries, and whether the sink is user-controlled before claiming exploitability.
+3. Explain exploitability in context and give a complete fixed-code diff — never apply a "fix" that silently changes behavior.
+4. Business-logic pass (things SAST cannot see): IDOR / broken object-level authorization, race conditions (TOCTOU), mass-assignment, open redirects, insecure defaults in config.
+5. IaC checklist when present (Dockerfile, k8s manifests, Terraform, GitHub Actions, nginx): pinned base images, no secrets in build args/env, least-privilege containers, supply-chain steps (lockfiles, integrity hashes), network egress restrictions.
+6. Attack-chain narrative: combine findings into an end-to-end story only when the hops actually connect; label speculation as speculation.
+7. False-positive review: if a finding is not exploitable, say so explicitly — do not inflate the score or the severity table.
+8. Secrets handling: report presence and location, never echo the secret; recommend rotation, never "just remove the line" as the only step.
+9. Boundaries: no autonomous pentesting tools, no PoC payloads against third-party services, no GitHub-issue auto-filing. Static analysis + reasoning only.
+10. Update the badge after fixes: `python -m claude_shield badge` (or the panel button) so the score reflects reality.
+
 ## Report Format
 
 When the user supplies a collector snapshot (or an agent runs the collector), parse its redacted evidence and display the report before the evidence table. Treat every score as a transparent local heuristic, not independent proof. Explain each flagged item in the context of the collector and live tests; never convert an unknown public exit into a confirmed leak without comparing it with the intended exit.

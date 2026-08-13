@@ -142,6 +142,11 @@ def check_dns_egress_consistency(
                 "可能 DNS 泄漏或分流。这是观察结果而非定论；"
                 "也可能是出口多 IP 轮换造成的正常差异。本工具不会自动修改任何设置。"
             ),
+            recommendation=(
+                "若确认是 DNS 分流：让 Claude Code 走 socks5h:// 形式的代理"
+                "（如 socks5h://127.0.0.1:7891），域名解析会交给代理远程完成，"
+                "减少本地 DNS 绕过。此为建议，是否修改由你决定。"
+            ),
         )
 
     if not doh_token:
@@ -158,6 +163,11 @@ def check_dns_egress_consistency(
                 "[doh_unavailable] DoH 查询不可达，无法对比 DNS 解析出口"
                 "（代理策略常拦截 dns.google，这本身不等于 DNS 泄漏）。"
                 "本次只读检测未得出对比结果。"
+            ),
+            recommendation=(
+                "可选：让 Claude Code 走 socks5h:// 形式的代理"
+                "（域名解析交给代理远程完成），从机制上减少 DNS 绕过。"
+                "此为建议，是否修改由你决定。"
             ),
         )
 
