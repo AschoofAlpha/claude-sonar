@@ -271,6 +271,22 @@ def run_full_audit(
                 confidence="unknown",
                 explanation=f"[probe_error] TLS fingerprint check could not run: {exc}",
             )], redactor))
+        try:
+            from .probes.baseurl_probe import check_anthropic_baseurl_tcp
+
+            checks.extend(redact_checks(
+                [check_anthropic_baseurl_tcp(timeout=probe_timeout)], redactor
+            ))
+        except Exception as exc:  # pragma: no cover - best-effort
+            checks.extend(redact_checks([AuditCheck(
+                id="network.anthropic_baseurl_tcp",
+                title="ANTHROPIC_BASE_URL TCP reachability (read-only)",
+                category="network",
+                status="unknown",
+                severity="info",
+                confidence="unknown",
+                explanation=f"[probe_error] Base URL TCP check could not run: {exc}",
+            )], redactor))
 
     report = build_audit_report(checks, snapshot=snapshot, redactor=redactor)
     # Redact platform hostname in report before export

@@ -83,7 +83,7 @@ python -m claude_shield badge              # 从审计结果生成 shield-badge.
 子命令（同一入口 `python -m claude_shield`）：
 
 - **`serve [--port N] [--open]`** — 零依赖本地网页面板，**仅绑定 127.0.0.1**。`/` 渲染审计结果（分数、必须处理/可选一致性/保持不动分组）；`/api/report?online=0` 返回脱敏后的报告 JSON（在线探测默认关闭，需手动打开）；附带浏览器端观察区（WebRTC ICE 候选、本地时区/语言）。只读：POST 返回 405、路径穿越 404、仅接受回环 Host 头。
-- **`repo PATH [--no-tools] [--baseline F] [--json] [--sarif F] [--out F]`** — 代码仓库安全扫描：技术栈识别、semgrep / gitleaks / pip-audit / npm audit 编排（工具缺失自动跳过并注明）、内置精简 Semgrep 规则（MIT 来源已注明）、0–100 加权代码安全分、修复建议、基线对比、SARIF 2.1.0 导出。不含渗透测试、不自动建 GitHub issue。
+- **`repo PATH [--no-tools] [--baseline F] [--json] [--sarif F] [--out F]`** — 代码仓库安全扫描：技术栈识别、semgrep / gitleaks / pip-audit / npm audit / 过期检测（npm outdated、pip list --outdated）编排（工具缺失自动跳过并注明）、内置精简 Semgrep 规则（MIT 来源已注明）、0–100 加权代码安全分、修复建议、基线对比、SARIF 2.1.0 导出。不含渗透测试、不自动建 GitHub issue。
 - **`badge [--out PATH] [--from-report F]`** — 写入 `shield-badge.json`（分数+颜色），供下方 shields.io 动态徽章使用；`--from-report` 可复用上次 `--json` 报告、无需重新审计。
 
 除非传入 `--online`，否则不会启用在线探测（出口、DNS、IP 声誉、跨站出口、**DNS 与 HTTP 出口一致性**、**JA3/JA4 TLS 指纹**）。启用 `--online` 时，独立探测会并行执行（共享超时）。`ANTHROPIC_BASE_URL` 审计（官方端点 vs 内置公开风控黑名单情报）始终离线运行。

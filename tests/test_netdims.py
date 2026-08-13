@@ -90,6 +90,63 @@ def test_baseurl_unparseable_is_warning(monkeypatch):
     assert check.evidence[0].data["host_class"] == "unparseable"
 
 
+def test_find_labword_hit_substring():
+    from claude_shield.probes.baseurl_probe import find_labword_hit
+
+    words = ["deepseek", "zhipu"]
+    assert find_labword_hit("api.deepseek-relay.com", words) == "deepseek"
+    assert find_labword_hit("relay.example.com", words) is None
+
+
+def test_baseurl_labword_hit_is_low_warning(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://api.deepseek-relay.com")
+    monkeypatch.setattr(baseurl_probe, "load_blacklist", lambda: [])
+    monkeypatch.setattr(baseurl_probe, "load_labwords", lambda: ["deepseek"])
+    check = check_anthropic_baseurl()
+    assert check.status == "warning"
+    assert check.severity == "low"
+    assert check.evidence[0].data["labword_hit"] is True
+    assert check.evidence[0].data["labword_entry"] == "deepseek"
+
+
+def test_baseurl_blacklist_takes_priority_over_labword(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://api.wolfai.top")
+    monkeypatch.setattr(baseurl_probe, "load_blacklist", lambda: ["wolfai.top"])
+    check = check_anthropic_baseurl()
+    assert check.severity == "high"  # 黑名单命中优先于关键词
+
+
+def test_baseurl_tcp_not_configured(monkeypatch):
+    from claude_shield.probes.baseurl_probe import check_anthropic_baseurl_tcp
+
+    monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
+    check = check_anthropic_baseurl_tcp(timeout=1)
+    assert check.id == "network.anthropic_baseurl_tcp"
+    assert check.status == "pass"
+    assert "[not_configured]" in check.explanation
+
+
+def test_baseurl_tcp_reachable(monkeypatch):
+    from claude_shield.probes import baseurl_probe as bp
+
+    monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://relay.example.com")
+    monkeypatch.setattr(bp, "_tcp_connect", lambda host, port, timeout: True)
+    check = bp.check_anthropic_baseurl_tcp(timeout=1)
+    assert check.status == "pass"
+    assert check.evidence[0].data["reachable"] is True
+    assert check.evidence[0].data["raw_value_persisted"] is False
+
+
+def test_baseurl_tcp_unreachable_is_low_warning(monkeypatch):
+    from claude_shield.probes import baseurl_probe as bp
+
+    monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://relay.example.com")
+    monkeypatch.setattr(bp, "_tcp_connect", lambda host, port, timeout: False)
+    check = bp.check_anthropic_baseurl_tcp(timeout=1)
+    assert check.status == "warning"
+    assert check.severity == "low"
+
+
 # --------------------------------------------------------------------------
 # DNS egress consistency
 # --------------------------------------------------------------------------

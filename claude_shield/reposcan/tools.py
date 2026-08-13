@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -26,6 +27,8 @@ _DEFAULT_TIMEOUTS = {
     "gitleaks": 600,
     "pip-audit": 300,
     "npm": 300,
+    "npm-outdated": 300,
+    "pip-outdated": 180,
 }
 
 _INSTALL_HINTS = {
@@ -33,6 +36,8 @@ _INSTALL_HINTS = {
     "gitleaks": "winget install gitleaks.gitleaks（macOS: brew install gitleaks；Linux: go install github.com/gitleaks/gitleaks/v8@latest）",
     "pip-audit": "pip install pip-audit",
     "npm": "随 Node.js 一起安装：https://nodejs.org/（npm install -g npm 可升级）",
+    "npm-outdated": "随 Node.js 一起安装：https://nodejs.org/",
+    "pip-outdated": "随 Python 一起安装；在激活项目 venv 后运行结果更准确",
 }
 
 # semgrep 的 ERROR/WARNING/INFO -> 统一严重度（ERROR 视为高危而非严重，避免评分失真）
@@ -87,6 +92,59 @@ def _mask_secret(secret: str, keep: int = 10) -> str:
     if len(s) <= keep + 1:
         return s or "?"
     return s[:keep] + "…"
+
+
+def _semver_tier(current: str, latest: str) -> str:
+    """比较两个版本号，返回 MAJOR / MINOR / PATCH（无法解析按 PATCH）。"""
+    def parts(v: str) -> List[int]:
+        nums: List[int] = []
+        for piece in v.strip().lstrip("v^~=").split(".")[:3]:
+            m = re.match(r"\d+", piece)
+            nums.append(int(m.group()) if m else 0)
+        return (nums + [0, 0, 0])[:3]
+
+    c, l = parts(current), parts(latest)
+    if l[0] > c[0]:
+        return "MAJOR"
+    if l[1] > c[1]:
+        return "MINOR"
+    return "PATCH"
+
+
+def _freshness_findings(rows: List[Dict[str, str]], path: str) -> List[Finding]:
+    """MAJOR 逐条生成；MINOR/PATCH 各汇总为一条（避免轻微滞后刷爆评分）。"""
+    tiers: Dict[str, List[str]] = {"MAJOR": [], "MINOR": [], "PATCH": []}
+    for row in rows:
+        cur = (row.get("current") or "").strip()
+        latest = (row.get("latest") or "").strip()
+        if not cur or not latest or cur == latest or latest == "?":
+            continue
+        tier = _semver_tier(cur, latest)
+        tiers[tier].append(f"{row.get('name')}: {cur} → {latest}")
+    findings: List[Finding] = []
+    for entry in tiers["MAJOR"]:
+        findings.append(Finding(
+            tool="freshness", rule_id="OUTDATED-MAJOR", severity="low",
+            path=path, line=0,
+            message=f"主版本落后（可能有破坏性变更/安全修复）：{entry}",
+        ))
+    if tiers["MINOR"]:
+        findings.append(Finding(
+            tool="freshness", rule_id="OUTDATED-MINOR", severity="low",
+            path=path, line=0,
+            message=f"{len(tiers['MINOR'])} 个依赖落后小版本（可能含安全修复）："
+                    + "；".join(tiers["MINOR"][:8])
+                    + ("；…" if len(tiers["MINOR"]) > 8 else ""),
+        ))
+    if tiers["PATCH"]:
+        findings.append(Finding(
+            tool="freshness", rule_id="OUTDATED-PATCH", severity="low",
+            path=path, line=0,
+            message=f"{len(tiers['PATCH'])} 个依赖落后补丁版本："
+                    + "；".join(tiers["PATCH"][:8])
+                    + ("；…" if len(tiers["PATCH"]) > 8 else ""),
+        ))
+    return findings
 
 
 class ToolRunner:
@@ -461,6 +519,131 @@ class ToolRunner:
             findings.append(f)
         return findings
 
+    # -------------------------------------------------------------- 过期检测
+
+    def run_npm_outdated(self, js_detected: bool) -> Tuple[List[Finding], ToolStatus]:
+        """npm outdated 过期检测（MAJOR 逐条，MINOR/PATCH 各汇总一条）。"""
+        if not js_detected:
+            return [], self._status(
+                "npm-outdated", "npm outdated（依赖过期检测）", "skipped",
+                "未检测到 JavaScript/TypeScript 技术栈", available=False,
+                hint=_INSTALL_HINTS["npm-outdated"],
+            )
+        if not (self.target / "package.json").is_file():
+            return [], self._status(
+                "npm-outdated", "npm outdated（依赖过期检测）", "skipped",
+                "未找到 package.json", available=False,
+                hint=_INSTALL_HINTS["npm-outdated"],
+            )
+        exe = _which("npm")
+        if not exe:
+            return [], self._status(
+                "npm-outdated", "npm outdated（依赖过期检测）", "skipped",
+                "工具未安装，本次跳过过期检测", available=False,
+                hint=_INSTALL_HINTS["npm-outdated"],
+            )
+        ok, out, err, rc, err_kind = self._safe_run(
+            [exe, "outdated", "--json"], "npm-outdated", cwd=str(self.target)
+        )
+        if not ok:
+            return [], self._status(
+                "npm-outdated", "npm outdated（依赖过期检测）", "error", err,
+                available=True,
+            )
+        if not out.strip() and rc == 1:
+            return [], self._status(
+                "npm-outdated", "npm outdated（依赖过期检测）", "ok",
+                "已完成，无过期依赖", available=True,
+            )
+        parsed = self._parse_npm_outdated(out)
+        if not parsed:
+            detail = f"输出无法解析（退出码 {rc}）"
+            if err.strip():
+                detail += f"：{err.strip()[:160]}"
+            return [], self._status(
+                "npm-outdated", "npm outdated（依赖过期检测）", "error", detail,
+                available=True,
+            )
+        findings = _freshness_findings(parsed, "package.json")
+        maj = sum(1 for f in findings if f.rule_id == "OUTDATED-MAJOR")
+        mn = sum(1 for f in findings if f.rule_id == "OUTDATED-MINOR")
+        pt = sum(1 for f in findings if f.rule_id == "OUTDATED-PATCH")
+        detail = f"已完成：MAJOR {maj} 个、MINOR {mn} 个、PATCH {pt} 个"
+        return findings, self._status(
+            "npm-outdated", "npm outdated（依赖过期检测）", "ok", detail,
+            findings_count=len(findings), available=True,
+        )
+
+    def _parse_npm_outdated(self, stdout: str) -> List[Dict[str, str]]:
+        try:
+            data = json.loads(stdout)
+        except (ValueError, TypeError):
+            return []
+        rows: List[Dict[str, str]] = []
+        if isinstance(data, dict):
+            for pkg, info in data.items():
+                if not isinstance(info, dict):
+                    continue
+                rows.append({
+                    "name": pkg,
+                    "current": str(info.get("current") or "?"),
+                    "latest": str(info.get("latest") or "?"),
+                })
+        return rows
+
+    def run_pip_outdated(self, python_detected: bool) -> Tuple[List[Finding], ToolStatus]:
+        """pip list --outdated 过期检测（检测当前解释器已装包，注明局限）。"""
+        if not python_detected:
+            return [], self._status(
+                "pip-outdated", "pip list --outdated（依赖过期检测）", "skipped",
+                "未检测到 Python 技术栈", available=False,
+                hint=_INSTALL_HINTS["pip-outdated"],
+            )
+        exe = _which("pip") or _which("pip3")
+        if not exe:
+            return [], self._status(
+                "pip-outdated", "pip list --outdated（依赖过期检测）", "skipped",
+                "工具未安装，本次跳过过期检测", available=False,
+                hint=_INSTALL_HINTS["pip-outdated"],
+            )
+        ok, out, err, rc, err_kind = self._safe_run(
+            [exe, "list", "--outdated", "--format=json"], "pip-outdated"
+        )
+        if not ok:
+            return [], self._status(
+                "pip-outdated", "pip list --outdated（依赖过期检测）", "error", err,
+                available=True,
+            )
+        if not out.strip() or out.strip() == "[]":
+            return [], self._status(
+                "pip-outdated", "pip list --outdated（依赖过期检测）", "ok",
+                "已完成，无过期依赖（当前解释器环境）", available=True,
+            )
+        try:
+            data = json.loads(out)
+        except (ValueError, TypeError):
+            detail = f"输出无法解析（退出码 {rc}）"
+            if err.strip():
+                detail += f"：{err.strip()[:160]}"
+            return [], self._status(
+                "pip-outdated", "pip list --outdated（依赖过期检测）", "error", detail,
+                available=True,
+            )
+        rows = [{
+            "name": str(item.get("name") or "?"),
+            "current": str(item.get("version") or "?"),
+            "latest": str(item.get("latest_version") or "?"),
+        } for item in data if isinstance(item, dict)]
+        findings = _freshness_findings(rows, "pip-environment")
+        maj = sum(1 for f in findings if f.rule_id == "OUTDATED-MAJOR")
+        mn = sum(1 for f in findings if f.rule_id == "OUTDATED-MINOR")
+        pt = sum(1 for f in findings if f.rule_id == "OUTDATED-PATCH")
+        detail = f"已完成：MAJOR {maj} 个、MINOR {mn} 个、PATCH {pt} 个（当前解释器环境，非项目 venv）"
+        return findings, self._status(
+            "pip-outdated", "pip list --outdated（依赖过期检测）", "ok", detail,
+            findings_count=len(findings), available=True,
+        )
+
     # -------------------------------------------------------------- 编排入口
 
     def run_all(
@@ -488,6 +671,15 @@ class ToolRunner:
         statuses.append(st)
 
         f, st = self.run_npm_audit(any("javascript" in l or "typescript" in l for l in langs_lower))
+        findings += f
+        statuses.append(st)
+
+        # Freshness（过期检测）：npm outdated + pip list --outdated
+        f, st = self.run_npm_outdated(any("javascript" in l or "typescript" in l for l in langs_lower))
+        findings += f
+        statuses.append(st)
+
+        f, st = self.run_pip_outdated(any("python" in l for l in langs_lower))
         findings += f
         statuses.append(st)
 

@@ -33,7 +33,7 @@ class TestToolMissingGraceful(unittest.TestCase):
             runner = ToolRunner(self.root)
             findings, statuses, notes = runner.run_all({"Python", "JavaScript/TypeScript"})
         self.assertEqual(findings, [])
-        self.assertEqual(len(statuses), 4)
+        self.assertEqual(len(statuses), 6)
         for st in statuses:
             self.assertEqual(st.status, "skipped", msg=st.name)
             self.assertFalse(st.available)

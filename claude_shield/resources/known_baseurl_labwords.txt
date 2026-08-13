@@ -1,0 +1,11 @@
+deepseek
+moonshot
+minimax
+xaminim
+zhipu
+bigmodel
+baichuan
+stepfun
+01ai
+dashscope
+volces

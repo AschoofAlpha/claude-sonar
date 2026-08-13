@@ -135,6 +135,7 @@ _CHECK_PLAIN = {
         "network.dns.egress_consistency": "在线实测：DNS 解析出口与 HTTP 出口是否一致（只读检测，不自动改）",
         "network.tls.fingerprint": "在线实测本机 TLS 客户端指纹（JA3/JA4，只读检测，不给伪装建议）",
         "network.anthropic_baseurl": "ANTHROPIC_BASE_URL 指向官方还是第三方中转（含公开风控黑名单情报比对）",
+        "network.anthropic_baseurl_tcp": "在线实测：拨测 ANTHROPIC_BASE_URL 指向的中转服务器 443 端口是否存活（只读，不经过本地代理）",
     },
     "en": {
         "privacy.telemetry": "Whether Claude metrics telemetry is disabled",
@@ -181,6 +182,7 @@ _CHECK_PLAIN = {
         "network.dns.egress_consistency": "Online: whether DNS resolution egress matches HTTP egress (read-only)",
         "network.tls.fingerprint": "Online TLS client fingerprint (JA3/JA4, read-only; no spoofing advice)",
         "network.anthropic_baseurl": "Whether ANTHROPIC_BASE_URL points at the official endpoint or a third-party relay (public risk-intel compare)",
+        "network.anthropic_baseurl_tcp": "Online: TCP-443 reachability probe of the configured ANTHROPIC_BASE_URL host (read-only, direct dial, no local proxy)",
     },
 }
 

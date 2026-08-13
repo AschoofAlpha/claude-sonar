@@ -12,6 +12,12 @@ All notable changes to this project are documented here. The format follows [Kee
   - `network.anthropic_baseurl` — `ANTHROPIC_BASE_URL` vs a bundled 147-domain public risk-intel blacklist (decoded from the upstream base64+XOR-91 blob; reproducible via `scripts/gen_baseurl_blacklist.py`). Always offline.
   - `network.dns.egress_consistency` — DoH exit (`o-o.myaddr.l.google.com` via dns.google) vs HTTP egress comparison; mismatch is a neutral low-severity warning, unreachable is unknown. `--online` only.
   - `network.tls.fingerprint` — JA3/JA4 computed from a local openssl ClientHello capture; read-only observation, no spoof advice. `--online` only.
+- **Repo scan follow-ups** (absorbed from alissonlinneker/shield-claude-skill):
+  - Freshness / outdated-dependency detection — `npm outdated` + `pip list --outdated` orchestration with MAJOR-per-package and aggregated MINOR/PATCH findings (graceful degradation, venv caveat noted in the report).
+  - `bun.lockb` / `bun.lock` stack detection.
+- **ANTHROPIC_BASE_URL follow-ups** (absorbed from CACEB001/Claude-Shield):
+  - AI-lab keyword check — the bundled 11-word lab-keyword list (decoded from the upstream `LAB_BLOB`, base64+XOR-91) flags relay domains containing those words as a low-severity risk hint; blacklist hits still take priority.
+  - `network.anthropic_baseurl_tcp` — live TCP-443 reachability probe of the configured relay host (direct dial, no local proxy, clearly labeled). `--online` only.
 - Redaction fix: the credential rule's stop set now includes CJK punctuation and CJK characters, so `token <pseudonym>，中文` no longer swallows trailing text.
 
 ### Changed

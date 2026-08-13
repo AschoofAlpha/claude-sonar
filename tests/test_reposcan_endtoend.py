@@ -69,8 +69,8 @@ class TestEndToEnd(unittest.TestCase):
         # 栈检测：Python + pip
         langs = [s["language"] for s in result["stack"]]
         self.assertIn("Python", langs)
-        # 4 个工具全部 skipped
-        self.assertEqual(len(result["tools"]), 4)
+        # 6 个工具全部 skipped（gitleaks/semgrep/pip-audit/npm/2×freshness）
+        self.assertEqual(len(result["tools"]), 6)
         for st in result["tools"]:
             self.assertEqual(st["status"], "skipped")
         # 报告渲染不炸且包含降级说明

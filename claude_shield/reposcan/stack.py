@@ -14,6 +14,8 @@ _EXACT: Dict[str, Tuple[str, str]] = {
     "package.json": ("JavaScript/TypeScript", "npm"),
     "pnpm-lock.yaml": ("JavaScript/TypeScript", "pnpm"),
     "yarn.lock": ("JavaScript/TypeScript", "yarn"),
+    "bun.lockb": ("JavaScript/TypeScript", "bun"),
+    "bun.lock": ("JavaScript/TypeScript", "bun"),
     "requirements.txt": ("Python", "pip"),
     "pyproject.toml": ("Python", "pip"),
     "Pipfile": ("Python", "pipenv"),
