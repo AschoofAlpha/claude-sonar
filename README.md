@@ -19,9 +19,17 @@
 
 > **How is your Claude account doing lately?**
 >
-> It's probably not bad luck — it's the road your traffic takes. You think everything goes through your proxy, but actually: DNS quietly falls back to your home broadband, a "backup tunnel" connects directly without the proxy, a small WebRTC backdoor lets websites see your real network address, or your proxy node randomly hops between countries at 3am.
+> If you use Claude from China, chances are you've seen these before:
 >
-> **Every one of these leaks tells the platform "something's off."** Accounts get flagged, challenged, even banned — often not because of what you say, but because of these details exposing you.
+> - You paid for Pro, and days later the account simply won't sign in
+> - Months of conversations and project context, gone overnight with the account
+> - Your appeal email vanished into a black hole
+> - You registered a fresh account with a new email — banned again before you could really use it
+> - You ask perfectly normal questions, yet keep getting flagged as "high risk"
+>
+> It's probably not bad luck — it's the road your traffic takes. You think everything goes through your proxy, but actually: a DNS lookup quietly asks your home broadband first, a "backup tunnel" connects directly without the proxy, a small WebRTC backdoor lets websites see your real network address, or your proxy node randomly hops between countries at 3am.
+>
+> **Every one of these leaks tells the platform "something's off."** Accounts get flagged, challenged, even banned — often not because of what you say, but because of these details exposing you. And the worst part: none of it hurts until the ban screen shows up.
 >
 > Claude Shield is the tool that checks those details for you — **a read-only checkup that touches nothing**:
 >
