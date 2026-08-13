@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — git mainline (version stays 1.4.2 until the next PyPI release)
+## [1.4.9] - 2026-08-13
 
 ### Added
 - **Local web panel** — `python -m claude_shield serve [--port N] [--open]`: zero-dependency, bound to 127.0.0.1 only. `/` renders the audit (score + check groups), `/api/report` returns redacted report JSON (`online=0` default), `/api/status`, `/api/badge`; browser-side observation (WebRTC ICE candidates, timezone/language). Read-only: POST 405, path traversal 404, loopback-only `Host`.
@@ -19,10 +19,20 @@ All notable changes to this project are documented here. The format follows [Kee
   - AI-lab keyword check — the bundled 11-word lab-keyword list (decoded from the upstream `LAB_BLOB`, base64+XOR-91) flags relay domains containing those words as a low-severity risk hint; blacklist hits still take priority.
   - `network.anthropic_baseurl_tcp` — live TCP-443 reachability probe of the configured relay host (direct dial, no local proxy, clearly labeled). `--online` only.
 - Redaction fix: the credential rule's stop set now includes CJK punctuation and CJK characters, so `token <pseudonym>，中文` no longer swallows trailing text.
+- **Panel UX follow-ups**: panel auto-runs the audit on load (no click needed), online probes default ON (opt out via `online=0`; `/api/report` defaults to `online=1`), `--open-delay N` waits before opening the browser so chat tables can be read first.
+- **Five-column Chinese tables everywhere**: markdown report and panel use 检查项 / 状态 / 严重度 / 说明 / 建议 (severity column added with Chinese labels; detail merged into meaning; group column dropped).
+- **Row ordering**: rows sorted by status — fail first, then 通过 (pass), 警告 (warning), 未知 (unknown) last — in the markdown all-results table, each group section, and the panel payload.
+- **Full Chinese panel payload**: every check carries `title_zh` / `explanation_zh` / `recommendation_zh` (53 new phrase-map entries); no long English runs remain.
+- Manual network alternatives documented (socks5h remote DNS, SSH dynamic forwarding) — recommend-only, never auto-applied; repo-scan agent guidance added to SKILL.md.
 
 ### Changed
 - DNS egress mismatch reports at severity `low` so it lands in Optional consistency, not Must fix (an observation, not a verdict).
 - Panel handler swallows client aborts (`ConnectionResetError`/`ConnectionAbortedError`) without traceback noise.
+- CLI markdown now passes the snapshot into the formatter (personalized section stops degrading to "unknown client" in CLI output).
+- Panel table cells wrap long text (`word-break`/`overflow-wrap`) instead of overflowing the frame.
+
+### Fixed
+- Duplicate proxy-client labels collapsed ("Clash Verge (also: Clash Verge, Clash Verge)" is gone).
 
 ## [1.4.2] - 2026-08-11
 
