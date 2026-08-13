@@ -350,11 +350,200 @@ _DETAIL_PHRASE_MAP: Tuple[Tuple[str, str], ...] = (
     ),
     (
         "Culture/UICulture/SystemLocale differ.",
-        "Culture/UICulture/SystemLocale 不一致。",
+        "区域/界面语言/系统区域设置不一致。",
     ),
     (
         "Locale is consistent",
         "区域设置一致",
+    ),
+    # --- absorbed-dimension leftovers (panel surfaced these in English) ---
+    (
+        "Detected primary client/engine:",
+        "检测到主客户端/引擎：",
+    ),
+    (
+        "Confidence=high",
+        "置信度=高",
+    ),
+    (
+        "process running, service mode active, mixed-port listener present",
+        "进程运行中，服务模式已激活，mixed-port 端口在监听",
+    ),
+    (
+        "Teredo is disabled.",
+        "Teredo 已禁用。",
+    ),
+    (
+        "No physical adapter exposes enabled IPv6.",
+        "没有物理网卡暴露已启用的 IPv6。",
+    ),
+    (
+        "Proxy environment variables present:",
+        "检测到代理环境变量：",
+    ),
+    (
+        "Values are not shown.",
+        "（变量值不显示）",
+    ),
+    (
+        "They exist",
+        "它们存在",
+    ),
+    (
+        "confirm each is intentional",
+        "请确认每一项是否都有意设置",
+    ),
+    (
+        "Proxy layers look consistent:",
+        "代理层级看起来一致：",
+    ),
+    (
+        "WinHTTP direct/no list",
+        "WinHTTP 直连/无白名单",
+    ),
+    (
+        "Only a physical default route was observed.",
+        "仅观察到物理默认路由。",
+    ),
+    (
+        "This is normal for system-proxy mode; declare intended_mode for a firmer assessment.",
+        "这在系统代理模式下正常；声明 intended_mode 可获得更确定的结论。",
+    ),
+    (
+        "Browser Secure DNS mode could not be read from policy (unknown).",
+        "浏览器 Secure DNS 模式无法从策略读取（unknown）。",
+    ),
+    (
+        "WebRTC can expose local or physical-network addresses even when HTTP(S) egress is proxied.",
+        "即使 HTTP(S) 出口已走代理，WebRTC 仍可能暴露本地或物理网络地址。",
+    ),
+    (
+        "Claude Shield does not auto-change browser settings and does not run an in-browser WebRTC trial.",
+        "Claude Shield 不会自动更改浏览器设置，也不运行浏览器内 WebRTC 实测。",
+    ),
+    (
+        "Manually open a known leak-test page",
+        "请手动打开已知的泄漏测试页面",
+    ),
+    (
+        "and confirm that only the intended exit addresses appear.",
+        "并确认只出现预期的出口地址。",
+    ),
+    (
+        "Collector-side managed-policy presence (Chrome/Edge/Firefox) is separate evidence and still does not prove runtime behavior.",
+        "采集器侧的受管策略存在性（Chrome/Edge/Firefox）是独立证据，仍不能证明运行时行为。",
+    ),
+    (
+        "Lightweight reputation observation succeeded via ",
+        "轻量信誉观察成功（数据源：",
+    ),
+    (
+        "Country code: ",
+        "国家代码：",
+    ),
+    (
+        "Org/provider label present (categorical).",
+        "运营商/提供商标签存在（分类）。",
+    ),
+    (
+        "These are vendor database opinions and routing labels only — not proof of account safety, eligibility, residential status, or abuse risk.",
+        "这些只是供应商数据库观点与路由标签——不证明账户安全、资格、住宅属性或滥用风险。",
+    ),
+    (
+        "Egress tokens match across 2 observed sites",
+        "2 个观测站点的出口 token 一致",
+    ),
+    (
+        "Same exit path is consistent for the tested set.",
+        "测试集合的出口路径一致。",
+    ),
+    (
+        "Egress IPs match across runtimes.",
+        "各运行时出口 IP 一致。",
+    ),
+    (
+        "Only one probe source succeeded or none succeeded.",
+        "只有一个探测源成功或全部失败。",
+    ),
+    (
+        "Country/ASN class labels were stable across 2 samples",
+        "国家/ASN 分类标签在 2 次采样中稳定",
+    ),
+    (
+        "This is a short-window routing consistency note only — not proof of long-term stability, account safety, or ban risk.",
+        "这只是短窗口路由一致性说明——不证明长期稳定、账户安全或封号风险。",
+    ),
+    (
+        "IPv4 egress observed",
+        "观察到 IPv4 出口",
+    ),
+    (
+        "IPv6 egress unavailable or not returned — treated as unknown, not a failure.",
+        "IPv6 出口不可用或未返回——按未知处理，不算失败。",
+    ),
+    (
+        "Family observations and vendor class labels only — not proof of leak, account safety, or ban risk.",
+        "仅为地址族观察与供应商分类标签——不证明泄漏、账户安全或封号风险。",
+    ),
+    (
+        "Resolved: ",
+        "解析成功：",
+    ),
+    (
+        "Failed: ",
+        "解析失败：",
+    ),
+    (
+        "Outcome classes observed:",
+        "观察到的结果分类：",
+    ),
+    (
+        "(multi-method classification only)",
+        "（仅多方法分类）",
+    ),
+    (
+        "This confirms resolution occurred or failed on the observed path; it does not prove or exclude a DNS leak.",
+        "这确认了在观测路径上解析成功或失败；不证明也不排除 DNS 泄漏。",
+    ),
+    (
+        "Unique-hostname public-suffix probes are not used.",
+        "不使用唯一主机名公共后缀探测。",
+    ),
+    (
+        "Raw resolver and answer addresses are not stored.",
+        "原始解析器与应答地址不存储。",
+    ),
+    (
+        "hijacking is enabled; static configuration cannot prove a leak.",
+        "劫持已启用；静态配置不能证明泄漏。",
+    ),
+    (
+        "Online reputation observed country code US (informational only — do not auto-follow proxy/node country).",
+        "在线信誉观察到国家代码 US（仅供参考——不要自动跟随代理/节点所在国家）。",
+    ),
+    (
+        "culture/UI culture",
+        "区域/界面语言",
+    ),
+    (
+        "Port class looks like the configured mixed-port.",
+        "端口类别与配置的 mixed-port 相符。",
+    ),
+    (
+        "AutoDetect registry value not present",
+        "注册表 AutoDetect 值不存在",
+    ),
+    (
+        "env proxy names present",
+        "环境代理变量名存在",
+    ),
+    (
+        "No other supported proxy clients observed",
+        "未观察到其他受支持的代理客户端",
+    ),
+    (
+        "while your intended proxy",
+        "在你预期的代理",
     ),
     (
         "Geo stack is partial (timezone and/or culture incomplete).",
@@ -566,6 +755,67 @@ _RECOMMENDATION_PHRASE_MAP: Tuple[Tuple[str, str], ...] = (
     (
         "Scripts never reset device IDs for you.",
         "脚本绝不会替你重置设备 ID。",
+    ),
+    # --- absorbed-dimension leftovers ---
+    (
+        "Personalized guidance in the report is based on this detection. All network/timezone/hygiene changes remain manual after your approval.",
+        "报告中的个性化指引基于此检测。所有网络/时区/环境清理的更改都需你确认后手动执行。",
+    ),
+    (
+        "Confirm the intended service mode and mixed-port listener in the active proxy client.",
+        "请在当前代理客户端中确认预期的服务模式与 mixed-port 监听端口。",
+    ),
+    (
+        "Do not disable the Mihomo/tunnel adapter; address Teredo only if it demonstrably bypasses the proxy.",
+        "不要禁用 Mihomo/隧道网卡；仅在 Teredo 被证实绕过代理时才处理。",
+    ),
+    (
+        "Adjust IPv6 only when it demonstrably bypasses the proxy; do not disable the tunnel adapter.",
+        "仅在 IPv6 被证实绕过代理时才调整；不要禁用隧道网卡。",
+    ),
+    (
+        "Consider confirming each env proxy name is intentional; values are never revealed.",
+        "建议确认每个代理环境变量是否有意设置；变量值永不被显示。",
+    ),
+    (
+        "Pin the sensitive service group to a fixed manual selection; automatic selectors can change the exit unpredictably.",
+        "将敏感服务分组固定为手动选择；自动选择器可能不可预期地切换出口。",
+    ),
+    (
+        "With fake-IP and port-53 hijacking active these are usually inert, but confirm a live test shows no physical-ISP resolver.",
+        "fake-IP 与 53 端口劫持已启用时通常无害，但建议实测确认没有物理宽带解析器参与。",
+    ),
+    (
+        "Optional: pass intended_mode=system_proxy or full_tunnel on analyze/run_full_audit.",
+        "可选：在 analyze/run_full_audit 时传入 intended_mode=system_proxy 或 full_tunnel。",
+    ),
+    (
+        "Optional policy hardening only: where your organization allows it, set a restrictive managed WebRTC IP-handling policy",
+        "仅可选策略加固：在组织允许时，设置受限的受管 WebRTC IP 处理策略",
+    ),
+    (
+        "(for Chromium-family browsers, WebRTCIPHandling=disable_non_proxied_udp; for Firefox, a managed Disab",
+        "（Chromium 系浏览器：WebRTCIPHandling=disable_non_proxied_udp；Firefox：受管 Disab",
+    ),
+    (
+        "DisableWebRTC or equivalent enterprise policy",
+        "DisableWebRTC 或等效的企业策略",
+    ),
+    (
+        "documented enterprise policy channel",
+        "文档化的企业策略通道",
+    ),
+    (
+        "do not install anti",
+        "不要安装反",
+    ),
+    (
+        "manual leak test after any policy change",
+        "任何策略变更后手动做泄漏测试",
+    ),
+    (
+        "This tool will not apply those settings for you",
+        "本工具不会替你应用这些设置",
     ),
     (
         "Scripts never delete caches for you.",
