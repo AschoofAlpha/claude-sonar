@@ -92,7 +92,7 @@
   .sev-critical { color: var(--red); } .sev-high { color: #ff9b52; }
   .sev-medium { color: var(--yellow); } .sev-low { color: var(--accent); } .sev-info { color: var(--muted); }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
   th { color: var(--muted); font-weight: 600; white-space: nowrap; }
   td.id-col { color: var(--muted); font-family: ui-monospace, Consolas, monospace; font-size: 12px; word-break: break-all; }
   .status { border-radius: 5px; padding: 1px 8px; font-size: 12px; white-space: nowrap; }
@@ -307,12 +307,13 @@ function renderGroups(groups) {
     html += "<table><thead><tr><th>检查项</th><th>状态</th><th>严重度</th><th>说明</th><th>建议</th></tr></thead><tbody>";
     for (var i = 0; i < items.length; i++) {
       var c = items[i] || {};
-      var explanation = pick(c, "explanation");
+      var explanation = pick(c, "explanation_zh") || pick(c, "explanation");
       if (typeof explanation === "string" && explanation.length > 220) explanation = explanation.slice(0, 220) + "…";
-      var recommendation = pick(c, "recommendation");
+      var recommendation = pick(c, "recommendation_zh") || pick(c, "recommendation");
       if (typeof recommendation === "string" && recommendation.length > 220) recommendation = recommendation.slice(0, 220) + "…";
+      var title = pick(c, "title_zh") || pick(c, "title");
       html += "<tr>" +
-        "<td><span class='id-col'>" + esc(pick(c, "id")) + "</span><br>" + esc(pick(c, "title")) + "</td>" +
+        "<td><span class='id-col'>" + esc(pick(c, "id")) + "</span><br>" + esc(title) + "</td>" +
         "<td>" + statusChip(pick(c, "status")) + "</td>" +
         "<td>" + sevChip(pick(c, "severity")) + "</td>" +
         "<td>" + esc(explanation) + "</td>" +

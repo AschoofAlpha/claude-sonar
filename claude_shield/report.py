@@ -50,6 +50,20 @@ _OPTIONAL_IDS = frozenset({
 
 _ACTION_ORDER = ("must_fix", "optional_consistency", "leave_alone")
 
+# Status order for report tables: fail first (must fix), then pass, then
+# warning, then unknown (user preference).
+_STATUS_ORDER = {"fail": 0, "pass": 1, "warning": 2, "unknown": 3}
+
+
+def sort_checks(checks: Iterable[Any]) -> List[Any]:
+    """Sort checks by status: fail → pass → warning → unknown (stable otherwise)."""
+    return sorted(
+        checks,
+        key=lambda c: _STATUS_ORDER.get(
+            str(_field(c, "status", "") or "").strip().lower(), 4
+        ),
+    )
+
 # Chinese labels for the severity column (fallback: raw value).
 _SEVERITY_ZH = {
     "critical": "严重",
@@ -1312,7 +1326,7 @@ def format_report(
                 ]
             )
 
-        for check in checks:
+        for check in sort_checks(checks):
             row = _row_cells(check, lang)
             rec = row["recommendation"] if row["action_key"] != "leave_alone" else ""
             meaning = row["meaning"] + (f"<br>{row['detail']}" if row["detail"] and row["detail"] != "—" else "")
@@ -1368,7 +1382,7 @@ def format_report(
             continue
         lines.append(head[0])
         lines.append(head[1])
-        for check in items:
+        for check in sort_checks(items):
             row = _row_cells(check, lang)
             rec = "—" if key == "leave_alone" else (row["recommendation"] or "—")
             meaning = row["meaning"] + (f"<br>{row['detail']}" if row["detail"] and row["detail"] != "—" else "")

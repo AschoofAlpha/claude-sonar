@@ -110,7 +110,7 @@ result = run_full_audit(
 8. Recommend the minimum local change, obtain approval, apply it, and run one verification pass.
 9. Deliver the report as TABLES PASTED DIRECTLY INTO THE CHAT — the five-column table (检查项/状态/严重度/说明/建议) is the primary deliverable. Do NOT wrap it in a prose summary, do NOT offer a markdown file link as the main content, do NOT truncate rows. Keep the score line (配置自洽分) above the table and the 必须处理/可选一致性/保持不动 section headings as-is.
 10. After the tables are posted, open the local panel with a DELAY so the user reads the chat tables first: run `python -m claude_shield serve --open --open-delay 8` (backgrounded; ~8s). The panel auto-runs a fresh audit on load with online probes ON by default (its toggle can turn them off). Do not ask the user to click anything; if the browser cannot be opened automatically, give them the `http://127.0.0.1:<port>/` URL.
-11. The table columns are 检查项 / 状态 / 严重度 / 说明 / 建议 (Chinese); the panel and the pasted tables use the same five columns.
+11. The table columns are 检查项 / 状态 / 严重度 / 说明 / 建议 (Chinese); the panel and the pasted tables use the same five columns. Row order inside each table is by status: 通过 (pass) first, then 警告 (warning), then 未知 (unknown) — fail rows (if any) go first of all.
 
 ## Adapt to the Local Computer
 

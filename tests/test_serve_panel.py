@@ -182,6 +182,31 @@ class TestBuildReportPayload:
 
 
 class TestReportApi:
+    def test_payload_sorted_and_zh_labels(self, panel, monkeypatch):
+        # Groups must be sorted fail→pass→warning→unknown and carry zh labels.
+        from claude_shield.models import AuditCheck
+
+        fake_checks = [
+            AuditCheck(id="network.mode", title="t1", category="network",
+                       status="unknown", severity="info", confidence="unknown",
+                       explanation="unreachable"),
+            AuditCheck(id="privacy.telemetry", title="t2", category="privacy",
+                       status="pass", severity="info", confidence="confirmed",
+                       explanation="telemetry off"),
+            AuditCheck(id="network.tun", title="t3", category="network",
+                       status="warning", severity="low", confidence="possible",
+                       explanation="tun off"),
+        ]
+        fake_result = {"checks": fake_checks, "report_dict": {}, "summary": {}}
+        payload = serve_mod.build_report_payload(fake_result, online=False)
+        order = {"fail": 0, "pass": 1, "warning": 2, "unknown": 3}
+        for key, items in payload["groups"].items():
+            ranks = [order.get(c["status"], 4) for c in items]
+            assert ranks == sorted(ranks), (key, [c["status"] for c in items])
+            for c in items:
+                assert c.get("title_zh"), f"{key} missing title_zh for {c['id']}"
+                assert "explanation_zh" in c and "recommendation_zh" in c
+
     def test_report_default_online_on(self, panel, monkeypatch):
         # User preference: /api/report with no online param defaults to online=1.
         seen = {}

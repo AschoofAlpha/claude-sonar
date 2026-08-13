@@ -76,9 +76,30 @@ def _utcnow() -> str:
 
 
 def build_report_payload(result: Dict[str, Any], online: bool) -> Dict[str, Any]:
-    """Turn a ``run_full_audit`` result into a redacted, JSON-safe payload."""
+    """Turn a ``run_full_audit`` result into a redacted, JSON-safe payload.
+
+    Group items are sorted by status (fail → pass → warning → unknown) and
+    each check carries Chinese labels (``title_zh`` / ``explanation_zh`` /
+    ``recommendation_zh``) for the panel UI.
+    """
+    from .report import plain_check, sort_checks, translate_detail, translate_recommendation
+
     checks = result.get("checks") or []
     report_dict = result.get("report_dict") or {}
+
+    def _zh_enrich(item: Dict[str, Any]) -> Dict[str, Any]:
+        cid = str(item.get("id") or "")
+        item["title_zh"] = plain_check(cid, "zh")
+        item["explanation_zh"] = (
+            translate_detail(str(item.get("explanation") or ""), "zh")
+            or item.get("explanation")
+        )
+        item["recommendation_zh"] = (
+            translate_recommendation(str(item.get("recommendation") or ""), "zh")
+            or item.get("recommendation")
+        )
+        return item
+
     try:
         scored = score_checks(checks)
     except Exception:
@@ -92,7 +113,11 @@ def build_report_payload(result: Dict[str, Any], online: bool) -> Dict[str, Any]
             "breakdown": {},
         }
     try:
-        groups_json = {key: to_dict(items) for key, items in group_checks(checks).items()}
+        grouped = group_checks(checks)
+        groups_json = {
+            key: [_zh_enrich(to_dict(c)) for c in sort_checks(items)]
+            for key, items in grouped.items()
+        }
     except Exception:
         groups_json = {}
 
