@@ -9,6 +9,7 @@
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/AschoofAlpha/claude-shield/ci.yml?style=flat-square&label=CI" alt="CI">
   <img src="https://img.shields.io/badge/version-1.4.2-2DD4BF?style=flat-square" alt="v1.4.2">
+  <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FAschoofAlpha%2Fclaude-shield%2Fmain%2Fshield-badge.json&query=%24.message&label=配置自洽分&color=2DD4BF" alt="配置自洽分">
   <img src="https://img.shields.io/badge/default-read--only-2DD4BF?style=flat-square" alt="Read-only by default">
   <img src="https://img.shields.io/badge/platform-Windows-4F7CFF?style=flat-square" alt="Windows">
   <img src="https://img.shields.io/badge/license-MIT-64748B?style=flat-square" alt="MIT License">
@@ -75,9 +76,18 @@ python -m claude_shield --online --timeout 5
 python -m claude_shield --online --intended-region US
 python -m claude_shield --intended-mode system_proxy   # or full_tunnel
 python -m claude_shield --lang en
+python -m claude_shield serve --port 8765  # read-only local web panel on 127.0.0.1
+python -m claude_shield repo ./my-project  # code security scan (SAST/secrets/deps)
+python -m claude_shield badge              # write shield-badge.json from an audit
 ```
 
-Online probes (egress, DNS observation, IP reputation, cross-site exits) stay **off** unless you pass `--online`. With `--online`, independent probes run in parallel (shared timeout).
+Sub-commands (same `python -m claude_shield` entry point):
+
+- **`serve [--port N] [--open]`** — zero-dependency local web panel bound to **127.0.0.1 only**. `/` renders the audit (score, Must fix / Optional / Leave alone groups), `/api/report?online=0` returns the redacted report JSON (online probes stay off unless you opt in), plus a browser-side observation block (WebRTC ICE candidates, local timezone/language). Read-only: POST is 405, path traversal is 404, only loopback `Host` headers are accepted.
+- **`repo PATH [--no-tools] [--baseline F] [--json] [--sarif F] [--out F]`** — repository security scan: stack detection, semgrep / gitleaks / pip-audit / npm audit orchestration with graceful degradation (missing tools are skipped and noted), bundled trimmed Semgrep rules (MIT source noted), weighted 0–100 code-security score, fix suggestions, baseline diff, SARIF 2.1.0 export. No pentesting, no GitHub-issue filing.
+- **`badge [--out PATH] [--from-report F]`** — writes `shield-badge.json` (score + color) for the shields.io dynamic badge below; `--from-report` reuses a previous `--json` report instead of re-auditing.
+
+Online probes (egress, DNS observation, IP reputation, cross-site exits, **DNS-vs-HTTP exit consistency**, **JA3/JA4 TLS fingerprint**) stay **off** unless you pass `--online`. With `--online`, independent probes run in parallel (shared timeout). The `ANTHROPIC_BASE_URL` audit (official endpoint vs a bundled public risk-intel blacklist) always runs offline.
 
 `--out` writes the report to a file **and** still prints to stdout. `--diff` accepts a previous CLI `--json` payload or bare `report_dict` and appends a status-diff section (or a `diff` key in JSON mode). Default markdown is full; pass `--compact` for a short report (`--full` forces full if both are set).
 
@@ -93,6 +103,11 @@ Library defaults: `run_full_audit(include_recommendations=True)` returns `report
 | Routing | TUN, default route, Teredo, IPv6 bypass |
 | Consistency | timezone × locale × (online) exit region |
 | Personalized | detects your proxy client (Clash Verge / v2rayN / sing-box / …) and gives per-app manual steps |
+| Online (opt-in) | DNS-vs-HTTP exit consistency (DoH), JA3/JA4 TLS client fingerprint (openssl capture) |
+| Always-on | `ANTHROPIC_BASE_URL` audit vs a bundled public relay-risk blacklist |
+| Local panel | `serve` — 127.0.0.1 read-only panel + browser-side WebRTC/timezone observation |
+| Repo scan | `repo` — SAST / secrets / dependency audit with a 0–100 code-security score |
+| Badge | `badge` — `shield-badge.json` driving a shields.io dynamic badge |
 
 Results split into **Must fix**, **Optional consistency**, and **Leave alone**; every check carries a plain-language **说明/meaning** column and the report ends with a **configuration self-consistency** score (not anti-ban) plus a footer of what stays **recommend-only never auto** (fingerprint, timezone-follow-node, env wipe, anti-ban score disguise, DNS/route/TUN).
 

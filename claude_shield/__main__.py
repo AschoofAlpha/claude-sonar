@@ -84,6 +84,53 @@ def build_parser() -> argparse.ArgumentParser:
         default=False,
         help="Full markdown report (default). Overrides --compact when both are set.",
     )
+    sub = parser.add_subparsers(dest="command", metavar="COMMAND")
+    serve_p = sub.add_parser(
+        "serve", help="Start the read-only local web panel on 127.0.0.1."
+    )
+    serve_p.add_argument(
+        "--port", type=int, default=8765, metavar="N",
+        help="Panel port (default: 8765).",
+    )
+    serve_p.add_argument(
+        "--open", action="store_true",
+        help="Open the panel in the default browser after start.",
+    )
+    repo_p = sub.add_parser(
+        "repo", help="Security-scan a local code repository (SAST/secrets/deps)."
+    )
+    repo_p.add_argument("path", metavar="PATH", help="Repository directory to scan.")
+    repo_p.add_argument(
+        "--no-tools", action="store_true",
+        help="Skip external tools (semgrep/gitleaks/audit); stack detection only.",
+    )
+    repo_p.add_argument(
+        "--baseline", default=None, metavar="PATH",
+        help="Previous scan JSON to diff against.",
+    )
+    repo_p.add_argument(
+        "--json", action="store_true", dest="as_json",
+        help="Print the scan result as JSON instead of markdown.",
+    )
+    repo_p.add_argument(
+        "--sarif", default=None, metavar="PATH",
+        help="Also export SARIF 2.1.0 to PATH.",
+    )
+    repo_p.add_argument(
+        "--out", default=None, metavar="PATH",
+        help="Write the report to PATH (also printed to stdout).",
+    )
+    badge_p = sub.add_parser(
+        "badge", help="Write shield-badge.json from an audit result."
+    )
+    badge_p.add_argument(
+        "--out", default=None, metavar="PATH",
+        help="Badge JSON path (default: repo-root shield-badge.json).",
+    )
+    badge_p.add_argument(
+        "--from-report", default=None, dest="from_report", metavar="PATH",
+        help="Read a previous --json report for the score instead of re-auditing.",
+    )
     return parser
 
 
@@ -138,9 +185,103 @@ def _append_diff_section(body: str, result, diff_path: str, lang: str, as_json: 
     return body + "\n" + section, diff
 
 
+def _cmd_serve(args) -> int:
+    from .serve import serve
+
+    port = int(args.port)
+    if not (1024 <= port <= 65535):
+        print(f"error: --port must be between 1024 and 65535 (got {port})", file=sys.stderr)
+        return 2
+    try:
+        httpd = serve(port=port, open_browser=bool(args.open))
+    except OSError as exc:
+        print(f"error: could not start panel on 127.0.0.1:{port}: {exc}", file=sys.stderr)
+        return 1
+    print(f"Claude Shield panel: http://127.0.0.1:{port}/  (read-only; Ctrl+C to stop)")
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\npanel stopped")
+    finally:
+        httpd.server_close()
+    return 0
+
+
+def _cmd_repo(args) -> int:
+    from .reposcan.scanner import result_to_report, run_repo_scan
+
+    try:
+        result = run_repo_scan(
+            args.path,
+            use_tools=not bool(args.no_tools),
+            baseline_path=args.baseline,
+            json_out=bool(args.as_json),
+            sarif_path=args.sarif,
+        )
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    if isinstance(result, dict):
+        text = json.dumps(result, ensure_ascii=False, indent=2, default=str)
+    else:
+        text = result_to_report(result)
+    if not text.endswith("\n"):
+        text += "\n"
+    if args.out:
+        try:
+            _write_out(args.out, text)
+        except OSError as exc:
+            print(f"error: could not write --out {args.out!r}: {exc}", file=sys.stderr)
+            return 1
+    print(text, end="")
+    return 0
+
+
+def _cmd_badge(args) -> int:
+    from .badge import default_badge_path, make_badge, score_from_result
+
+    out = Path(args.out) if args.out else default_badge_path()
+    score = None
+    if args.from_report:
+        try:
+            payload = json.loads(Path(args.from_report).read_text(encoding="utf-8"))
+            if isinstance(payload, dict) and "report_dict" in payload:
+                payload = payload["report_dict"]
+            score = score_from_result(payload)
+        except Exception as exc:
+            print(f"error: could not read --from-report {args.from_report!r}: {exc}", file=sys.stderr)
+            return 1
+    if score is None:
+        from .analyze import run_full_audit
+
+        try:
+            result = run_full_audit(probe_timeout=5, online=False)
+        except Exception as exc:
+            print(f"error: audit failed: {exc}", file=sys.stderr)
+            return 1
+        score = score_from_result(result)
+    if score is None:
+        print("error: could not derive a score from the audit result", file=sys.stderr)
+        return 1
+    try:
+        data = make_badge(score, str(out))
+    except OSError as exc:
+        print(f"error: could not write badge {out}: {exc}", file=sys.stderr)
+        return 1
+    print(f"badge written: {out}  ({data.get('message')})")
+    return 0
+
+
 def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    if args.command == "serve":
+        return _cmd_serve(args)
+    if args.command == "repo":
+        return _cmd_repo(args)
+    if args.command == "badge":
+        return _cmd_badge(args)
 
     if args.timeout is not None and not (0 < float(args.timeout) <= 30):
         parser.error("--timeout must be between 0 and 30 seconds")

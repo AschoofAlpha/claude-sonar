@@ -1,0 +1,181 @@
+# ---------------------------------------------------------------------------
+# 精简自 alissonlinneker/shield-claude-skill 内置 Semgrep 规则集（MIT License）
+#   上游路径：configs/semgrep-rules/
+#   上游仓库：https://github.com/alissonlinneker/shield-claude-skill
+#   Copyright (c) 2026 ALASTecnology
+# 本文件为上游规则的子集（每语言保留 3-6 条核心规则，规则文本未作语义修改，
+# 仅增补本文件头注释）。来源与许可说明见同目录 NOTICE.md。
+# ---------------------------------------------------------------------------
+rules:
+  - id: py-sql-injection-format
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $CURSOR.execute("..." % $INPUT, ...)
+          - pattern: |
+              $CURSOR.execute("...".format($INPUT), ...)
+          - pattern: |
+              $CURSOR.execute("..." + $INPUT + "...", ...)
+          - pattern: |
+              $CURSOR.execute(f"...{$INPUT}...", ...)
+    message: >
+      SQL query built using string formatting or concatenation.
+      Use parameterized queries with placeholder bindings to prevent
+      SQL injection.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      cwe: "CWE-89"
+      owasp: "A03:2021 Injection"
+      confidence: HIGH
+      impact: CRITICAL
+      category: security
+  - id: py-command-injection-os-system
+    patterns:
+      - pattern-either:
+          - pattern: |
+              os.system($CMD)
+          - pattern: |
+              os.popen($CMD)
+      - pattern-not: |
+          os.system("...")
+      - pattern-not: |
+          os.popen("...")
+    message: >
+      os.system() and os.popen() execute commands through the shell and are
+      vulnerable to injection. Use subprocess.run() with a list of arguments
+      and shell=False.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      cwe: "CWE-78"
+      owasp: "A03:2021 Injection"
+      confidence: HIGH
+      impact: CRITICAL
+      category: security
+  - id: py-command-injection-subprocess-shell
+    patterns:
+      - pattern-either:
+          - pattern: |
+              subprocess.call($CMD, shell=True, ...)
+          - pattern: |
+              subprocess.run($CMD, shell=True, ...)
+          - pattern: |
+              subprocess.Popen($CMD, shell=True, ...)
+      - pattern-not: |
+          subprocess.call("...", shell=True, ...)
+      - pattern-not: |
+          subprocess.run("...", shell=True, ...)
+      - pattern-not: |
+          subprocess.Popen("...", shell=True, ...)
+    message: >
+      subprocess with shell=True and dynamic input allows command injection.
+      Pass arguments as a list and remove shell=True.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      cwe: "CWE-78"
+      owasp: "A03:2021 Injection"
+      confidence: HIGH
+      impact: CRITICAL
+      category: security
+
+  # ---------------------------------------------------------------------------
+  # SSRF
+  # ---------------------------------------------------------------------------
+  - id: py-deserialization-pickle
+    patterns:
+      - pattern-either:
+          - pattern: |
+              pickle.loads($DATA)
+          - pattern: |
+              pickle.load($FILE)
+          - pattern: |
+              cPickle.loads($DATA)
+          - pattern: |
+              cPickle.load($FILE)
+    message: >
+      Deserializing data with pickle can execute arbitrary code.
+      Never unpickle data from untrusted sources. Use JSON or other
+      safe serialization formats.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      cwe: "CWE-502"
+      owasp: "A08:2021 Software and Data Integrity Failures"
+      confidence: HIGH
+      impact: CRITICAL
+      category: security
+  - id: py-hardcoded-password
+    patterns:
+      - pattern-either:
+          - pattern: |
+              password = "..."
+          - pattern: |
+              PASSWORD = "..."
+          - pattern: |
+              passwd = "..."
+          - pattern: |
+              secret = "..."
+          - pattern: |
+              SECRET = "..."
+          - pattern: |
+              api_key = "..."
+          - pattern: |
+              API_KEY = "..."
+          - pattern: |
+              secret_key = "..."
+          - pattern: |
+              SECRET_KEY = "..."
+    message: >
+      Hardcoded credential detected. Store secrets in environment variables,
+      a secrets manager, or encrypted configuration files — never in source code.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      cwe: "CWE-798"
+      owasp: "A07:2021 Identification and Authentication Failures"
+      confidence: MEDIUM
+      impact: HIGH
+      category: security
+
+  # ---------------------------------------------------------------------------
+  # Jinja2 Template Injection
+  # ---------------------------------------------------------------------------
+  - id: py-ssrf-requests
+    patterns:
+      - pattern-either:
+          - pattern: |
+              requests.get($URL, ...)
+          - pattern: |
+              requests.post($URL, ...)
+          - pattern: |
+              requests.put($URL, ...)
+          - pattern: |
+              requests.delete($URL, ...)
+          - pattern: |
+              requests.head($URL, ...)
+          - pattern: |
+              httpx.get($URL, ...)
+          - pattern: |
+              httpx.post($URL, ...)
+      - metavariable-pattern:
+          metavariable: $URL
+          patterns:
+            - pattern-not: "..."
+    message: >
+      HTTP request with a potentially user-controlled URL may lead to SSRF.
+      Validate the URL against an allowlist and block internal/private
+      IP ranges before making the request.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      cwe: "CWE-918"
+      owasp: "A10:2021 SSRF"
+      confidence: MEDIUM
+      impact: HIGH
+      category: security
+
+  # ---------------------------------------------------------------------------
+  # Insecure Deserialization
+  # ---------------------------------------------------------------------------

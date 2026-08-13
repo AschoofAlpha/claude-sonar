@@ -75,9 +75,18 @@ python -m claude_shield --online --timeout 5
 python -m claude_shield --online --intended-region US
 python -m claude_shield --intended-mode system_proxy   # 或 full_tunnel
 python -m claude_shield --lang en
+python -m claude_shield serve --port 8765  # 只读本地网页面板（仅 127.0.0.1）
+python -m claude_shield repo ./my-project  # 代码仓库安全扫描（SAST/密钥/依赖）
+python -m claude_shield badge              # 从审计结果生成 shield-badge.json
 ```
 
-除非传入 `--online`，否则不会启用在线探测（出口、DNS、IP 声誉、跨站出口）。启用 `--online` 时，独立探测会并行执行（共享超时）。
+子命令（同一入口 `python -m claude_shield`）：
+
+- **`serve [--port N] [--open]`** — 零依赖本地网页面板，**仅绑定 127.0.0.1**。`/` 渲染审计结果（分数、必须处理/可选一致性/保持不动分组）；`/api/report?online=0` 返回脱敏后的报告 JSON（在线探测默认关闭，需手动打开）；附带浏览器端观察区（WebRTC ICE 候选、本地时区/语言）。只读：POST 返回 405、路径穿越 404、仅接受回环 Host 头。
+- **`repo PATH [--no-tools] [--baseline F] [--json] [--sarif F] [--out F]`** — 代码仓库安全扫描：技术栈识别、semgrep / gitleaks / pip-audit / npm audit 编排（工具缺失自动跳过并注明）、内置精简 Semgrep 规则（MIT 来源已注明）、0–100 加权代码安全分、修复建议、基线对比、SARIF 2.1.0 导出。不含渗透测试、不自动建 GitHub issue。
+- **`badge [--out PATH] [--from-report F]`** — 写入 `shield-badge.json`（分数+颜色），供下方 shields.io 动态徽章使用；`--from-report` 可复用上次 `--json` 报告、无需重新审计。
+
+除非传入 `--online`，否则不会启用在线探测（出口、DNS、IP 声誉、跨站出口、**DNS 与 HTTP 出口一致性**、**JA3/JA4 TLS 指纹**）。启用 `--online` 时，独立探测会并行执行（共享超时）。`ANTHROPIC_BASE_URL` 审计（官方端点 vs 内置公开风控黑名单情报）始终离线运行。
 
 `--out` 写入文件的同时仍打印到 stdout。`--diff` 接受上次 CLI `--json` 输出或裸 `report_dict`，在 Markdown 末尾追加对比段（JSON 模式增加 `diff` 字段）。默认完整报告；`--compact` 输出精简版（若与 `--full` 同时出现，以 `--full` 为准）。
 
@@ -91,6 +100,11 @@ python -m claude_shield --lang en
 | 代理 | 系统代理 / WinHTTP / 环境变量 / PAC / 其它客户端冲突 |
 | DNS | fake-IP、53 劫持、DoH、物理网卡残留、浏览器 Secure DNS |
 | 路由 | TUN、默认路由、Teredo、IPv6 旁路 |
+| 在线（可选） | DNS 与 HTTP 出口一致性（DoH）、JA3/JA4 TLS 客户端指纹（openssl 抓包） |
+| 始终运行 | `ANTHROPIC_BASE_URL` 审计（内置公开中转风险黑名单比对） |
+| 本地面板 | `serve` — 127.0.0.1 只读面板 + 浏览器端 WebRTC/时区观察 |
+| 仓库扫描 | `repo` — SAST / 密钥 / 依赖审计，0–100 代码安全分 |
+| 徽章 | `badge` — `shield-badge.json` 驱动 shields.io 动态徽章 |
 | 一致性 | 时区 × 语言 ×（在线）出口地区 |
 | 个性化 | 自动识别你的梯子（Clash Verge / v2rayN / sing-box / …）并按软件给手动步骤 |
 

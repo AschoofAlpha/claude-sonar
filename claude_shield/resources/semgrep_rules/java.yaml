@@ -1,0 +1,156 @@
+# ---------------------------------------------------------------------------
+# 精简自 alissonlinneker/shield-claude-skill 内置 Semgrep 规则集（MIT License）
+#   上游路径：configs/semgrep-rules/
+#   上游仓库：https://github.com/alissonlinneker/shield-claude-skill
+#   Copyright (c) 2026 ALASTecnology
+# 本文件为上游规则的子集（每语言保留 3-6 条核心规则，规则文本未作语义修改，
+# 仅增补本文件头注释）。来源与许可说明见同目录 NOTICE.md。
+# ---------------------------------------------------------------------------
+rules:
+  - id: java-sql-injection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $STMT.executeQuery("..." + $INPUT + "...")
+          - pattern: |
+              $STMT.execute("..." + $INPUT + "...")
+          - pattern: |
+              $STMT.executeUpdate("..." + $INPUT + "...")
+          - pattern: |
+              $CONN.prepareStatement("..." + $INPUT + "...")
+          - pattern: |
+              String.format("..." , $INPUT)
+    message: >
+      SQL query built with string concatenation. Use parameterized queries
+      with PreparedStatement and bind variables (e.g., ps.setString(1, input))
+      to prevent SQL injection.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      cwe: ["CWE-89"]
+      owasp: ["A03:2021 Injection"]
+      confidence: HIGH
+      impact: CRITICAL
+      category: security
+
+  # ---------------------------------------------------------------------------
+  # Command Injection
+  # ---------------------------------------------------------------------------
+  - id: java-command-injection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              Runtime.getRuntime().exec($CMD)
+          - pattern: |
+              Runtime.getRuntime().exec($CMD, ...)
+          - pattern: |
+              new ProcessBuilder($CMD, ...)
+          - pattern: |
+              new ProcessBuilder(Arrays.asList($CMD, ...))
+      - metavariable-pattern:
+          metavariable: $CMD
+          patterns:
+            - pattern-not: "..."
+    message: >
+      Runtime.exec() or ProcessBuilder called with a potentially
+      user-controlled command. Validate and sanitize all input, use an
+      allowlist of permitted commands, and prefer ProcessBuilder with an
+      explicit argument array over a single command string.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      cwe: ["CWE-78"]
+      owasp: ["A03:2021 Injection"]
+      confidence: HIGH
+      impact: CRITICAL
+      category: security
+
+  # ---------------------------------------------------------------------------
+  # Path Traversal
+  # ---------------------------------------------------------------------------
+  - id: java-xxe
+    patterns:
+      - pattern-either:
+          - pattern: |
+              DocumentBuilderFactory.newInstance()
+          - pattern: |
+              SAXParserFactory.newInstance()
+          - pattern: |
+              XMLInputFactory.newInstance()
+          - pattern: |
+              TransformerFactory.newInstance()
+    message: >
+      XML parser instantiated without disabling external entities. Set
+      the feature "http://apache.org/xml/features/disallow-doctype-decl"
+      to true, or disable FEATURE_EXTERNAL_GENERAL_ENTITIES and
+      FEATURE_EXTERNAL_PARAMETER_ENTITIES to prevent XXE attacks. For
+      XMLInputFactory, set IS_SUPPORTING_EXTERNAL_ENTITIES to false and
+      SUPPORT_DTD to false.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      cwe: ["CWE-611"]
+      owasp: ["A05:2021 Security Misconfiguration"]
+      confidence: MEDIUM
+      impact: CRITICAL
+      category: security
+
+  # ---------------------------------------------------------------------------
+  # Insecure Deserialization
+  # ---------------------------------------------------------------------------
+  - id: java-insecure-deserialization
+    patterns:
+      - pattern-either:
+          - pattern: |
+              new ObjectInputStream(...)
+          - pattern: |
+              $OIS.readObject()
+          - pattern: |
+              $OIS.readUnshared()
+    message: >
+      ObjectInputStream.readObject() deserializes arbitrary Java objects
+      and can lead to remote code execution if the input is untrusted.
+      Use an allowlist-based ObjectInputFilter (Java 9+), or prefer
+      a safe format such as JSON with explicit type mapping.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      cwe: ["CWE-502"]
+      owasp: ["A08:2021 Software and Data Integrity Failures"]
+      confidence: MEDIUM
+      impact: CRITICAL
+      category: security
+
+  # ---------------------------------------------------------------------------
+  # Hardcoded Credentials
+  # ---------------------------------------------------------------------------
+  - id: java-hardcoded-credentials
+    patterns:
+      - pattern-either:
+          - pattern: |
+              String $X = "...";
+          - pattern: |
+              final String $X = "...";
+          - pattern: |
+              static final String $X = "...";
+          - pattern: |
+              private static final String $X = "...";
+      - metavariable-regex:
+          metavariable: $X
+          regex: (?i)(password|passwd|secret|api_key|apikey|token|secret_key|secretkey|credentials)
+    message: >
+      Hardcoded credential detected in a string literal. Store secrets
+      in environment variables, a vault, or encrypted configuration
+      files — never in source code.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      cwe: ["CWE-798"]
+      owasp: ["A07:2021 Identification and Authentication Failures"]
+      confidence: MEDIUM
+      impact: HIGH
+      category: security
+
+  # ---------------------------------------------------------------------------
+  # Weak Cryptography
+  # ---------------------------------------------------------------------------

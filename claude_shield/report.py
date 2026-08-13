@@ -132,6 +132,9 @@ _CHECK_PLAIN = {
         "network.ip_reputation": "在线时出口 IP 的国家/运营商类标签（第三方看法，不是判决）",
         "network.cross_site.routing": "在线时多个网站看到的出口是否一致",
         "network.egress.probe_error": "在线探测没跑成",
+        "network.dns.egress_consistency": "在线实测：DNS 解析出口与 HTTP 出口是否一致（只读检测，不自动改）",
+        "network.tls.fingerprint": "在线实测本机 TLS 客户端指纹（JA3/JA4，只读检测，不给伪装建议）",
+        "network.anthropic_baseurl": "ANTHROPIC_BASE_URL 指向官方还是第三方中转（含公开风控黑名单情报比对）",
     },
     "en": {
         "privacy.telemetry": "Whether Claude metrics telemetry is disabled",
@@ -175,6 +178,9 @@ _CHECK_PLAIN = {
         "network.ip_reputation": "Online exit IP labels from third parties (opinion, not verdict)",
         "network.cross_site.routing": "Online check that several sites see a consistent exit",
         "network.egress.probe_error": "Online probes failed to run",
+        "network.dns.egress_consistency": "Online: whether DNS resolution egress matches HTTP egress (read-only)",
+        "network.tls.fingerprint": "Online TLS client fingerprint (JA3/JA4, read-only; no spoofing advice)",
+        "network.anthropic_baseurl": "Whether ANTHROPIC_BASE_URL points at the official endpoint or a third-party relay (public risk-intel compare)",
     },
 }
 
@@ -193,6 +199,7 @@ _GLOSSARY = {
         ("fake-IP", "DNS 先返回假 IP，真正访问时再走代理解析，便于接管查询。"),
         ("DNS 劫持 (port 53)", "把系统 DNS 查询拦到代理里，减少「查网站直接问宽带运营商」。"),
         ("DoH / 加密 DNS", "DNS 查询加密传输，减少被中间人偷看域名。"),
+        ("JA3 / JA4", "两种公开的 TLS 客户端指纹算法；本工具只读计算本机指纹供观察，不给伪装/拟合建议。"),
         ("strict-route", "严格路由，减少流量从旁路溜走。"),
         ("Teredo", "一种 IPv6 隧道，有时会绕过你的代理，一般建议关掉。"),
         ("WebRTC", "浏览器实时通讯技术；配置不当可能暴露真实网络地址。本工具默认只看策略，不做网页实测。"),
@@ -213,6 +220,7 @@ _GLOSSARY = {
         ("fake-IP", "DNS returns placeholder IPs so lookups can be steered through the proxy."),
         ("DNS hijack (port 53)", "Forces DNS queries into the proxy path."),
         ("DoH", "Encrypted DNS so names are harder to snoop on the wire."),
+        ("JA3 / JA4", "Public TLS client fingerprinting algorithms; this tool only computes your local fingerprint read-only, with no spoofing advice."),
         ("strict-route", "Tightens routing so fewer packets bypass the tunnel."),
         ("Teredo", "An IPv6 transition tunnel that can bypass the proxy; usually keep off."),
         ("WebRTC", "Browser realtime API; bad settings can expose real addresses. This tool only reads policy by default."),

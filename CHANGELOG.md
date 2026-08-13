@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — git mainline (version stays 1.4.2 until the next PyPI release)
+
+### Added
+- **Local web panel** — `python -m claude_shield serve [--port N] [--open]`: zero-dependency, bound to 127.0.0.1 only. `/` renders the audit (score + check groups), `/api/report` returns redacted report JSON (`online=0` default), `/api/status`, `/api/badge`; browser-side observation (WebRTC ICE candidates, timezone/language). Read-only: POST 405, path traversal 404, loopback-only `Host`.
+- **Dynamic badge** — `python -m claude_shield badge` writes `shield-badge.json`; `make_badge_markdown()` builds a shields.io dynamic-JSON badge URL.
+- **Repository security scan** — `python -m claude_shield repo PATH`: stack detection, external-tool orchestration (semgrep / gitleaks / pip-audit / npm audit, graceful degradation), bundled trimmed Semgrep rules (MIT, provenance in `NOTICE.md`), weighted 0–100 code-security score, fix suggestions, `--baseline` diff, `--json`, `--sarif PATH`. No pentesting, no GitHub-issue filing.
+- **New detection dimensions** (absorbed from newtv-ai/CLAUDE-SHIELD and CACEB001/Claude-Shield; detection only):
+  - `network.anthropic_baseurl` — `ANTHROPIC_BASE_URL` vs a bundled 147-domain public risk-intel blacklist (decoded from the upstream base64+XOR-91 blob; reproducible via `scripts/gen_baseurl_blacklist.py`). Always offline.
+  - `network.dns.egress_consistency` — DoH exit (`o-o.myaddr.l.google.com` via dns.google) vs HTTP egress comparison; mismatch is a neutral low-severity warning, unreachable is unknown. `--online` only.
+  - `network.tls.fingerprint` — JA3/JA4 computed from a local openssl ClientHello capture; read-only observation, no spoof advice. `--online` only.
+- Redaction fix: the credential rule's stop set now includes CJK punctuation and CJK characters, so `token <pseudonym>，中文` no longer swallows trailing text.
+
+### Changed
+- DNS egress mismatch reports at severity `low` so it lands in Optional consistency, not Must fix (an observation, not a verdict).
+- Panel handler swallows client aborts (`ConnectionResetError`/`ConnectionAbortedError`) without traceback noise.
+
 ## [1.4.2] - 2026-08-11
 
 ### Added

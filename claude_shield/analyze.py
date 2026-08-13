@@ -220,6 +220,58 @@ def run_full_audit(
     # Best-effort: fold online reputation country into offline geo_stack message
     checks = merge_geo_with_egress(checks)
 
+    # Offline risk-intel: ANTHROPIC_BASE_URL audit (env var + bundled blacklist
+    # data; no network contact). Never fails the audit.
+    try:
+        from .probes.baseurl_probe import check_anthropic_baseurl
+
+        checks.extend(redact_checks([check_anthropic_baseurl()], redactor))
+    except Exception as exc:  # pragma: no cover - best-effort
+        checks.extend(redact_checks([AuditCheck(
+            id="network.anthropic_baseurl",
+            title="ANTHROPIC_BASE_URL audit",
+            category="network",
+            status="unknown",
+            severity="info",
+            confidence="unknown",
+            explanation=f"[probe_error] ANTHROPIC_BASE_URL audit could not run: {exc}",
+        )], redactor))
+
+    # Online-only measured network dimensions (no network contact when offline).
+    if online:
+        try:
+            from .probes.dns_egress_probe import check_dns_egress_consistency
+
+            checks.extend(redact_checks(
+                [check_dns_egress_consistency(timeout=probe_timeout)], redactor
+            ))
+        except Exception as exc:  # pragma: no cover - best-effort
+            checks.extend(redact_checks([AuditCheck(
+                id="network.dns.egress_consistency",
+                title="DNS egress consistency (DoH vs HTTP, read-only)",
+                category="network",
+                status="unknown",
+                severity="info",
+                confidence="unknown",
+                explanation=f"[probe_error] DNS egress consistency check could not run: {exc}",
+            )], redactor))
+        try:
+            from .probes.ja4_probe import check_tls_fingerprint
+
+            checks.extend(redact_checks(
+                [check_tls_fingerprint(timeout=probe_timeout)], redactor
+            ))
+        except Exception as exc:  # pragma: no cover - best-effort
+            checks.extend(redact_checks([AuditCheck(
+                id="network.tls.fingerprint",
+                title="TLS client fingerprint (JA3/JA4, read-only)",
+                category="network",
+                status="unknown",
+                severity="info",
+                confidence="unknown",
+                explanation=f"[probe_error] TLS fingerprint check could not run: {exc}",
+            )], redactor))
+
     report = build_audit_report(checks, snapshot=snapshot, redactor=redactor)
     # Redact platform hostname in report before export
     report.platform.hostname = redactor.scan_and_redact(report.platform.hostname)

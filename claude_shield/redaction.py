@@ -120,7 +120,7 @@ class Redactor:
         text = re.sub(r'(?i)(basic\s+)([^\s,;]+)', lambda m: m.group(1) + self.redact_credential(m.group(2)), text)
         # Explicit credential assignments are sensitive regardless of length.
         text = re.sub(
-            r'(?i)(access[_-]?token|refresh[_-]?token|secret[_-]?key|api[_-]?key|token|secret|password)["\'\s:=]+([^\s&,;\'"}]+)',
+            r'(?i)(access[_-]?token|refresh[_-]?token|secret[_-]?key|api[_-]?key|token|secret|password)["\'\s:=]+([^\s&,;\'"}\u3000-\u303F\uFF00-\uFFEF\u4E00-\u9FFF]+)',
             lambda m: m.group(1) + "=" + self.redact_credential(m.group(2)),
             text,
         )

@@ -46,6 +46,29 @@ except ImportError:  # pragma: no cover
     load_checks_from_report_dict = None  # type: ignore[assignment]
     load_previous_report = None  # type: ignore[assignment]
 
+# NOTE: import the submodules themselves (not a function named ``serve``) so
+# ``import claude_shield.serve as serve`` keeps working in callers. The entry
+# point lives at ``claude_shield.serve.serve``.
+try:
+    from . import badge, serve  # noqa: F401
+    from .serve import build_report_payload, create_server
+    from .badge import (
+        badge_color,
+        default_badge_path,
+        make_badge,
+        make_badge_from_result,
+        make_badge_markdown,
+        make_badge_md_link,
+    )
+except ImportError:  # pragma: no cover
+    serve = None  # type: ignore[assignment]
+    badge = None  # type: ignore[assignment]
+    create_server = None  # type: ignore[assignment]
+    build_report_payload = None  # type: ignore[assignment]
+    make_badge = None  # type: ignore[assignment]
+    make_badge_from_result = None  # type: ignore[assignment]
+    make_badge_markdown = None  # type: ignore[assignment]
+
 __all__ = [
     "__version__",
     "CollectorError",
@@ -68,4 +91,14 @@ __all__ = [
     "format_diff_markdown",
     "load_checks_from_report_dict",
     "load_previous_report",
+    "serve",
+    "badge",
+    "create_server",
+    "build_report_payload",
+    "make_badge",
+    "make_badge_from_result",
+    "make_badge_markdown",
+    "make_badge_md_link",
+    "default_badge_path",
+    "badge_color",
 ]

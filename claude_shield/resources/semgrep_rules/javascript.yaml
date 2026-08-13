@@ -1,0 +1,156 @@
+# ---------------------------------------------------------------------------
+# 精简自 alissonlinneker/shield-claude-skill 内置 Semgrep 规则集（MIT License）
+#   上游路径：configs/semgrep-rules/
+#   上游仓库：https://github.com/alissonlinneker/shield-claude-skill
+#   Copyright (c) 2026 ALASTecnology
+# 本文件为上游规则的子集（每语言保留 3-6 条核心规则，规则文本未作语义修改，
+# 仅增补本文件头注释）。来源与许可说明见同目录 NOTICE.md。
+# ---------------------------------------------------------------------------
+rules:
+  - id: js-sql-injection-concatenation
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $DB.query("..." + $INPUT + "...", ...)
+          - pattern: |
+              $DB.query(`...${$INPUT}...`, ...)
+          - pattern: |
+              $DB.execute("..." + $INPUT + "...", ...)
+          - pattern: |
+              $DB.execute(`...${$INPUT}...`, ...)
+    message: >
+      SQL query built with string concatenation or template literals.
+      Use parameterized queries instead.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-89"
+      owasp: "A03:2021 Injection"
+      confidence: HIGH
+      impact: CRITICAL
+      category: security
+  - id: js-xss-innerhtml
+    patterns:
+      - pattern: |
+          $EL.innerHTML = $INPUT
+      - pattern-not: |
+          $EL.innerHTML = "..."
+    message: >
+      Setting innerHTML with dynamic content can lead to XSS.
+      Use textContent or a sanitization library such as DOMPurify.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-79"
+      owasp: "A03:2021 Injection"
+      confidence: MEDIUM
+      impact: HIGH
+      category: security
+  - id: js-xss-eval-user-input
+    patterns:
+      - pattern-either:
+          - pattern: |
+              eval($INPUT)
+          - pattern: |
+              new Function($INPUT)
+          - pattern: |
+              setTimeout($INPUT, ...)
+          - pattern: |
+              setInterval($INPUT, ...)
+      - pattern-not: |
+          eval("...")
+    message: >
+      eval() or Function constructor with dynamic input enables code injection.
+      Refactor to avoid dynamic code evaluation entirely.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-95"
+      owasp: "A03:2021 Injection"
+      confidence: HIGH
+      impact: CRITICAL
+      category: security
+
+  # ---------------------------------------------------------------------------
+  # Command Injection
+  # ---------------------------------------------------------------------------
+  - id: js-command-injection-exec
+    patterns:
+      - pattern-either:
+          - pattern: |
+              child_process.exec($CMD, ...)
+          - pattern: |
+              child_process.execSync($CMD, ...)
+          - pattern: |
+              require("child_process").exec($CMD, ...)
+          - pattern: |
+              require("child_process").execSync($CMD, ...)
+      - pattern-not: |
+          child_process.exec("...", ...)
+      - pattern-not: |
+          child_process.execSync("...", ...)
+    message: >
+      Passing dynamic input to child_process.exec allows command injection.
+      Use child_process.execFile or spawn with an argument array instead.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-78"
+      owasp: "A03:2021 Injection"
+      confidence: HIGH
+      impact: CRITICAL
+      category: security
+  - id: js-prototype-pollution-merge
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $OBJ[...] = $INPUT
+          - pattern: |
+              Object.assign($TARGET, $INPUT)
+      - pattern-not: |
+          Object.assign({}, $INPUT)
+    message: >
+      Merging user-controlled data into objects without sanitization can
+      lead to prototype pollution. Validate keys and reject __proto__,
+      constructor, and prototype properties.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-1321"
+      owasp: "A03:2021 Injection"
+      confidence: LOW
+      impact: HIGH
+      category: security
+
+  # ---------------------------------------------------------------------------
+  # NoSQL Injection
+  # ---------------------------------------------------------------------------
+  - id: js-nosql-injection-mongodb
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $COLLECTION.find({..., $FIELD: $INPUT, ...})
+          - pattern: |
+              $COLLECTION.findOne({..., $FIELD: $INPUT, ...})
+          - pattern: |
+              $COLLECTION.updateOne({..., $FIELD: $INPUT, ...}, ...)
+          - pattern: |
+              $COLLECTION.deleteOne({..., $FIELD: $INPUT, ...})
+      - metavariable-pattern:
+          metavariable: $INPUT
+          patterns:
+            - pattern-not: "..."
+            - pattern-not: |
+                {...}
+    message: >
+      MongoDB query with unsanitized input may allow NoSQL injection via
+      operator objects like {$gt: ""}. Validate that the input is a
+      primitive type before use.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      cwe: "CWE-943"
+      owasp: "A03:2021 Injection"
+      confidence: MEDIUM
+      impact: HIGH
+      category: security

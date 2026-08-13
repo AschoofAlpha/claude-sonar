@@ -33,12 +33,19 @@ Changelog = "https://github.com/AschoofAlpha/claude-shield/blob/main/CHANGELOG.m
 where = ["."]
 include = ["claude_shield*"]
 
+[tool.setuptools.package-data]
+claude_shield = ["resources/semgrep_rules/*.yaml", "resources/semgrep_rules/NOTICE.md"]
+
 [tool.setuptools.data-files]
 "share/claude-shield" = ["SKILL.md", "README.md", "README.zh-CN.md", "LICENSE"]
 "share/claude-shield/assets" = ["assets/social-preview.en.jpg", "assets/social-preview.jpg"]
+"share/claude-shield/static" = ["static/panel.html"]
 "share/claude-shield/scripts" = [
     "scripts/collect_posix_network.py",
     "scripts/collect_windows_network.ps1",
     "scripts/remediate_posix_network.py",
     "scripts/remediate_windows_network.ps1",
+]
+"share/claude-shield/claude_shield/resources" = [
+    "claude_shield/resources/known_baseurl_blacklist.txt",
 ]

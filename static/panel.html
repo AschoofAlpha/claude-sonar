@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>claude-shield · 本地面板</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --panel: #161b23;
+    --panel2: #1c232d;
+    --border: #2a3340;
+    --text: #dbe2ea;
+    --muted: #8b96a5;
+    --accent: #5b9dff;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --red: #f85149;
+    --chip-bg: #232b36;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 24px 20px 60px; }
+  header h1 { font-size: 22px; margin: 0 0 4px; }
+  header h1 .ver { font-size: 13px; color: var(--muted); font-weight: normal; margin-left: 8px; }
+  header p.sub { margin: 0; color: var(--muted); font-size: 13px; }
+  .banner {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: #14251c; border: 1px solid #1f3d2c; border-radius: 10px;
+    padding: 12px 14px; margin: 16px 0; font-size: 13.5px; color: #b6e3c5;
+  }
+  .banner .ico { flex: 0 0 auto; font-size: 16px; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px; margin-bottom: 18px;
+  }
+  .panel h2 { font-size: 15px; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+  .panel h2 .hint { font-weight: normal; font-size: 12px; color: var(--muted); }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  button {
+    background: var(--accent); color: #08101c; border: none; border-radius: 8px;
+    padding: 9px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  button:hover { filter: brightness(1.1); }
+  button:disabled { opacity: .55; cursor: wait; }
+  button.secondary { background: var(--chip-bg); color: var(--text); border: 1px solid var(--border); }
+  .switch-row { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .switch { position: relative; display: inline-block; width: 42px; height: 22px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; cursor: pointer; inset: 0;
+    background: var(--chip-bg); border: 1px solid var(--border);
+    border-radius: 22px; transition: .2s;
+  }
+  .slider:before {
+    content: ""; position: absolute; height: 16px; width: 16px;
+    left: 2px; top: 2px; background: var(--muted); border-radius: 50%; transition: .2s;
+  }
+  .switch input:checked + .slider { background: #1d3a5f; border-color: var(--accent); }
+  .switch input:checked + .slider:before { transform: translateX(20px); background: var(--accent); }
+  .toggle-hint { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+  .error-box {
+    display: none; background: #2a1618; border: 1px solid #54242a; color: #ffb3ad;
+    border-radius: 8px; padding: 10px 14px; margin-top: 12px; font-size: 13.5px;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  .score-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .score-big { font-size: 52px; font-weight: 700; line-height: 1; color: var(--accent); }
+  .score-big small { font-size: 20px; color: var(--muted); font-weight: 400; }
+  .grade-chip {
+    padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 15px;
+    background: var(--chip-bg); border: 1px solid var(--border);
+  }
+  .grade-a { color: var(--green); border-color: var(--green); }
+  .grade-b { color: #58a6ff; border-color: #58a6ff; }
+  .grade-c { color: var(--yellow); border-color: var(--yellow); }
+  .grade-d { color: var(--red); border-color: var(--red); }
+  .score-meta { color: var(--muted); font-size: 13px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip {
+    background: var(--chip-bg); border: 1px solid var(--border);
+    border-radius: 20px; padding: 3px 12px; font-size: 12.5px; color: var(--text);
+  }
+  .chip b { margin-left: 2px; }
+  .sev-critical { color: var(--red); } .sev-high { color: #ff9b52; }
+  .sev-medium { color: var(--yellow); } .sev-low { color: var(--accent); } .sev-info { color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+  td.id-col { color: var(--muted); font-family: ui-monospace, Consolas, monospace; font-size: 12px; word-break: break-all; }
+  .status { border-radius: 5px; padding: 1px 8px; font-size: 12px; white-space: nowrap; }
+  .st-pass { background: #14261b; color: var(--green); }
+  .st-fail { background: #2a1618; color: var(--red); }
+  .st-warning { background: #2b2413; color: var(--yellow); }
+  .st-unknown, .st-skipped { background: var(--chip-bg); color: var(--muted); }
+  .group-head { margin: 14px 0 6px; font-size: 14px; font-weight: 600; display: flex; align-items: baseline; gap: 8px; }
+  .group-head .cnt { font-size: 12px; color: var(--muted); font-weight: 400; }
+  .group-head .desc { font-size: 12px; color: var(--muted); font-weight: 400; }
+  .empty { color: var(--muted); font-size: 13px; padding: 6px 2px; }
+  details { margin-top: 14px; }
+  summary { cursor: pointer; color: var(--accent); font-size: 13.5px; }
+  pre {
+    background: #0a0d12; border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; overflow-x: auto; font-size: 12px; max-height: 420px; overflow-y: auto;
+    font-family: ui-monospace, Consolas, monospace;
+  }
+  ul.plain { list-style: none; margin: 0; padding: 0; }
+  ul.plain li { padding: 3px 0; font-size: 13.5px; }
+  ul.plain code, .tzbox code, .webrtc-box code {
+    background: var(--chip-bg); border: 1px solid var(--border);
+    border-radius: 5px; padding: 1px 6px; font-size: 12.5px;
+    font-family: ui-monospace, Consolas, monospace; word-break: break-all;
+  }
+  .note { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
+  .badge-result { margin-top: 12px; display: none; }
+  .badge-preview { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .badge-preview span.lbl, .badge-preview span.msg {
+    font-size: 12px; font-weight: 600; padding: 3px 8px; color: #fff; font-family: Verdana, sans-serif;
+  }
+  .badge-preview span.lbl { background: #555; border-radius: 4px 0 0 4px; }
+  .badge-preview span.msg { border-radius: 0 4px 4px 0; }
+  #status-line { font-size: 12.5px; color: var(--muted); margin-top: 14px; }
+  footer { margin-top: 30px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>claude-shield<span class="ver" id="ver-tag">…</span></h1>
+    <p class="sub">本地隐私与代理一致性审计 · 只读面板</p>
+  </header>
+
+  <div class="banner" id="readonly-banner">
+    <span class="ico">🔒</span>
+    <span><b>只读审计：本工具不会修改任何系统设置。</b>面板仅在本机 127.0.0.1 回环地址运行，所有检查只读取配置并展示结果；不会替你改动代理、DNS、系统或浏览器设置。</span>
+  </div>
+
+  <div class="panel">
+    <h2>审计 <span class="hint">在线探测默认关闭，默认只做本地只读检查</span></h2>
+    <div class="actions">
+      <button id="btn-audit">开始本地审计</button>
+      <div class="switch-row">
+        <span>在线探测</span>
+        <label class="switch">
+          <input type="checkbox" id="toggle-online">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <button class="secondary" id="btn-badge">生成 badge</button>
+    </div>
+    <p class="toggle-hint">开启「在线探测」后，审计会发起少量出站探测请求（DNS、出口地址、站点连通性等）以对照本地配置。默认关闭。</p>
+    <div class="error-box" id="error-box"></div>
+  </div>
+
+  <div class="panel" id="report-panel" style="display:none">
+    <h2>审计结果 <span class="hint" id="report-meta"></span></h2>
+    <div class="score-row">
+      <div class="score-big" id="score-value">—<small>/100</small></div>
+      <div class="grade-chip" id="grade-chip">—</div>
+      <div class="score-meta" id="score-meta"></div>
+    </div>
+    <div class="chips" id="summary-chips"></div>
+
+    <div id="groups"></div>
+
+    <details>
+      <summary>查看 Markdown 报告</summary>
+      <pre id="report-md">—</pre>
+    </details>
+  </div>
+
+  <div class="panel">
+    <h2>浏览器运行时检测 <span class="hint">纯前端检测，不发送任何数据到网络</span></h2>
+    <div class="grid2">
+      <div>
+        <h2 style="margin-top:0">WebRTC 本地候选地址</h2>
+        <div class="webrtc-box">
+          <ul class="plain" id="webrtc-list"><li class="empty">正在检测…</li></ul>
+        </div>
+        <p class="note">以上是浏览器当前会暴露给网页的本地候选地址（仅在本页展示，不会发送到任何服务器）。如出现与本机代理/虚拟网卡不符的地址，说明浏览器可能向站点暴露真实内网地址，可自行留意。</p>
+      </div>
+      <div>
+        <h2 style="margin-top:0">时区 / 语言</h2>
+        <div class="tzbox">
+          <ul class="plain" id="tz-info"><li class="empty">正在检测…</li></ul>
+        </div>
+        <p class="note">浏览器直接暴露给网页的时区与语言信息，可与代理出口信息对照自查。仅展示，不修改任何设置。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>动态 badge <span class="hint">shields.io dynamic/json</span></h2>
+    <p style="font-size:13px;color:var(--muted);margin:0 0 10px">将最近一次审计的自洽分写入项目根目录 <code>shield-badge.json</code>，push 到仓库后即可在 README 展示动态徽章。</p>
+    <button class="secondary" id="btn-badge2">生成 badge</button>
+    <div class="badge-result" id="badge-result">
+      <div class="badge-preview">
+        <span class="lbl" id="badge-label">配置自洽分</span><span class="msg" id="badge-message">—</span>
+      </div>
+      <ul class="plain">
+        <li>保存位置：<code id="badge-path">—</code></li>
+        <li>徽章 URL：<code id="badge-url">—</code></li>
+        <li>Markdown：<code id="badge-md">—</code></li>
+      </ul>
+      <p class="note" id="badge-note">将 shield-badge.json 提交并推送到仓库后，徽章会自动生效（shields.io 按需抓取该 JSON）。</p>
+    </div>
+  </div>
+
+  <div id="status-line">正在连接服务…</div>
+
+  <footer>
+    claude-shield 本地面板 · 只读审计 · 无外部资源加载 · 无数据上传<br>
+    本工具不提供伪装、规避或“防封”建议；自洽分衡量的是配置一致性，不是匿名程度。
+  </footer>
+</div>
+
+<script>
+"use strict";
+/* ---------- tiny safe helpers ---------- */
+var pick = function (obj, path, fallback) {
+  if (fallback === undefined) fallback = "—";
+  var cur = obj;
+  var parts = String(path).split(".");
+  for (var i = 0; i < parts.length; i++) {
+    if (cur === null || cur === undefined || typeof cur !== "object") return fallback;
+    cur = cur[parts[i]];
+  }
+  return (cur === undefined || cur === null || cur === "") ? fallback : cur;
+};
+var pickNum = function (obj, path) {
+  var v = pick(obj, path, null);
+  return (typeof v === "number" && isFinite(v)) ? v : "—";
+};
+var esc = function (s) {
+  return String(s === undefined || s === null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+};
+var $ = function (id) { return document.getElementById(id); };
+var showError = function (msg) {
+  var box = $("error-box");
+  box.style.display = "block";
+  box.textContent = msg;
+};
+var clearError = function () { $("error-box").style.display = "none"; };
+
+var STATUS_ZH = { pass: "通过", fail: "未通过", warning: "警告", unknown: "未知", skipped: "跳过" };
+var SEV_ZH = { critical: "严重", high: "高", medium: "中", low: "低", info: "提示" };
+var GROUP_META = [
+  { key: "must_fix", zh: "必须处理", desc: "配置存在冲突或风险，建议处理" },
+  { key: "optional_consistency", zh: "可选一致性", desc: "未配置的补充隐私项或轻微不一致" },
+  { key: "leave_alone", zh: "保持不动", desc: "已通过或与审计无关的检查，无需操作" }
+];
+var GRADE_CLS = { A: "grade-a", B: "grade-b", C: "grade-c", D: "grade-d" };
+
+/* ---------- server status ---------- */
+function loadStatus() {
+  fetch("/api/status").then(function (r) { return r.json(); }).then(function (data) {
+    if (!data || data.ok !== true) { $("status-line").textContent = "服务状态未知"; return; }
+    $("ver-tag").textContent = "v" + pick(data, "version");
+    var line = "服务 " + pick(data, "host") + ":" + pick(data, "port") + " · 只读回环";
+    if (data.cached && data.cached_score) {
+      var s = data.cached_score;
+      line += " · 上次审计缓存：" + pick(s, "score") + "/100 " + pick(s, "grade") + "（" + pick(s, "label_zh") + "）";
+    } else {
+      line += " · 尚无审计缓存";
+    }
+    $("status-line").textContent = line;
+  }).catch(function () { $("status-line").textContent = "无法连接本地服务（127.0.0.1）"; });
+}
+
+/* ---------- audit ---------- */
+function setBusy(busy) {
+  var btn = $("btn-audit");
+  btn.disabled = busy;
+  btn.textContent = busy ? "审计中（约 3–10 秒）…" : "开始本地审计";
+}
+function statusChip(status) {
+  var s = String(status || "");
+  return '<span class="status st-' + esc(s) + '">' + esc(STATUS_ZH[s] || s || "—") + "</span>";
+}
+function sevChip(severity) {
+  var s = String(severity || "");
+  return '<span class="chip sev-' + esc(s) + '">' + esc(SEV_ZH[s] || s || "—") + "</span>";
+}
+function renderGroups(groups) {
+  var html = "";
+  for (var g = 0; g < GROUP_META.length; g++) {
+    var meta = GROUP_META[g];
+    var items = (groups && Array.isArray(groups[meta.key])) ? groups[meta.key] : [];
+    html += '<div class="group-head">' + esc(meta.zh) +
+      ' <span class="cnt">' + items.length + " 项</span>" +
+      ' <span class="desc">' + esc(meta.desc) + "</span></div>";
+    if (items.length === 0) {
+      html += '<div class="empty">无相关检查项。</div>';
+      continue;
+    }
+    html += "<table><thead><tr><th>检查项</th><th>状态</th><th>严重度</th><th>说明</th><th>建议</th></tr></thead><tbody>";
+    for (var i = 0; i < items.length; i++) {
+      var c = items[i] || {};
+      var explanation = pick(c, "explanation");
+      if (typeof explanation === "string" && explanation.length > 220) explanation = explanation.slice(0, 220) + "…";
+      var recommendation = pick(c, "recommendation");
+      if (typeof recommendation === "string" && recommendation.length > 220) recommendation = recommendation.slice(0, 220) + "…";
+      html += "<tr>" +
+        "<td><span class='id-col'>" + esc(pick(c, "id")) + "</span><br>" + esc(pick(c, "title")) + "</td>" +
+        "<td>" + statusChip(pick(c, "status")) + "</td>" +
+        "<td>" + sevChip(pick(c, "severity")) + "</td>" +
+        "<td>" + esc(explanation) + "</td>" +
+        "<td>" + esc(recommendation) + "</td>" +
+        "</tr>";
+    }
+    html += "</tbody></table>";
+  }
+  $("groups").innerHTML = html;
+}
+function renderSummary(summary) {
+  var order = [
+    ["critical", "严重"], ["high", "高"], ["medium", "中"], ["low", "低"], ["info", "提示"]
+  ];
+  var html = "";
+  for (var i = 0; i < order.length; i++) {
+    var key = order[i][0];
+    var n = (summary && typeof summary[key] === "number") ? summary[key] : "—";
+    html += '<span class="chip sev-' + key + '">' + esc(order[i][1]) + " <b>" + esc(n) + "</b></span>";
+  }
+  $("summary-chips").innerHTML = html;
+}
+function renderReport(data) {
+  clearError();
+  $("report-panel").style.display = "block";
+  var score = data.score || {};
+  var bd = score.breakdown || {};
+  $("score-value").innerHTML = esc(pick(score, "score")) + "<small>/" + esc(pick(score, "max_score", "100")) + "</small>";
+  var grade = pick(score, "grade");
+  var gc = $("grade-chip");
+  gc.textContent = esc(grade) + " · " + esc(pick(score, "label_zh"));
+  gc.className = "grade-chip " + (GRADE_CLS[grade] || "");
+  $("score-meta").innerHTML =
+    "必须处理 " + esc(pickNum(bd, "must_fix")) + " 项（扣 " + esc(pickNum(bd, "must_fix_penalty")) + " 分）" +
+    " · 可选一致性 " + esc(pickNum(bd, "optional_consistency")) + " 项（扣 " + esc(pickNum(bd, "optional_penalty")) + " 分）" +
+    " · 保持不动 " + esc(pickNum(bd, "leave_alone")) + " 项";
+  var meta = "版本 " + esc(pick(data, "version")) + " · " + esc(pick(data, "generated_at"));
+  if (data.online) meta += " · 含在线探测";
+  $("report-meta").textContent = meta;
+  renderSummary(data.summary || {});
+  renderGroups(data.groups || {});
+  $("report-md").textContent = pick(data, "report_markdown", "（无 Markdown 报告）");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+function runAudit() {
+  var online = $("toggle-online").checked;
+  setBusy(true);
+  clearError();
+  fetch("/api/report?online=" + (online ? "1" : "0"))
+    .then(function (r) { return r.json().then(function (d) { return { status: r.status, data: d }; }); })
+    .then(function (res) {
+      if (res.status !== 200 || !res.data || res.data.ok !== true) {
+        throw new Error(pick(res.data, "error", "HTTP " + res.status));
+      }
+      renderReport(res.data);
+    })
+    .catch(function (e) { showError("审计失败：" + e.message); })
+    .finally(setBusy.bind(null, false));
+}
+
+/* ---------- badge ---------- */
+function renderBadge(data) {
+  var box = $("badge-result");
+  box.style.display = "block";
+  $("badge-label").textContent = pick(data.badge, "label");
+  var msg = $("badge-message");
+  msg.textContent = pick(data.badge, "message");
+  var color = pick(data.badge, "color");
+  msg.style.background = (color === "brightgreen") ? "#4c1" : (color === "yellow") ? "#dfb317" : "#e05d44";
+  $("badge-path").textContent = pick(data, "saved_path");
+  $("badge-url").textContent = pick(data, "shields_url");
+  $("badge-md").textContent = pick(data, "markdown");
+}
+function genBadge() {
+  clearError();
+  fetch("/api/badge")
+    .then(function (r) { return r.json().then(function (d) { return { status: r.status, data: d }; }); })
+    .then(function (res) {
+      if (res.status !== 200 || !res.data || res.data.ok !== true) {
+        throw new Error(pick(res.data, "error", "HTTP " + res.status));
+      }
+      renderBadge(res.data);
+    })
+    .catch(function (e) { showError("生成 badge 失败：" + e.message); });
+}
+
+/* ---------- browser runtime detection (pure frontend) ---------- */
+function detectWebRTC() {
+  var out = $("webrtc-list");
+  if (!window.RTCPeerConnection) {
+    out.innerHTML = '<li class="empty">当前浏览器不支持 WebRTC，无法检测。</li>';
+    return;
+  }
+  var found = {};
+  var order = [];
+  var pc;
+  var render = function (done) {
+    if (order.length === 0) {
+      if (done) out.innerHTML = '<li class="empty">未获取到任何候选地址（浏览器已限制或被扩展拦截）。</li>';
+      return;
+    }
+    var html = "";
+    for (var i = 0; i < order.length; i++) {
+      var c = found[order[i]];
+      html += "<li><span class='chip'>" + esc(c.type) + "</span> <code>" + esc(c.address) + "</code></li>";
+    }
+    out.innerHTML = html;
+  };
+  try {
+    pc = new RTCPeerConnection({ iceServers: [] });
+    pc.createDataChannel("shield-probe");
+    pc.onicecandidate = function (e) {
+      if (!e || !e.candidate) return;
+      var line = String(e.candidate.candidate || "");
+      var typMatch = line.match(/typ\s+(\S+)/);
+      var addrMatch = line.match(/(?:udp|tcp)\s+\S+\s+\S+\s+(\S+)\s+\d+/);
+      var type = typMatch ? typMatch[1] : "?";
+      var address = addrMatch ? addrMatch[1] : "?";
+      var key = type + "|" + address;
+      if (!found[key]) { found[key] = { type: type, address: address }; order.push(key); render(false); }
+    };
+    pc.createOffer().then(function (o) { return pc.setLocalDescription(o); }).catch(function () {});
+  } catch (err) {
+    out.innerHTML = '<li class="empty">WebRTC 初始化失败：' + esc(err && err.message ? err.message : err) + "</li>";
+    return;
+  }
+  setTimeout(function () {
+    try { pc.close(); } catch (e) {}
+    render(true);
+  }, 3000);
+}
+function detectTimezone() {
+  var tz = "—", locale = "—", offset = "—", langs = "—";
+  try {
+    var r = Intl.DateTimeFormat().resolvedOptions();
+    tz = r.timeZone || "—";
+    locale = r.locale || "—";
+  } catch (e) {}
+  try { offset = String(new Date().getTimezoneOffset()); } catch (e) {}
+  try { langs = (navigator.languages && navigator.languages.length ? navigator.languages.join(", ") : navigator.language) || "—"; } catch (e) {}
+  $("tz-info").innerHTML =
+    "<li>时区：<code>" + esc(tz) + "</code></li>" +
+    "<li>区域设置：<code>" + esc(locale) + "</code></li>" +
+    "<li>UTC 偏移（分钟）：<code>" + esc(offset) + "</code></li>" +
+    "<li>浏览器语言：<code>" + esc(langs) + "</code></li>";
+}
+
+/* ---------- boot ---------- */
+$("btn-audit").addEventListener("click", runAudit);
+$("btn-badge").addEventListener("click", genBadge);
+$("btn-badge2").addEventListener("click", genBadge);
+loadStatus();
+detectWebRTC();
+detectTimezone();
+</script>
+</body>
+</html>
