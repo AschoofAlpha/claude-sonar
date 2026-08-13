@@ -231,6 +231,85 @@ class TestReportApi:
         assert isinstance(data["platform"], dict)
 
 
+class TestServeOpenDelay:
+    def test_open_delay_waits_then_opens(self, monkeypatch):
+        class FakeHttpd:
+            server_address = ("127.0.0.1", 12345)
+
+            def serve_forever(self):
+                raise KeyboardInterrupt
+
+            def server_close(self):
+                pass
+
+        calls = []
+        monkeypatch.setattr(serve_mod, "create_server", lambda port: FakeHttpd())
+        monkeypatch.setattr(
+            serve_mod.webbrowser, "open",
+            lambda url: calls.append(("open", url)),
+        )
+        monkeypatch.setattr(
+            serve_mod.time, "sleep",
+            lambda x: calls.append(("sleep", x)),
+        )
+        try:
+            serve_mod.serve(port=12345, open_browser=True, open_delay=5)
+        except KeyboardInterrupt:
+            pass
+        assert calls == [("sleep", 5.0), ("open", "http://127.0.0.1:12345/")]
+
+    def test_open_delay_capped_at_60s(self, monkeypatch):
+        class FakeHttpd:
+            server_address = ("127.0.0.1", 12345)
+
+            def serve_forever(self):
+                raise KeyboardInterrupt
+
+            def server_close(self):
+                pass
+
+        calls = []
+        monkeypatch.setattr(serve_mod, "create_server", lambda port: FakeHttpd())
+        monkeypatch.setattr(serve_mod.webbrowser, "open", lambda url: None)
+        monkeypatch.setattr(serve_mod.time, "sleep", lambda x: calls.append(x))
+        try:
+            serve_mod.serve(port=12345, open_browser=True, open_delay=999)
+        except KeyboardInterrupt:
+            pass
+        assert calls == [60.0]
+
+    def test_no_delay_no_sleep(self, monkeypatch):
+        class FakeHttpd:
+            server_address = ("127.0.0.1", 12345)
+
+            def serve_forever(self):
+                raise KeyboardInterrupt
+
+            def server_close(self):
+                pass
+
+        calls = []
+        monkeypatch.setattr(serve_mod, "create_server", lambda port: FakeHttpd())
+        monkeypatch.setattr(serve_mod.webbrowser, "open", lambda url: calls.append("open"))
+        monkeypatch.setattr(serve_mod.time, "sleep", lambda x: calls.append("sleep"))
+        try:
+            serve_mod.serve(port=12345, open_browser=True)
+        except KeyboardInterrupt:
+            pass
+        assert calls == ["open"]
+
+
+class TestCliOpenDelayFlag:
+    def test_serve_subcommand_accepts_open_delay(self):
+        import claude_shield.__main__ as main_mod
+
+        parser = main_mod.build_parser()
+        args = parser.parse_args(["serve", "--port", "18765", "--open", "--open-delay", "8"])
+        assert args.command == "serve"
+        assert args.open is True
+        assert args.open_delay == 8.0
+
+
 class TestBadgeApi:
     def test_badge_uses_cached_audit(self, panel, tmp_path, monkeypatch):
         # /api/badge should use the audit cached by the previous test and be fast.

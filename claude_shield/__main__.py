@@ -96,6 +96,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--open", action="store_true",
         help="Open the panel in the default browser after start.",
     )
+    serve_p.add_argument(
+        "--open-delay", type=float, default=0.0, metavar="N",
+        help="Seconds to wait before opening the browser (default: 0).",
+    )
     repo_p = sub.add_parser(
         "repo", help="Security-scan a local code repository (SAST/secrets/deps)."
     )
@@ -198,7 +202,11 @@ def _cmd_serve(args) -> int:
         print(f"error: --port must be between 1024 and 65535 (got {port})", file=sys.stderr)
         return 2
     try:
-        httpd = serve(port=port, open_browser=bool(args.open))
+        httpd = serve(
+            port=port,
+            open_browser=bool(args.open),
+            open_delay=float(args.open_delay or 0.0),
+        )
     except OSError as exc:
         print(f"error: could not start panel on 127.0.0.1:{port}: {exc}", file=sys.stderr)
         return 1

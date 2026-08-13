@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import sys
 import threading
+import time
 import webbrowser
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -303,11 +304,16 @@ def create_server(port: int = DEFAULT_PORT) -> PanelHTTPServer:
     return PanelHTTPServer((HOST, port), PanelRequestHandler)
 
 
-def serve(port: int = DEFAULT_PORT, open_browser: bool = False) -> PanelHTTPServer:
+def serve(
+    port: int = DEFAULT_PORT,
+    open_browser: bool = False,
+    open_delay: float = 0.0,
+) -> PanelHTTPServer:
     """Serve the read-only panel on 127.0.0.1 until interrupted.
 
     ``open_browser=True`` opens the panel in the default browser after the
-    socket is bound.
+    socket is bound. ``open_delay`` (seconds) waits before opening the
+    browser so the user can read the chat tables first.
     """
     httpd = create_server(port)
     url = f"http://{HOST}:{httpd.server_address[1]}/"
@@ -315,6 +321,8 @@ def serve(port: int = DEFAULT_PORT, open_browser: bool = False) -> PanelHTTPServ
     print("Bound to 127.0.0.1 only. Press Ctrl+C to stop.", flush=True)
     if open_browser:
         try:
+            if open_delay and open_delay > 0:
+                time.sleep(min(float(open_delay), 60.0))
             webbrowser.open(url)
         except Exception:  # pragma: no cover - browser launch is best-effort
             pass
