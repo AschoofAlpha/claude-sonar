@@ -50,6 +50,16 @@ _OPTIONAL_IDS = frozenset({
 
 _ACTION_ORDER = ("must_fix", "optional_consistency", "leave_alone")
 
+# Chinese labels for the severity column (fallback: raw value).
+_SEVERITY_ZH = {
+    "critical": "严重",
+    "high": "高",
+    "medium": "中",
+    "low": "低",
+    "info": "信息",
+    "unknown": "未知",
+}
+
 # Technical section titles stay stable for agents; plain titles are added beside them.
 _ACTION_TITLES = {
     "must_fix": "Must fix",
@@ -1206,9 +1216,13 @@ def _row_cells(check: Any, lang: str) -> Dict[str, str]:
     recommendation = (
         translate_recommendation(recommendation, lang) if recommendation else recommendation
     )
+    # Severity label mapping for the report's severity column.
+    sev_raw = str(_field(check, "severity", "") or "").strip().lower()
+    severity = _SEVERITY_ZH.get(sev_raw, sev_raw or "—") if lang == "zh" else (sev_raw or "—")
     return {
         "item": _signal_label(check),
         "status": f"{plain_status(status, lang)} ({status})" if status else "—",
+        "severity": severity,
         "meaning": plain_check(check_id, lang),
         "detail": explanation or "—",
         "group": plain_action(action, lang),
@@ -1284,8 +1298,8 @@ def format_report(
                 [
                     "## 全部结果",
                     "",
-                    "| 检查项 | 状态 | 说明 | 详情 | 分组 | 建议 |",
-                    "| --- | --- | --- | --- | --- | --- |",
+                    "| 检查项 | 状态 | 严重度 | 说明 | 建议 |",
+                    "| --- | --- | --- | --- | --- |",
                 ]
             )
         else:
@@ -1293,21 +1307,21 @@ def format_report(
                 [
                     "## All results",
                     "",
-                    "| check | status | meaning | detail | group | recommendation |",
-                    "| --- | --- | --- | --- | --- | --- |",
+                    "| check | status | severity | meaning | recommendation |",
+                    "| --- | --- | --- | --- | --- |",
                 ]
             )
 
         for check in checks:
             row = _row_cells(check, lang)
             rec = row["recommendation"] if row["action_key"] != "leave_alone" else ""
+            meaning = row["meaning"] + (f"<br>{row['detail']}" if row["detail"] and row["detail"] != "—" else "")
             lines.append(
-                "| {item} | {status} | {meaning} | {detail} | {group} | {rec} |".format(
+                "| {item} | {status} | {severity} | {meaning} | {rec} |".format(
                     item=_md_escape_cell(row["item"]),
                     status=_md_escape_cell(row["status"]),
-                    meaning=_md_escape_cell(row["meaning"]),
-                    detail=_md_escape_cell(row["detail"]),
-                    group=_md_escape_cell(row["group"]),
+                    severity=_md_escape_cell(row["severity"]),
+                    meaning=_md_escape_cell(meaning),
                     rec=_md_escape_cell(rec or "—"),
                 )
             )
@@ -1327,12 +1341,12 @@ def format_report(
     }
     head = (
         (
-            "| 检查项 | 状态 | 说明 | 详情 | 建议 |",
+            "| 检查项 | 状态 | 严重度 | 说明 | 建议 |",
             "| --- | --- | --- | --- | --- |",
         )
         if lang == "zh"
         else (
-            "| check | status | meaning | detail | recommendation |",
+            "| check | status | severity | meaning | recommendation |",
             "| --- | --- | --- | --- | --- |",
         )
     )
@@ -1357,12 +1371,13 @@ def format_report(
         for check in items:
             row = _row_cells(check, lang)
             rec = "—" if key == "leave_alone" else (row["recommendation"] or "—")
+            meaning = row["meaning"] + (f"<br>{row['detail']}" if row["detail"] and row["detail"] != "—" else "")
             lines.append(
-                "| {item} | {status} | {meaning} | {detail} | {rec} |".format(
+                "| {item} | {status} | {severity} | {meaning} | {rec} |".format(
                     item=_md_escape_cell(row["item"]),
                     status=_md_escape_cell(row["status"]),
-                    meaning=_md_escape_cell(row["meaning"]),
-                    detail=_md_escape_cell(row["detail"]),
+                    severity=_md_escape_cell(row["severity"]),
+                    meaning=_md_escape_cell(meaning),
                     rec=_md_escape_cell(rec),
                 )
             )

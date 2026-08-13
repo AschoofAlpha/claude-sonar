@@ -145,19 +145,19 @@
   </div>
 
   <div class="panel">
-    <h2>审计 <span class="hint">在线探测默认关闭，默认只做本地只读检查</span></h2>
+    <h2>审计 <span class="hint">打开即自动运行；在线探测默认开启，可手动关闭</span></h2>
     <div class="actions">
-      <button id="btn-audit">开始本地审计</button>
+      <button id="btn-audit">重新审计</button>
       <div class="switch-row">
         <span>在线探测</span>
         <label class="switch">
-          <input type="checkbox" id="toggle-online">
+          <input type="checkbox" id="toggle-online" checked>
           <span class="slider"></span>
         </label>
       </div>
       <button class="secondary" id="btn-badge">生成 badge</button>
     </div>
-    <p class="toggle-hint">开启「在线探测」后，审计会发起少量出站探测请求（DNS、出口地址、站点连通性等）以对照本地配置。默认关闭。</p>
+    <p class="toggle-hint">开启「在线探测」后，审计会发起少量出站探测请求（DNS、出口地址、站点连通性、TLS 指纹等）以对照本地配置；可手动关闭。</p>
     <div class="error-box" id="error-box"></div>
   </div>
 
@@ -467,6 +467,11 @@ $("btn-badge2").addEventListener("click", genBadge);
 loadStatus();
 detectWebRTC();
 detectTimezone();
+// Auto-run the audit on open (user preference: panel opens straight to a
+// fresh report; online probes default ON via the checked toggle above).
+window.addEventListener("DOMContentLoaded", function () {
+  runAudit();
+});
 </script>
 </body>
 </html>

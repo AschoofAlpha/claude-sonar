@@ -145,7 +145,7 @@ class TestReportFormat(unittest.TestCase):
         ]
         md = format_report(checks, summary={"critical": 0, "high": 0, "medium": 0, "low": 1, "info": 2}, lang="zh")
         self.assertIn("# Claude Shield Audit Report", md)
-        self.assertIn("| 检查项 | 状态 | 说明 | 详情 | 分组 | 建议 |", md)
+        self.assertIn("| 检查项 | 状态 | 严重度 | 说明 | 建议 |", md)
         self.assertIn("## 必须处理", md)
         self.assertIn("## 可选一致性", md)
         self.assertIn("## 保持不动", md)
@@ -162,7 +162,7 @@ class TestReportFormat(unittest.TestCase):
                    explanation="Observed TunEnabled=False."),
         ], lang="en")
         self.assertIn("## All results", md)
-        self.assertIn("| check | status | meaning | detail | group | recommendation |", md)
+        self.assertIn("| check | status | severity | meaning | recommendation |", md)
         self.assertIn("Glossary", md)
         self.assertNotIn("plain:", md)
         self.assertIn("full-tunnel TUN", md)

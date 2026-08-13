@@ -237,8 +237,10 @@ class PanelRequestHandler(BaseHTTPRequestHandler):
         })
 
     def _api_report(self, query: Dict[str, Any]) -> None:
-        raw_online = (query.get("online") or ["0"])[0].strip().lower()
-        online = raw_online in ("1", "true", "yes", "on")
+        # Online probes are ON by default in the panel (user preference:
+        # panel = full picture, opt out via online=0).
+        raw_online = (query.get("online") or ["1"])[0].strip().lower()
+        online = raw_online not in ("0", "false", "no", "off")
         try:
             timeout = float((query.get("timeout") or ["5"])[0])
         except ValueError:

@@ -108,6 +108,8 @@ result = run_full_audit(
 6. Compare every signal with the intended exit rather than treating a detector's score as proof.
 7. Classify findings as `must fix`, `optional consistency`, or `leave alone`.
 8. Recommend the minimum local change, obtain approval, apply it, and run one verification pass.
+9. After the markdown report is delivered, open the local panel so the user sees the HTML view automatically: run `python -m claude_shield serve --open` (backgrounded). The panel auto-runs a fresh audit on load with online probes ON by default (its toggle can turn them off). Do not ask the user to click anything; if the browser cannot be opened automatically, give them the `http://127.0.0.1:<port>/` URL.
+10. The panel report table columns are 检查项 / 状态 / 严重度 / 说明 / 建议 (Chinese); the markdown report uses the same five columns.
 
 ## Adapt to the Local Computer
 

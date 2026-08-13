@@ -79,6 +79,10 @@ class TestStaticPanel:
         # 零外部资源: 静态页里不允许出现任何外部 URL / CDN 引用
         assert "http://" not in html and "https://" not in html
         assert "<script src" not in html and "<link rel" not in html
+        # 用户偏好: 打开即自动审计 + 在线探测默认开启
+        assert 'id="toggle-online" checked' in html.replace("\n", " ")
+        assert "DOMContentLoaded" in html and "runAudit()" in html
+        assert "打开即自动运行" in html
 
     def test_panel_security_headers(self, panel):
         status, headers, _ = _get(panel["base"] + "/")
@@ -178,6 +182,34 @@ class TestBuildReportPayload:
 
 
 class TestReportApi:
+    def test_report_default_online_on(self, panel, monkeypatch):
+        # User preference: /api/report with no online param defaults to online=1.
+        seen = {}
+
+        def fake_run_audit(online: bool, timeout: float):
+            seen["online"] = online
+            return {"checks": [], "summary": {}, "report_markdown": None}
+
+        monkeypatch.setattr(serve_mod, "_run_audit", fake_run_audit)
+        status, headers, body = _get(panel["base"] + "/api/report", timeout=30)
+        assert status == 200
+        assert seen["online"] is True
+        data = json.loads(body.decode("utf-8"))
+        assert data["online"] is True
+
+    def test_report_explicit_offline(self, panel, monkeypatch):
+        seen = {}
+
+        def fake_run_audit(online: bool, timeout: float):
+            seen["online"] = online
+            return {"checks": [], "summary": {}, "report_markdown": None}
+
+        monkeypatch.setattr(serve_mod, "_run_audit", fake_run_audit)
+        status, headers, body = _get(panel["base"] + "/api/report?online=0", timeout=30)
+        assert status == 200
+        assert seen["online"] is False
+        assert json.loads(body.decode("utf-8"))["online"] is False
+
     def test_report_local_offline(self, panel):
         # Full local audit runs the real collector: allow generous time.
         status, headers, body = _get(panel["base"] + "/api/report?online=0", timeout=120)

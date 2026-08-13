@@ -72,8 +72,8 @@ class TestReportPlain(unittest.TestCase):
         ]
         md_zh = format_report(checks, lang="zh")
         md_en = format_report(checks, lang="en")
-        self.assertIn("| 检查项 | 状态 | 说明 | 详情 | 分组 | 建议 |", md_zh)
-        self.assertIn("| check | status | meaning | detail | group | recommendation |", md_en)
+        self.assertIn("| 检查项 | 状态 | 严重度 | 说明 | 建议 |", md_zh)
+        self.assertIn("| check | status | severity | meaning | recommendation |", md_en)
         # each check's plain meaning appears
         self.assertIn(plain_check("network.mode", "zh"), md_zh)
         self.assertIn(plain_check("privacy.telemetry", "zh"), md_zh)
