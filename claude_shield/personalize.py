@@ -166,6 +166,10 @@ def detect_active_proxy(snapshot: Optional[dict]) -> Dict[str, Any]:
         engine = "unknown"
         confidence = "low"
 
+    # De-duplicate labels preserving order (several process entries can map to
+    # the same client display name, e.g. verge / verge-mihomo / clash-verge).
+    labels = list(dict.fromkeys(str(x) for x in labels))
+
     return {
         "primary": primary,
         "engine": engine,

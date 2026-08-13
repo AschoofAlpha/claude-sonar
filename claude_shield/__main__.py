@@ -146,10 +146,15 @@ def _render_markdown(result, lang: str, compact: bool) -> str:
 
     checks = result.get("checks") or []
     summary = result.get("summary")
+    # The snapshot drives proxy-client personalization; without it the
+    # "detected proxy" section degrades to "unknown client".
+    snapshot = result.get("snapshot")
     try:
-        return format_report(checks, summary=summary, lang=lang, compact=compact)
+        return format_report(
+            checks, summary=summary, lang=lang, compact=compact, snapshot=snapshot
+        )
     except TypeError:
-        # Older format_report without compact=
+        # Older format_report without compact= / snapshot=
         return format_report(checks, summary=summary, lang=lang)
 
 
