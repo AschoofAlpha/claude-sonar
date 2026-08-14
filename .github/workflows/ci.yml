@@ -23,7 +23,7 @@ jobs:
           pip install -e . pytest pytest-cov
       - name: Run tests with coverage
         run: |
-          pytest tests/ --cov=claude_shield --cov-report=term-missing:skip-covered --cov-report=xml
+          pytest tests/ --cov=claude_sonar --cov-report=term-missing:skip-covered --cov-report=xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
