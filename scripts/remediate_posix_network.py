@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """POSIX privacy-env remediation (Python; replaces remediate_posix_network.sh).
 
-Preview by default. Writes only ~/.claude-shield/claude-code-privacy.env after
+Preview by default. Writes only ~/.claude-sonar/claude-code-privacy.env after
 --apply. Never touches shell profiles, DNS, routes, or device identifiers.
 """
 
@@ -23,7 +23,7 @@ ENV_LINES = (
 
 
 def _base_dir() -> Path:
-    return Path.home() / ".claude-shield"
+    return Path.home() / ".claude-sonar"
 
 
 def _env_file() -> Path:
@@ -113,7 +113,7 @@ def cmd_restore(backup: str) -> int:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Claude Shield POSIX privacy-env remediation")
     parser.add_argument("--apply", action="store_true", help="Write the environment file")
-    parser.add_argument("--restore", metavar="BACKUP", help="Restore from a backup under ~/.claude-shield/backups")
+    parser.add_argument("--restore", metavar="BACKUP", help="Restore from a backup under ~/.claude-sonar/backups")
     args = parser.parse_args(argv)
 
     if args.apply and args.restore:

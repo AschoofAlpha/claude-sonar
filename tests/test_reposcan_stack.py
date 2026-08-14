@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from claude_shield.reposcan.stack import scan_stack
+from claude_sonar.reposcan.stack import scan_stack
 
 
 class TestStackDetection(unittest.TestCase):

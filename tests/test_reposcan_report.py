@@ -4,7 +4,7 @@ import sys
 import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from claude_shield.reposcan.report import render_report
+from claude_sonar.reposcan.report import render_report
 
 
 def _result(**overrides):

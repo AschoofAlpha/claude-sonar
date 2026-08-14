@@ -1,4 +1,4 @@
-"""Zero-dependency local panel server for Claude Shield.
+"""Zero-dependency local panel server for Claude Sonar.
 
 Serves the single-file panel (``static/panel.html``) plus a read-only JSON
 API on ``127.0.0.1`` only. Every report payload passes through ``Redactor``
@@ -7,7 +7,7 @@ explicitly requests ``online=1``.
 
 Usage::
 
-    from claude_shield.serve import serve
+    from claude_sonar.serve import serve
     serve(port=8765, open_browser=True)   # blocks until Ctrl+C
 """
 
@@ -34,14 +34,14 @@ from .report import group_checks, score_checks
 HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
 
-# Resolved lazily so ``import claude_shield.serve`` never fails when the
+# Resolved lazily so ``import claude_sonar.serve`` never fails when the
 # bundled panel file is absent (e.g. source checkout without static/).
 _PANEL_PATH = None
 
 
 def panel_path():
     """Resolve static/panel.html without depending on .resources (which may
-    be shadowed by a data-only ``claude_shield/resources`` package)."""
+    be shadowed by a data-only ``claude_sonar/resources`` package)."""
     global _PANEL_PATH
     if _PANEL_PATH is None:
         import sysconfig
@@ -49,7 +49,7 @@ def panel_path():
         candidates = [
             Path(__file__).resolve().parent.parent / "static" / "panel.html",  # source checkout
             Path(__file__).resolve().parent / "static" / "panel.html",  # static/ inside the package
-            Path(sysconfig.get_path("data")) / "share" / "claude-shield" / "static" / "panel.html",
+            Path(sysconfig.get_path("data")) / "share" / "claude-sonar" / "static" / "panel.html",
         ]
         _PANEL_PATH = next((p for p in candidates if p.exists()), candidates[0])
     return _PANEL_PATH
@@ -121,6 +121,80 @@ def build_report_payload(result: Dict[str, Any], online: bool) -> Dict[str, Any]
     except Exception:
         groups_json = {}
 
+    # ---- Egress overview: extract from existing checks for the panel cards ----
+    egress_summary: Dict[str, Any] = {"available": False}
+    try:
+        check_map = {str(c.get("id") or ""): c for c in (to_dict(ch) for ch in checks)}
+        ip_rep = check_map.get("network.ip_reputation")
+        cf_trace = check_map.get("network.egress.runtime_consistency.cloudflare-trace")
+        dns_egress = check_map.get("network.dns.egress_consistency")
+        dns_consistency = check_map.get("network.dns.consistency")
+        tls_fp = check_map.get("network.tls.fingerprint")
+        baseurl = check_map.get("network.anthropic_baseurl")
+
+        def _explanation_zh(c: Dict[str, Any]) -> str:
+            return str(
+                translate_detail(str(c.get("explanation") or ""), "zh")
+                or c.get("explanation") or ""
+            )
+
+        eg_ip = eg_country = eg_asn = eg_org = ""
+        if ip_rep:
+            ex = str(ip_rep.get("explanation") or "")
+            for frag in ex.split("."):
+                frag_lower = frag.strip().lower()
+                if frag_lower.startswith("country code:"):
+                    eg_country = frag_lower.replace("country code:", "").strip().upper()
+                if frag_lower.startswith("asn:"):
+                    eg_asn = frag_lower.replace("asn:", "").strip()
+                if frag_lower.startswith("org/provider"):
+                    val = frag_lower.split("label present", 1)[0].replace("org/provider", "").strip()
+                    if val:
+                        eg_org = val
+            eg_ip = "（已脱敏）"
+
+        dns_status = "unknown"
+        if dns_egress:
+            dns_status = str(dns_egress.get("status") or "unknown")
+
+        dns_consist_status = "unknown"
+        if dns_consistency:
+            dns_consist_status = str(dns_consistency.get("status") or "unknown")
+
+        tls_status = "unknown"
+        tls_fp_val = ""
+        if tls_fp:
+            tls_status = str(tls_fp.get("status") or "unknown")
+            ex_tls = _explanation_zh(tls_fp)
+            if "JA4=" in ex_tls:
+                import re as _re
+                m = _re.search(r"JA4=([a-z0-9_]+)", ex_tls)
+                if m:
+                    tls_fp_val = m.group(1)
+
+        baseurl_status = "unknown"
+        if baseurl:
+            baseurl_status = str(baseurl.get("status") or "unknown")
+
+        cf_status = cf_trace.get("status") if cf_trace else "unknown"
+
+        egress_summary = {
+            "available": True,
+            "online": bool(online),
+            "egress_ip": eg_ip,
+            "egress_country": eg_country,
+            "egress_asn": eg_asn,
+            "egress_org": eg_org,
+            "egress_status": str(cf_status or "unknown"),
+            "dns_egress_status": dns_status,
+            "dns_consistency_status": dns_consist_status,
+            "tls_status": tls_status,
+            "tls_fingerprint": tls_fp_val,
+            "baseurl_status": baseurl_status,
+        }
+    except Exception:
+        pass
+
     payload: Dict[str, Any] = {
         "ok": True,
         "online": bool(online),
@@ -130,6 +204,7 @@ def build_report_payload(result: Dict[str, Any], online: bool) -> Dict[str, Any]
         "summary": result.get("summary") or report_dict.get("summary") or {},
         "score": scored,
         "groups": groups_json,
+        "egress_summary": egress_summary,
         "report_markdown": result.get("report_markdown"),
     }
     # Belt and suspenders: redact the assembled payload once more before it
@@ -315,7 +390,7 @@ class PanelRequestHandler(BaseHTTPRequestHandler):
             "badge": badge,
             "saved_path": str(default_badge_path()),
             "shields_url": shields_url,
-            "markdown": f"[![claude-shield]({shields_url})]({shields_url})",
+            "markdown": f"[![claude-sonar]({shields_url})]({shields_url})",
         })
 
 
@@ -342,7 +417,7 @@ def serve(
     """
     httpd = create_server(port)
     url = f"http://{HOST}:{httpd.server_address[1]}/"
-    print(f"claude-shield panel (read-only) -> {url}", flush=True)
+    print(f"claude-sonar panel (read-only) -> {url}", flush=True)
     print("Bound to 127.0.0.1 only. Press Ctrl+C to stop.", flush=True)
     if open_browser:
         try:
@@ -354,7 +429,7 @@ def serve(
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print("\nclaude-shield panel stopped.", flush=True)
+        print("\nclaude-sonar panel stopped.", flush=True)
     finally:
         httpd.server_close()
     return httpd

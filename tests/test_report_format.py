@@ -4,9 +4,9 @@ import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from claude_shield.analyze import analyze_snapshot
-from claude_shield.models import AuditCheck, Evidence
-from claude_shield.report import classify_action, format_report, group_checks, score_checks, status_reason
+from claude_sonar.analyze import analyze_snapshot
+from claude_sonar.models import AuditCheck, Evidence
+from claude_sonar.report import classify_action, format_report, group_checks, score_checks, status_reason
 
 
 def _check(**kwargs):
@@ -144,7 +144,7 @@ class TestReportFormat(unittest.TestCase):
             _check(id="network.mode", status="pass", explanation="Observed Mode='Rule'."),
         ]
         md = format_report(checks, summary={"critical": 0, "high": 0, "medium": 0, "low": 1, "info": 2}, lang="zh")
-        self.assertIn("# Claude Shield Audit Report", md)
+        self.assertIn("# Claude Sonar Audit Report", md)
         self.assertIn("| 检查项 | 状态 | 严重度 | 说明 | 建议 |", md)
         self.assertIn("## 必须处理", md)
         self.assertIn("## 可选一致性", md)

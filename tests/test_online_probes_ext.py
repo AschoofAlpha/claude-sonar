@@ -14,12 +14,12 @@ from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from claude_shield.probes.base import run_probes
-from claude_shield.probes.dns_probe import check_dns_consistency, DEFAULT_DNS_HOSTNAMES
-from claude_shield.probes.egress import check_dual_stack_egress, observe_egress_url
-from claude_shield.probes.stability import check_egress_stability
-from claude_shield.probes.webrtc_guide import check_webrtc_guidance
-from claude_shield.redaction import Redactor
+from claude_sonar.probes.base import run_probes
+from claude_sonar.probes.dns_probe import check_dns_consistency, DEFAULT_DNS_HOSTNAMES
+from claude_sonar.probes.egress import check_dual_stack_egress, observe_egress_url
+from claude_sonar.probes.stability import check_egress_stability
+from claude_sonar.probes.webrtc_guide import check_webrtc_guidance
+from claude_sonar.redaction import Redactor
 
 
 def _gai_dual(*_a, **_k):
@@ -67,7 +67,7 @@ class TestWebRtcGuidance(unittest.TestCase):
 
 
 class TestDnsMultiMethod(unittest.TestCase):
-    @patch("claude_shield.probes.dns_probe.socket.getaddrinfo", side_effect=_gai_dual)
+    @patch("claude_sonar.probes.dns_probe.socket.getaddrinfo", side_effect=_gai_dual)
     def test_online_multi_method_classes(self, _mock):
         check = check_dns_consistency(timeout=1, online=True, hostnames=["one.one.one.one"])
         self.assertEqual(check.id, "network.dns.consistency")
@@ -86,7 +86,7 @@ class TestDnsMultiMethod(unittest.TestCase):
             self.assertNotIn("2606:4700", blob)
         self.assertIn("dual_stack", data["outcome_classes"] or ["dual_stack"])
 
-    @patch("claude_shield.probes.dns_probe.socket.getaddrinfo", side_effect=_gai_v4_only)
+    @patch("claude_sonar.probes.dns_probe.socket.getaddrinfo", side_effect=_gai_v4_only)
     def test_offline_single_method(self, _mock):
         check = check_dns_consistency(timeout=1, online=False, hostnames=["one.one.one.one"])
         data = check.evidence[0].data
@@ -94,7 +94,7 @@ class TestDnsMultiMethod(unittest.TestCase):
         self.assertEqual(methods, {"system_any"})
         self.assertEqual(check.status, "unknown")
 
-    @patch("claude_shield.probes.dns_probe.socket.getaddrinfo", side_effect=_gai_dual)
+    @patch("claude_sonar.probes.dns_probe.socket.getaddrinfo", side_effect=_gai_dual)
     def test_default_hosts_still_used(self, _mock):
         check = check_dns_consistency(timeout=1, online=True)
         hostnames = {r["hostname"] for r in check.evidence[0].data["resolutions"]}
@@ -102,8 +102,8 @@ class TestDnsMultiMethod(unittest.TestCase):
 
 
 class TestDualStackEgress(unittest.TestCase):
-    @patch("claude_shield.probes.egress._reputation_classes", return_value=("US", "AS64500", None))
-    @patch("claude_shield.probes.egress.run_python_probe")
+    @patch("claude_sonar.probes.egress._reputation_classes", return_value=("US", "AS64500", None))
+    @patch("claude_sonar.probes.egress.run_python_probe")
     def test_both_families_pass(self, mock_probe, _rep):
         def side_effect(url, timeout, is_custom=False):
             if "api6" in url:
@@ -124,8 +124,8 @@ class TestDualStackEgress(unittest.TestCase):
         self.assertTrue(str(data["ipv4"]["observed_address"]).startswith("<IPV4:"))
         self.assertTrue(str(data["ipv6"]["observed_address"]).startswith("<IPV6:"))
 
-    @patch("claude_shield.probes.egress._reputation_classes", return_value=(None, None, "unavailable"))
-    @patch("claude_shield.probes.egress.run_python_probe")
+    @patch("claude_sonar.probes.egress._reputation_classes", return_value=(None, None, "unavailable"))
+    @patch("claude_sonar.probes.egress.run_python_probe")
     def test_v6_unavailable_unknown_not_fail(self, mock_probe, _rep):
         def side_effect(url, timeout, is_custom=False):
             if "api6" in url:
@@ -139,14 +139,14 @@ class TestDualStackEgress(unittest.TestCase):
         self.assertIn("IPv6", check.explanation)
         self.assertIn("unknown", check.explanation.lower())
 
-    @patch("claude_shield.probes.egress._reputation_classes", return_value=(None, None, "unavailable"))
-    @patch("claude_shield.probes.egress.run_python_probe", return_value=(None, "unavailable"))
+    @patch("claude_sonar.probes.egress._reputation_classes", return_value=(None, None, "unavailable"))
+    @patch("claude_sonar.probes.egress.run_python_probe", return_value=(None, "unavailable"))
     def test_both_unavailable_unknown(self, _probe, _rep):
         check = check_dual_stack_egress(timeout=2)
         self.assertEqual(check.status, "unknown")
         self.assertEqual(check.confidence, "unknown")
 
-    @patch("claude_shield.probes.egress.run_python_probe")
+    @patch("claude_sonar.probes.egress.run_python_probe")
     def test_observe_egress_url_redacts(self, mock_probe):
         mock_probe.return_value = ("203.0.113.99", "direct_pinned")
         r = Redactor()
@@ -170,7 +170,7 @@ class TestEgressStability(unittest.TestCase):
             "raw_value_persisted": False,
         }
 
-    @patch("claude_shield.probes.stability._sample_classes")
+    @patch("claude_sonar.probes.stability._sample_classes")
     def test_stable_classes_pass(self, mock_sample):
         mock_sample.side_effect = [
             self._sample("US", "AS64500"),
@@ -183,7 +183,7 @@ class TestEgressStability(unittest.TestCase):
         self.assertIn("not proof", check.explanation.lower())
         self.assertIn("ban risk", check.explanation.lower())  # denied, not claimed
 
-    @patch("claude_shield.probes.stability._sample_classes")
+    @patch("claude_sonar.probes.stability._sample_classes")
     def test_class_change_warning(self, mock_sample):
         mock_sample.side_effect = [
             self._sample("US", "AS64500"),
@@ -195,7 +195,7 @@ class TestEgressStability(unittest.TestCase):
         self.assertIn("changed", check.explanation.lower())
         self.assertIn("not a ban-risk", check.explanation.lower())
 
-    @patch("claude_shield.probes.stability._sample_classes")
+    @patch("claude_sonar.probes.stability._sample_classes")
     def test_insufficient_samples_unknown(self, mock_sample):
         mock_sample.side_effect = [
             self._sample(None, None, ok=False),
@@ -204,7 +204,7 @@ class TestEgressStability(unittest.TestCase):
         check = check_egress_stability(timeout=3, delay_s=0, sleeper=lambda _s: None)
         self.assertEqual(check.status, "unknown")
 
-    @patch("claude_shield.probes.stability._sample_classes")
+    @patch("claude_sonar.probes.stability._sample_classes")
     def test_no_sleep_when_delay_zero(self, mock_sample):
         calls = []
         mock_sample.side_effect = [
@@ -221,13 +221,13 @@ class TestEgressStability(unittest.TestCase):
 
 
 class TestRunProbesWiringExt(unittest.TestCase):
-    @patch("claude_shield.probes.stability.check_egress_stability")
-    @patch("claude_shield.probes.egress.check_dual_stack_egress")
-    @patch("claude_shield.probes.cross_site.check_cross_site_routing")
-    @patch("claude_shield.probes.reputation.check_ip_reputation")
-    @patch("claude_shield.probes.dns_probe.check_dns_consistency")
-    @patch("claude_shield.probes.egress.check_egress_consistency")
-    @patch("claude_shield.probes.endpoints.get_all_endpoints")
+    @patch("claude_sonar.probes.stability.check_egress_stability")
+    @patch("claude_sonar.probes.egress.check_dual_stack_egress")
+    @patch("claude_sonar.probes.cross_site.check_cross_site_routing")
+    @patch("claude_sonar.probes.reputation.check_ip_reputation")
+    @patch("claude_sonar.probes.dns_probe.check_dns_consistency")
+    @patch("claude_sonar.probes.egress.check_egress_consistency")
+    @patch("claude_sonar.probes.endpoints.get_all_endpoints")
     def test_online_wires_extended(
         self,
         mock_eps,
@@ -268,13 +268,13 @@ class TestRunProbesWiringExt(unittest.TestCase):
         mock_dual.assert_called_once()
         mock_stab.assert_called_once()
 
-    @patch("claude_shield.probes.stability.check_egress_stability")
-    @patch("claude_shield.probes.egress.check_dual_stack_egress")
-    @patch("claude_shield.probes.cross_site.check_cross_site_routing")
-    @patch("claude_shield.probes.reputation.check_ip_reputation")
-    @patch("claude_shield.probes.dns_probe.check_dns_consistency")
-    @patch("claude_shield.probes.egress.check_egress_consistency")
-    @patch("claude_shield.probes.safety.validate_url")
+    @patch("claude_sonar.probes.stability.check_egress_stability")
+    @patch("claude_sonar.probes.egress.check_dual_stack_egress")
+    @patch("claude_sonar.probes.cross_site.check_cross_site_routing")
+    @patch("claude_sonar.probes.reputation.check_ip_reputation")
+    @patch("claude_sonar.probes.dns_probe.check_dns_consistency")
+    @patch("claude_sonar.probes.egress.check_egress_consistency")
+    @patch("claude_sonar.probes.safety.validate_url")
     def test_custom_without_online_skips_extended(
         self, mock_val, mock_egress, mock_dns, mock_rep, mock_cross, mock_dual, mock_stab
     ):

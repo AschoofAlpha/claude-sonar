@@ -1,8 +1,8 @@
-"""Collector analysis for Claude Shield (AI-facing library).
+"""Collector analysis for Claude Sonar (AI-facing library).
 
 Runs the read-only collector and turns the snapshot into structured audit
-checks. Also powers ``python -m claude_shield``. Agents may format checks via
-``format_report`` (see ``claude_shield.report``).
+checks. Also powers ``python -m claude_sonar``. Agents may format checks via
+``format_report`` (see ``claude_sonar.report``).
 """
 
 from __future__ import annotations

@@ -1,6 +1,6 @@
 # NOTICE — 内置 Semgrep 规则来源说明
 
-本目录（`claude_shield/resources/semgrep_rules/`）下的 YAML 规则文件：
+本目录（`claude_sonar/resources/semgrep_rules/`）下的 YAML 规则文件：
 
 - `python.yaml`（6 条）
 - `javascript.yaml`（6 条）
@@ -26,5 +26,5 @@ MIT 许可要点（非法律文本，仅摘要）：
 允许自由使用、复制、修改、分发本规则（含商用），但须保留上述版权与许可声明，
 且按“原样”提供、不附带任何担保。
 
-claude-shield 其余代码（reposcan 模块、评分、报告、编排逻辑等）为原创实现，
+claude-sonar 其余代码（reposcan 模块、评分、报告、编排逻辑等）为原创实现，
 遵循项目根目录 `LICENSE`（MIT）。

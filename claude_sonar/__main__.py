@@ -1,4 +1,4 @@
-"""CLI entry point: ``python -m claude_shield``.
+"""CLI entry point: ``python -m claude_sonar``.
 
 Default output is a markdown report. Online probes stay off unless ``--online``.
 """
@@ -13,9 +13,9 @@ from pathlib import Path
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="python -m claude_shield",
+        prog="python -m claude_sonar",
         description=(
-            "Claude Shield — local privacy and proxy consistency audit. "
+            "Claude Sonar — local privacy and proxy consistency audit. "
             "Online probes are disabled unless --online is passed."
         ),
     )
@@ -125,11 +125,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write the report to PATH (also printed to stdout).",
     )
     badge_p = sub.add_parser(
-        "badge", help="Write shield-badge.json from an audit result."
+        "badge", help="Write sonar-badge.json from an audit result."
     )
     badge_p.add_argument(
         "--out", default=None, metavar="PATH",
-        help="Badge JSON path (default: repo-root shield-badge.json).",
+        help="Badge JSON path (default: repo-root sonar-badge.json).",
     )
     badge_p.add_argument(
         "--from-report", default=None, dest="from_report", metavar="PATH",
@@ -210,7 +210,7 @@ def _cmd_serve(args) -> int:
     except OSError as exc:
         print(f"error: could not start panel on 127.0.0.1:{port}: {exc}", file=sys.stderr)
         return 1
-    print(f"Claude Shield panel: http://127.0.0.1:{port}/  (read-only; Ctrl+C to stop)")
+    print(f"Claude Sonar panel: http://127.0.0.1:{port}/  (read-only; Ctrl+C to stop)")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
@@ -363,7 +363,7 @@ def main(argv=None) -> int:
         markdown = _render_markdown(result, lang=args.lang, compact=compact)
     except Exception:
         markdown = result.get("report_markdown") or (
-            "# Claude Shield Audit Report\n\n(report unavailable)\n"
+            "# Claude Sonar Audit Report\n\n(report unavailable)\n"
         )
 
     if args.diff:

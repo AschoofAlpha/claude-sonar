@@ -1,10 +1,10 @@
-"""claude-shield 代码仓库安全扫描子模块（reposcan）。
+"""claude-sonar 代码仓库安全扫描子模块（reposcan）。
 
 独立于网络审计（不进入主 audit checks/schema），零第三方依赖，输出
 中文 Markdown 报告 / JSON / SARIF 2.1.0。
 
 入口：
-    from claude_shield.reposcan import run_repo_scan, result_to_report
+    from claude_sonar.reposcan import run_repo_scan, result_to_report
 
     result = run_repo_scan("path/to/repo", use_tools=True,
                            baseline_path=None, json_out=False, sarif_path=None)

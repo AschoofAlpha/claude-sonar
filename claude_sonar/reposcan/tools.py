@@ -284,7 +284,7 @@ class ToolRunner:
                 "工具未安装，本次跳过密钥扫描", available=False,
                 hint=_INSTALL_HINTS["gitleaks"],
             )
-        fd, tmp = tempfile.mkstemp(prefix="claude-shield-gitleaks-", suffix=".json")
+        fd, tmp = tempfile.mkstemp(prefix="claude-sonar-gitleaks-", suffix=".json")
         os.close(fd)
         try:
             cmd = [

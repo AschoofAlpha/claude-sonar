@@ -418,8 +418,8 @@ _DETAIL_PHRASE_MAP: Tuple[Tuple[str, str], ...] = (
         "即使 HTTP(S) 出口已走代理，WebRTC 仍可能暴露本地或物理网络地址。",
     ),
     (
-        "Claude Shield does not auto-change browser settings and does not run an in-browser WebRTC trial.",
-        "Claude Shield 不会自动更改浏览器设置，也不运行浏览器内 WebRTC 实测。",
+        "Claude Sonar does not auto-change browser settings and does not run an in-browser WebRTC trial.",
+        "Claude Sonar 不会自动更改浏览器设置，也不运行浏览器内 WebRTC 实测。",
     ),
     (
         "Manually open a known leak-test page",
@@ -822,8 +822,8 @@ _RECOMMENDATION_PHRASE_MAP: Tuple[Tuple[str, str], ...] = (
         "脚本绝不会替你删除缓存。",
     ),
     (
-        "Claude Shield will not change DNS, routes, TUN, timezone, or fingerprints for you.",
-        "Claude Shield 不会替你改 DNS、路由、TUN、时区或指纹。",
+        "Claude Sonar will not change DNS, routes, TUN, timezone, or fingerprints for you.",
+        "Claude Sonar 不会替你改 DNS、路由、TUN、时区或指纹。",
     ),
     (
         "Confirm the setting in the active proxy client before changing it.",
@@ -1517,7 +1517,7 @@ def format_report(
     """
     lang = _norm_lang(lang)
     checks = list(checks or [])
-    lines: List[str] = ["# Claude Shield Audit Report", ""]
+    lines: List[str] = ["# Claude Sonar Audit Report", ""]
     lines.extend(_intro_lines(lang))
 
     groups = group_checks(checks)

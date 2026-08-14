@@ -64,8 +64,8 @@ def findings_to_sarif(result: Dict[str, Any], tool_version: str = "") -> Dict[st
         })
 
     driver: Dict[str, Any] = {
-        "name": "claude-shield-reposcan",
-        "informationUri": "https://github.com/AschoofAlpha/claude-shield",
+        "name": "claude-sonar-reposcan",
+        "informationUri": "https://github.com/AschoofAlpha/claude-sonar",
         "rules": [rules[k] for k in rules],
     }
     if tool_version:

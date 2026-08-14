@@ -6,12 +6,12 @@ import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from claude_shield.diff import (
+from claude_sonar.diff import (
     diff_audits,
     format_diff_markdown,
     load_checks_from_report_dict,
 )
-from claude_shield.models import AuditCheck
+from claude_sonar.models import AuditCheck
 
 
 def _check(**kwargs):

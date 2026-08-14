@@ -5,7 +5,7 @@ import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from claude_shield.personalize import (
+from claude_sonar.personalize import (
     build_personal_guidance,
     detect_cli_agent,
     format_personal_section,
@@ -60,7 +60,7 @@ class TestCliTunGuidance(unittest.TestCase):
         self.assertIn("v2rayN", md)
 
     def test_system_proxy_no_cli_keeps_plain_tun_action(self):
-        from claude_shield.models import AuditCheck
+        from claude_sonar.models import AuditCheck
 
         tun_pass = AuditCheck(
             id="network.tun",

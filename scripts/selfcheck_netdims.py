@@ -2,12 +2,12 @@
 import sys, hashlib
 sys.path.insert(0, ".")
 
-from claude_shield.probes.ja4_probe import (
+from claude_sonar.probes.ja4_probe import (
     _ja4_cipher_hash, _ja4_extension_hash, parse_clienthello,
     parse_clienthello_hex, ja3_fields, ja3_fingerprint, ja4_fingerprint,
     is_grease,
 )
-from claude_shield.probes.baseurl_probe import decode_xor91_blob
+from claude_sonar.probes.baseurl_probe import decode_xor91_blob
 
 # 1) JA4 spec known-answer vectors
 cipher_list = [0x002f, 0x0035, 0x009c, 0x009d, 0x1301, 0x1302, 0x1303,

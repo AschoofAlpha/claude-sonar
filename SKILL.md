@@ -1,9 +1,9 @@
 ---
-name: claude-shield
+name: claude-sonar
 description: Audit a local Windows proxy and system setup, with limited macOS/Linux environment collection, for routing, DNS, IPv6, IP reputation, timezone, language, and documented Claude Code privacy controls. Use for Clash Verge/Mihomo or other proxy-leak diagnosis and minimal privacy hardening without fingerprint spoofing or platform-evasion guidance.
 ---
 
-# Claude Shield
+# Claude Sonar
 
 Audit privacy leaks, contradictory network signals, and documented Claude Code privacy controls without trying to defeat platform safeguards. Prefer stable, ordinary system behavior and the smallest defensible configuration change.
 
@@ -30,8 +30,8 @@ Keep the bundled collector and live network checks as the primary workflow. Do n
 
 Use the directory containing this `SKILL.md` as `<skill-root>`. Resolve bundled files from that directory rather than from the current project or shell working directory.
 
-- **Codex:** install the folder as `$CODEX_HOME/skills/claude-shield` or `~/.codex/skills/claude-shield`, then invoke `$claude-shield` or ask a matching audit question.
-- **Claude Code:** install the folder as `~/.claude/skills/claude-shield` for personal use or `.claude/skills/claude-shield` for a project, then invoke `/claude-shield` or ask a matching question. Claude Code may resolve bundled files through `${CLAUDE_SKILL_DIR}`.
+- **Codex:** install the folder as `$CODEX_HOME/skills/claude-sonar` or `~/.codex/skills/claude-sonar`, then invoke `$claude-sonar` or ask a matching audit question.
+- **Claude Code:** install the folder as `~/.claude/skills/claude-sonar` for personal use or `.claude/skills/claude-sonar` for a project, then invoke `/claude-sonar` or ask a matching question. Claude Code may resolve bundled files through `${CLAUDE_SKILL_DIR}`.
 - **Other Agent Skills hosts:** preserve `SKILL.md`, `scripts/`, and their relative layout. Ignore `agents/openai.yaml` when the host does not use OpenAI interface metadata.
 - **Other LLM agents:** load `SKILL.md` as instructions and run `<skill-root>/scripts/collect_windows_network.ps1`. On macOS/Linux, `scripts/collect_posix_network.py` supplies only OS, proxy-environment presence, and Claude Code privacy-control state; mark DNS, routing, IPv6, and proxy-client details as manual checks. If the agent cannot execute local commands, ask the user to run the collector and provide its JSON output.
 
@@ -40,14 +40,14 @@ After explicit approval, use the remediation scripts only for the documented Cla
 
 ## Analysis Library
 
-The bundled `claude_shield` package (skill name **`claude-shield`**) provides the standard analysis layer. Import it instead of hand-writing checks from the raw snapshot, so results stay consistent across runs:
+The bundled `claude_sonar` package (skill name **`claude-sonar`**) provides the standard analysis layer. Import it instead of hand-writing checks from the raw snapshot, so results stay consistent across runs:
 
 ```python
 import sys
 sys.path.insert(0, "<skill-root>")
-from claude_shield.analyze import run_legacy_collector, analyze_snapshot, summarize, run_full_audit
-from claude_shield.report import format_report
-from claude_shield.redaction import Redactor
+from claude_sonar.analyze import run_legacy_collector, analyze_snapshot, summarize, run_full_audit
+from claude_sonar.report import format_report
+from claude_sonar.redaction import Redactor
 
 snapshot = run_legacy_collector()          # runs scripts/collect_windows_network.ps1
 redactor = Redactor()
@@ -60,7 +60,7 @@ markdown = format_report(checks)           # evidence table + Must fix / Optiona
 For the default local-only audit (collector, redaction, analysis, markdown):
 
 ```python
-from claude_shield.analyze import run_full_audit
+from claude_sonar.analyze import run_full_audit
 result = run_full_audit(probe_timeout=5)   # include_recommendations=True, online=False
 checks, summary, snapshot = result["checks"], result["summary"], result["snapshot"]
 report_md = result["report_markdown"]      # same shape as format_report(checks)
@@ -69,9 +69,9 @@ report_md = result["report_markdown"]      # same shape as format_report(checks)
 CLI (never enables online unless `--online`):
 
 ```bash
-python -m claude_shield
-python -m claude_shield --json
-python -m claude_shield --online --timeout 5 --intended-region US
+python -m claude_sonar
+python -m claude_sonar --json
+python -m claude_sonar --online --timeout 5 --intended-region US
 ```
 
 Use online probes only after explicit approval:
@@ -93,10 +93,10 @@ result = run_full_audit(
 - `network.anthropic_baseurl` runs offline always: `ANTHROPIC_BASE_URL` unset / official / custom / blacklisted against a bundled 147-domain public relay-risk blacklist (intel from CACEB001/Claude-Shield, decoded base64+XOR-91; regenerate with `scripts/gen_baseurl_blacklist.py`). A bundled 11-word AI-lab keyword list (upstream `LAB_BLOB`) additionally flags relay domains containing those words as a low-severity hint; blacklist hits take priority. Treat a hit as risk intel, never as an accusation, and never help hide an endpoint. With `--online`, `network.anthropic_baseurl_tcp` additionally dials the configured host's 443 port (direct TCP, no local proxy) and reports reachability as a neutral observation.
 - Browser collection reads installation presence and managed WebRTC policy settings only (Firefox: Mozilla policy registry + `distribution/policies.json`). It does not read browser profiles, exercise WebRTC, or prove runtime behavior.
 - Feed the same `checks` into `format_report` or the Report Format section below. Do not re-derive the checks from raw JSON unless the library cannot run (then label every result `manual check required`).
-- Package CLI: `python -m claude_shield`. Online stays off without `--online`.
+- Package CLI: `python -m claude_sonar`. Online stays off without `--online`.
   - `serve [--port N] [--open]` — read-only local web panel, 127.0.0.1 only. `/` renders the audit, `/api/report?online=0` returns the redacted report JSON, `/api/status`, `/api/badge`; the panel includes a browser-side observation block (WebRTC ICE candidates, timezone/language). Never add write endpoints, never bind non-loopback, never embed third-party scripts.
   - `repo PATH [--no-tools] [--baseline F] [--json] [--sarif F] [--out F]` — repository security scan (stack detection, semgrep/gitleaks/pip-audit/npm audit/freshness with graceful degradation, bundled trimmed Semgrep rules, 0–100 code-security score, fix suggestions, SARIF). No pentesting, no GitHub-issue filing.
-  - `badge [--out PATH] [--from-report F]` — writes `shield-badge.json` for the shields.io dynamic badge. Regenerate after each audited change; the badge reflects the last written score, not a live audit.
+  - `badge [--out PATH] [--from-report F]` — writes `sonar-badge.json` for the shields.io dynamic badge. Regenerate after each audited change; the badge reflects the last written score, not a live audit.
 
 ## Audit Workflow
 
@@ -109,7 +109,7 @@ result = run_full_audit(
 7. Classify findings as `must fix`, `optional consistency`, or `leave alone`.
 8. Recommend the minimum local change, obtain approval, apply it, and run one verification pass.
 9. Deliver the report as TABLES PASTED DIRECTLY INTO THE CHAT — the five-column table (检查项/状态/严重度/说明/建议) is the primary deliverable. Do NOT wrap it in a prose summary, do NOT offer a markdown file link as the main content, do NOT truncate rows. Keep the score line (配置自洽分) above the table and the 必须处理/可选一致性/保持不动 section headings as-is.
-10. After the tables are posted, open the local panel with a DELAY so the user reads the chat tables first: run `python -m claude_shield serve --open --open-delay 8` (backgrounded; ~8s). The panel auto-runs a fresh audit on load with online probes ON by default (its toggle can turn them off). Do not ask the user to click anything; if the browser cannot be opened automatically, give them the `http://127.0.0.1:<port>/` URL.
+10. After the tables are posted, open the local panel with a DELAY so the user reads the chat tables first: run `python -m claude_sonar serve --open --open-delay 8` (backgrounded; ~8s). The panel auto-runs a fresh audit on load with online probes ON by default (its toggle can turn them off). Do not ask the user to click anything; if the browser cannot be opened automatically, give them the `http://127.0.0.1:<port>/` URL.
 11. The table columns are 检查项 / 状态 / 严重度 / 说明 / 建议 (Chinese); the panel and the pasted tables use the same five columns. Row order inside each table is by status: 通过 (pass) first, then 警告 (warning), then 未知 (unknown) — fail rows (if any) go first of all.
 
 ## Adapt to the Local Computer
@@ -264,9 +264,9 @@ When the audit shows DNS/HTTP egress divergence or the user wants a cleaner sing
 
 ## Repository Security Scan (agent guidance)
 
-`claude-shield repo PATH` gives the mechanical scan. The agent adds the reasoning layer — always on code the user owns or is explicitly authorized to review:
+`claude-sonar repo PATH` gives the mechanical scan. The agent adds the reasoning layer — always on code the user owns or is explicitly authorized to review:
 
-1. Run `python -m claude_shield repo PATH` first; read the stack, tool status, and findings tables.
+1. Run `python -m claude_sonar repo PATH` first; read the stack, tool status, and findings tables.
 2. Confirm each finding against the actual code (tool output is a hypothesis): check reachability, trust boundaries, and whether the sink is user-controlled before claiming exploitability.
 3. Explain exploitability in context and give a complete fixed-code diff — never apply a "fix" that silently changes behavior.
 4. Business-logic pass (things SAST cannot see): IDOR / broken object-level authorization, race conditions (TOCTOU), mass-assignment, open redirects, insecure defaults in config.
@@ -275,7 +275,7 @@ When the audit shows DNS/HTTP egress divergence or the user wants a cleaner sing
 7. False-positive review: if a finding is not exploitable, say so explicitly — do not inflate the score or the severity table.
 8. Secrets handling: report presence and location, never echo the secret; recommend rotation, never "just remove the line" as the only step.
 9. Boundaries: no autonomous pentesting tools, no PoC payloads against third-party services, no GitHub-issue auto-filing. Static analysis + reasoning only.
-10. Update the badge after fixes: `python -m claude_shield badge` (or the panel button) so the score reflects reality.
+10. Update the badge after fixes: `python -m claude_sonar badge` (or the panel button) so the score reflects reality.
 
 ## Report Format
 
@@ -284,7 +284,7 @@ When the user supplies a collector snapshot (or an agent runs the collector), pa
 **Prefer the library formatter** so jargon is explained consistently:
 
 ```python
-from claude_shield import run_full_audit, format_report
+from claude_sonar import run_full_audit, format_report
 result = run_full_audit(online=False, lang="zh")   # or lang="en"
 print(result["report_markdown"])
 # equivalent: format_report(result["checks"], summary=result["summary"], lang="zh")

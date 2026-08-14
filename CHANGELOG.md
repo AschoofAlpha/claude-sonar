@@ -2,213 +2,36 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.4.9] - 2026-08-13
+## [0.7] - 2026-08-14
 
-### Added
-- **Local web panel** — `python -m claude_shield serve [--port N] [--open]`: zero-dependency, bound to 127.0.0.1 only. `/` renders the audit (score + check groups), `/api/report` returns redacted report JSON (`online=0` default), `/api/status`, `/api/badge`; browser-side observation (WebRTC ICE candidates, timezone/language). Read-only: POST 405, path traversal 404, loopback-only `Host`.
-- **Dynamic badge** — `python -m claude_shield badge` writes `shield-badge.json`; `make_badge_markdown()` builds a shields.io dynamic-JSON badge URL.
-- **Repository security scan** — `python -m claude_shield repo PATH`: stack detection, external-tool orchestration (semgrep / gitleaks / pip-audit / npm audit, graceful degradation), bundled trimmed Semgrep rules (MIT, provenance in `NOTICE.md`), weighted 0–100 code-security score, fix suggestions, `--baseline` diff, `--json`, `--sarif PATH`. No pentesting, no GitHub-issue filing.
-- **New detection dimensions** (absorbed from newtv-ai/CLAUDE-SHIELD and CACEB001/Claude-Shield; detection only):
-  - `network.anthropic_baseurl` — `ANTHROPIC_BASE_URL` vs a bundled 147-domain public risk-intel blacklist (decoded from the upstream base64+XOR-91 blob; reproducible via `scripts/gen_baseurl_blacklist.py`). Always offline.
-  - `network.dns.egress_consistency` — DoH exit (`o-o.myaddr.l.google.com` via dns.google) vs HTTP egress comparison; mismatch is a neutral low-severity warning, unreachable is unknown. `--online` only.
-  - `network.tls.fingerprint` — JA3/JA4 computed from a local openssl ClientHello capture; read-only observation, no spoof advice. `--online` only.
-- **Repo scan follow-ups** (absorbed from alissonlinneker/shield-claude-skill):
-  - Freshness / outdated-dependency detection — `npm outdated` + `pip list --outdated` orchestration with MAJOR-per-package and aggregated MINOR/PATCH findings (graceful degradation, venv caveat noted in the report).
-  - `bun.lockb` / `bun.lock` stack detection.
-- **ANTHROPIC_BASE_URL follow-ups** (absorbed from CACEB001/Claude-Shield):
-  - AI-lab keyword check — the bundled 11-word lab-keyword list (decoded from the upstream `LAB_BLOB`, base64+XOR-91) flags relay domains containing those words as a low-severity risk hint; blacklist hits still take priority.
-  - `network.anthropic_baseurl_tcp` — live TCP-443 reachability probe of the configured relay host (direct dial, no local proxy, clearly labeled). `--online` only.
-- Redaction fix: the credential rule's stop set now includes CJK punctuation and CJK characters, so `token <pseudonym>，中文` no longer swallows trailing text.
-- **Panel UX follow-ups**: panel auto-runs the audit on load (no click needed), online probes default ON (opt out via `online=0`; `/api/report` defaults to `online=1`), `--open-delay N` waits before opening the browser so chat tables can be read first.
-- **Five-column Chinese tables everywhere**: markdown report and panel use 检查项 / 状态 / 严重度 / 说明 / 建议 (severity column added with Chinese labels; detail merged into meaning; group column dropped).
-- **Row ordering**: rows sorted by status — fail first, then 通过 (pass), 警告 (warning), 未知 (unknown) last — in the markdown all-results table, each group section, and the panel payload.
-- **Full Chinese panel payload**: every check carries `title_zh` / `explanation_zh` / `recommendation_zh` (53 new phrase-map entries); no long English runs remain.
-- Manual network alternatives documented (socks5h remote DNS, SSH dynamic forwarding) — recommend-only, never auto-applied; repo-scan agent guidance added to SKILL.md.
+这是一个全新开始。项目从 `claude-shield` 更名为 `claude-sonar`，版本号重置为 0.7。
 
-### Changed
-- DNS egress mismatch reports at severity `low` so it lands in Optional consistency, not Must fix (an observation, not a verdict).
-- Panel handler swallows client aborts (`ConnectionResetError`/`ConnectionAbortedError`) without traceback noise.
-- CLI markdown now passes the snapshot into the formatter (personalized section stops degrading to "unknown client" in CLI output).
-- Panel table cells wrap long text (`word-break`/`overflow-wrap`) instead of overflowing the frame.
+### 核心功能
+- **只读审计 Skill + Python 库 + CLI**：检测 Claude Code / Codex 等 Agent 宿主的本地隐私与代理一致性，不动任何配置
+- **本地面板**（`serve`）：零依赖、仅 127.0.0.1、自动审计 + 渐变进度条分数区 + 出口概览卡片 + DNS/WebRTC/TLS 独立小卡 + pill 式摘要
+- **代码仓库安全扫描**（`repo`）：栈检测 + Semgrep/gitleaks/依赖审计 + 过期检测 + 0-100 评分 + SARIF 导出
+- **动态徽章**（`badge`）：shield-badge.json + shields.io
 
-### Fixed
-- Duplicate proxy-client labels collapsed ("Clash Verge (also: Clash Verge, Clash Verge)" is gone).
+### 检测维度
+- Claude Code 三隐私变量 + 补充隐私项
+- 代理客户端识别（Clash Verge/v2rayN/sing-box 等）+ 个性化手动建议
+- 代理核心配置（规则模式、TUN、strict-route、fake-IP、DNS 劫持、DoH）
+- 防泄漏面（Teredo、IPv6 绑定、PAC/WPAD）
+- 在线探测（可选）：出口 IP 信誉、跨站路由一致性、出口稳定性
+- BASE_URL 黑名单审计（147 域名）+ AI 实验室关键词比对 + TCP 拨测
+- DNS 出口一致性（DoH vs HTTP）+ JA3/JA4 TLS 指纹（openssl 抓包，只读）
+- 时区 / 语言 / 区域一致性
+- 浏览器 WebRTC 策略 + 浏览器端 ICE 候选实测（面板内）
+- socks5h 远程 DNS 建议 / SSH 隧道手动指引（仅建议，不代改）
 
-## [1.4.2] - 2026-08-11
+### 产品边界
+- 只检测，不伪装、不伪造指纹、不自动改网络、不自动改时区
+- 报告五列表格直贴对话框（检查项/状态/严重度/说明/建议）
+- 行排序：通过 → 警告 → 未知
+- 全中文面板 payload
 
-### Added
-- CLI-agent personalization: detects Claude Code / Codex / other terminal agents (snapshot + process hints, explicit `cli_agent` override accepted).
-- When a CLI agent is in use, the report recommends **global + virtual-adapter (TUN)** routing with per-client terminology mapping:
-  - Clash Verge / Mihomo / Clash 系: TUN / 虚拟网卡
-  - v2rayN: TUN 模式; Xray: tun block
-  - sing-box / Hiddify / NekoBox: TUN (tun block / panel)
-  - "全局模式" alone may not capture all traffic
-- New report marker "检测到 CLI 端 Agent" plus coordinated TUN action when intent is system_proxy.
-
-### Changed
-- Version **1.4.2** across metadata/badges/docs.
-
-## [1.4.1] - 2026-08-11
-
-
-### Added
-- Personalized guidance: auto-detect the active proxy client (Clash Verge / Mihomo / v2rayN / Xray / sing-box / Hiddify / NekoBox / Hysteria / Netch, …) and show app-specific manual tips.
-- Report section "个性化（检测到的代理）": primary client, engine, confidence, plus manual action list — timezone align to exit/node, local hygiene, DNS/route/TUN/IPv6/system proxy — all recommend-only, never auto-applied.
-- New check `client.profile` (informational).
-- Windows collector: `PrimaryProxyProcesses` (name + label, no paths); other-client list now excludes the primary client to avoid false "extra client" noise.
-
-### Changed
-- Footer renamed to "本工具如何协助你改配置 / How this tool helps you change settings": clarifies it *can* suggest manual steps (timezone follow node, hygiene, DNS/route/TUN/IPv6/system proxy) but will never auto-apply them.
-- Version 1.4.1 across metadata/badges/docs.
-
-## [1.4.0] - 2026-08-11
-
-
-### Added
-- CLI flags: `--out PATH` (write report file and still print to stdout), `--diff PATH` (compare against a previous JSON `report_dict` / CLI `--json` payload), `--intended-mode {system_proxy,full_tunnel}`, `--compact` (short markdown), `--full` (explicit full report; overrides `--compact`).
-- `claude_shield.diff`: `diff_audits` / `diff_reports`, `format_diff_markdown`, `load_checks_from_report_dict` / `load_previous_report` for check-id status diffs.
-- Online probes: independent DNS / reputation / cross-site / dual-stack / stability probes run in a thread pool (ordered merge; sequential fallback). Offline path unchanged.
-- `run_full_audit(..., intended_mode=None, compact=False)` and `analyze_snapshot(..., intended_mode=None)` coordination stubs; `format_report(..., compact=False)`.
-
-### Changed
-- Version **1.4.0** across package metadata, badges, and docs.
-- CLI forwards `--lang` into `run_full_audit` and always re-renders markdown via `format_report`.
-
-## [1.3.3] - 2026-08-11
-
-### Added
-- Offline checks: `network.proxy_layers`, `network.proxy_autoconfig`, smarter `network.env_proxy`, `consistency.geo_stack`.
-- Windows collector fields: `WinHttpProxy`, `ProxyAutoConfig` (boolean flags only), broader other-proxy process names.
-- Online probes: multi-DNS observation classes, dual-stack egress, `network.egress.stability`, `browser.webrtc.guidance` (manual test guidance only).
-- Report: plain-language **说明/meaning** column, **配置自洽分 / consistency score** (0–100), glossary, footer of actions that are **recommend-only never auto**.
-- Optional recommendations only for local device-id hygiene, cache hygiene, and browser WebRTC posture (never auto-applied; not unban).
-
-### Changed
-- Report intro wording: neutral read-only + consistency score (no ban-prediction framing in the header).
-- PAC/WPAD: missing AutoDetect registry value + no PAC URL treated as pass (common on Windows).
-- Fingerprint spoof, timezone-follow-node, environment wipe, anti-ban score disguise, and automatic DNS/route/TUN/IPv6/system-proxy changes remain **recommendations only** — remediation scripts still only touch documented Claude Code privacy env vars.
-
-### Notes — version history clarity
-- **PyPI package name remains `claude-shield`.** Legacy **`anti-claude-check`** is retired/removed; install only `claude-shield`.
-- **About 1.3.2 “dual content”:**
-  - The **first** `1.3.2` upload to PyPI (and the matching early git tag period) mainly **removed** the fake `audit-demo` screenshot.
-  - **After** that wheel was published, more features landed on git `main` while the version string stayed `1.3.2` (no second PyPI build for the same number). Those later commits are **not** guaranteed inside the original PyPI `1.3.2` files.
-  - **`1.3.3` is the first PyPI release that packages the full post-1.3.2 mainline** (proxy-layer checks, plain report, consistency score, online probe extensions, recommend-only boundaries). Prefer `pip install -U claude-shield` (≥1.3.3) or install from git `main`.
-
-## [1.3.2] - 2026-08-10
-
-### Removed
-- Fake staged audit demo image `assets/audit-demo.jpg` and README embeds. Use `python -m claude_shield` / `format_report` for real output.
-
-### Notes
-- **PyPI `1.3.2` wheel = this removal-focused release.** Later git commits that kept the label `1.3.2` without a new PyPI build are documented under **1.3.3** above. Do not assume `pip install claude-shield==1.3.2` includes those later features.
-
-## [1.3.1] - 2026-08-10
-
-### Changed
-- POSIX collector and remediation rewritten in **Python** (`scripts/collect_posix_network.py` / `scripts/remediate_posix_network.py`); bash scripts removed.
-- Removed unused marketing HTML sources under `assets/` (README continues to use JPG previews only). Language breakdown is now Python + PowerShell (+ tiny docs).
-
-## [1.3.0] - 2026-08-10
-
-### Added
-- CLI entry point: `python -m claude_shield [--online] [--json] [--timeout N] [--intended-region REGION]`.
-  Markdown report by default; `--json` prints `report_dict` + `summary`. Online probes stay off unless `--online`.
-- `claude_shield.report.format_report(checks)` / `group_checks(checks)` markdown formatter (evidence table + Must fix / Optional consistency / Leave alone).
-- `run_full_audit(...).report_markdown` when the formatter is available.
-- Windows collector: best-effort **Firefox** WebRTC policy detection (`Browsers.Firefox`) via Mozilla policy registry and `distribution/policies.json` (same shape as Chrome/Edge; no profile reads).
-- Online probes: IP reputation observation and cross-site egress comparison (`intended_region`, `cross_site_urls` kwargs on `run_probes` / `run_full_audit`).
-
-### Changed
-- `run_full_audit(include_recommendations=True)` and `analyze_snapshot(include_recommendations=True)` default to **True**.
-- Public exports include `format_report` / `group_checks` when the report module is present.
-- Encrypted DNS upstream analysis accepts a single dict or a list of scheme objects.
-- Version **1.3.0** across `pyproject.toml`, `__version__`, badges, and docs.
-
-### Notes
-- Package name remains **`claude-shield`**. Skill name remains **`claude-shield`**.
-- Online reputation/cross-site probes contact public observers only when explicitly enabled; results are categorical and redacted.
-
-## [1.2.2] - 2026-08-10
-
-### Changed
-- Agent Skill name/folder unified to **`claude-shield`** (was `anti-claude-check`).
-- Invoke as `$claude-shield` (Codex) or `/claude-shield` (Claude Code).
-- Remediation backup directory renamed to `~/.claude-shield` (old `~/.anti-claude-check` backups are left untouched).
-
-## [1.2.1] - 2026-08-10
-
-### Fixed
-- Redaction no longer treats identifier slashes such as `Culture/UICulture/SystemLocale` as POSIX paths.
-- Online DNS probe returns an honest observation (`unknown`) instead of a no-op skipped stub.
-
-### Changed
-- Split snapshot analysis into `claude_shield/analysis/*` (privacy / system / browser / mihomo).
-- `run_full_audit()` now also returns a schema-validated `report` / `report_dict` (`AuditReport`).
-- Public package exports: `run_full_audit`, `analyze_snapshot`, `AuditReport`, `Redactor`, etc.
-- Egress probe comments cleaned up (behavior unchanged).
-
-## [1.2.0] - 2026-08-10
-
-### Fixed
-- `run_probes(..., online=False)` is honored end-to-end. Offline audits no longer raise `unexpected keyword argument 'online'` and no longer emit a spurious `network.egress.probe_error`.
-- Windows collector invocation now passes `-ExecutionPolicy Bypass`, matching the documented PowerShell entrypoints.
-- Version metadata aligned: `pyproject.toml`, `claude_shield.__version__`, README badges, and this changelog all report **1.2.0**.
-
-### Changed
-- Online egress probes remain **off by default** (`run_full_audit(online=False)`). Live contact with Cloudflare Trace / ipify requires explicit `online=True` or a custom endpoint.
-- Privacy analysis is more conservative: missing or unverified controls stay `unknown` instead of being treated as pass.
-- Collector + redaction path favors minimal local identifiers and unified redaction before sharing.
-
-### Notes
-- Package name on PyPI is **`claude-shield`** (renamed from legacy `anti-claude-check`).
-- Automated test suite: unit/smoke tests under `tests/` (currently 45+ cases).
-- Install: `pip install claude-shield`
-
-## [1.1.1] - 2026-08-03
-
-### Fixed
-- PyPI metadata: added `license = "MIT"` (previously showed as None).
-- README image paths switched to absolute raw.githubusercontent URLs so the social preview and audit demo render on the PyPI project page (relative paths broke inside the wheel).
-
-## [1.1.0] - 2026-08-03
-
-### Added
-- `run_full_audit()` combined entry point: collector + redaction + analysis + live egress probes in one call.
-- Six new audit checks consuming previously unused collector fields:
-  - `network.policy_group` — policy-group selection chain (no URL-test/fallback/load-balance auto selectors).
-  - `network.dns_respect_rules` — `respect-rules` DNS behavior.
-  - `network.dns_ipv6` — DNS IPv6 consistency.
-  - `network.dns_encrypted` — encrypted upstream presence.
-  - `network.dns_physical_resolver` — physical-ISP DNS resolvers on local adapters.
-  - `network.tun_stack` — TUN stack (gvisor etc.).
-- `claude_shield/analyze.py` analysis library with `run_legacy_collector()`, `analyze_snapshot()`, `summarize()`.
-- GitHub Actions CI (Python 3.11/3.12 matrix, pytest + coverage).
-- Bilingual pain-point README intro, social preview hero, and audit report demo image.
-
-### Removed
-- Interactive CLI (`cli.py`, `reporting.py`, launcher scripts, console entry points).
-- Browser audit page (`assets/browser-audit.html`) and browser profile management (`browser/`, `browser_import.py`).
-- Remediation transaction engine, credentials scanning, and `checks/`/`scanning/` modules.
-- Browser scoring fields from `models.py` / `schema.py`.
-
-### Changed
-- Analysis logic moved from `cli.py` into the `claude_shield.analyze` library.
-- Social preview redesigned around the account-flagging pain point; bilingual (EN/中文).
-- Repository description and README intro rewritten in plain language.
-- Version bumped to `1.1.0` stable.
-
-## [1.1.0-beta.1] - 2026-07-27
-
-### Added
-- Safety hardening: redaction of local identifiers before sharing, explicit approval for state-changing actions.
-- Identity restoration guidance (do not spoof, do not hide automation, do not fabricate identity).
-
-## [1.0.0] - 2026-07-26
-
-### Added
-- Read-only Windows collector for proxy, DNS, IPv6, system, and Claude Code privacy settings.
-- Clash Verge / Mihomo checks: rule mode, system proxy, service/TUN state, `strict-route`, fake-IP, DNS hijacking, LAN access, policy selection.
-- Three-tier recommendations: **Must fix**, **Optional consistency**, **Leave alone**.
-- Optional reversible privacy environment-variable remediation.
-- POSIX collector (limited environment summary).
+### Changed from previous project
+- 项目名 `claude-shield` → `claude-sonar`
+- Python 包名 `claude_shield` → `claude_sonar`
+- 版本号重置为 0.7
+- CHANGELOG 历史已清除

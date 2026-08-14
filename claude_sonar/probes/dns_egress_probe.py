@@ -6,7 +6,7 @@ project's privacy rules:
 - Only well-known public names are queried (``o-o.myaddr.l.google.com`` TXT
   via Google DoH). No unique/random labels under public suffixes.
 - The DoH exit token is compared against the HTTP egress token from the
-  existing :func:`claude_shield.probes.egress.observe_egress_url` logic.
+  existing :func:`claude_sonar.probes.egress.observe_egress_url` logic.
 - Raw addresses are never persisted: both sides are pseudonymized with the
   same in-memory :class:`Redactor` salt before comparison.
 - DoH unreachable is ``unknown``, never a failure — proxies often block

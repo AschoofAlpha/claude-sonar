@@ -50,7 +50,7 @@ def render_report(result: Dict[str, Any], lang: str = "zh") -> str:
     lines.append("")
     lines.append(f"- 扫描目标：`{_esc(target)}`")
     lines.append(f"- 生成时间：{_esc(result.get('generated_at'))}")
-    lines.append(f"- 结果格式：claude-shield reposcan（schema {result.get('schema_version', 'reposcan/1')}）")
+    lines.append(f"- 结果格式：claude-sonar reposcan（schema {result.get('schema_version', 'reposcan/1')}）")
     lines.append("")
 
     # ---------------- 代码安全分 ----------------

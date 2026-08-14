@@ -4,8 +4,8 @@ import sys
 import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from claude_shield.analyze import analyze_snapshot
-from claude_shield.report import classify_action, score_checks
+from claude_sonar.analyze import analyze_snapshot
+from claude_sonar.report import classify_action, score_checks
 
 
 def _ids(checks):

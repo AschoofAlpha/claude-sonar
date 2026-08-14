@@ -27,7 +27,7 @@ def collect_browser_checks(data, builder):
                 "Optional recommendation only (never auto-applied): if you want less local "
                 "address exposure, tighten real-browser WebRTC/privacy policy or flags. "
                 "Do not use anti-detect stacks or fabricated fingerprints. "
-                "Claude Shield will not change DNS, routes, TUN, timezone, or fingerprints for you."
+                "Claude Sonar will not change DNS, routes, TUN, timezone, or fingerprints for you."
             )
             status = "unknown"
         add(

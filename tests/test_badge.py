@@ -1,4 +1,4 @@
-"""Tests for claude_shield.badge (shield-badge.json + shields.io URL)."""
+"""Tests for claude_sonar.badge (sonar-badge.json + shields.io URL)."""
 
 import json
 import sys
@@ -8,7 +8,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from claude_shield.badge import (  # noqa: E402
+from claude_sonar.badge import (  # noqa: E402
     badge_color,
     default_badge_path,
     default_shield_json_url,
@@ -41,7 +41,7 @@ class TestBadgeColor:
 
 class TestMakeBadge:
     def test_payload_structure_and_file(self, tmp_path):
-        out = tmp_path / "shield-badge.json"
+        out = tmp_path / "sonar-badge.json"
         payload = make_badge(88, out)
         assert payload == {"schemaVersion": 1, "label": "配置自洽分", "message": "88/100", "color": "yellow"}
         assert "logoSvg" not in payload
@@ -49,19 +49,19 @@ class TestMakeBadge:
         assert on_disk == payload
 
     def test_creates_parent_dirs(self, tmp_path):
-        out = tmp_path / "a" / "b" / "shield-badge.json"
+        out = tmp_path / "a" / "b" / "sonar-badge.json"
         make_badge(42, out)
         assert out.exists()
 
     def test_low_score_color_in_file(self, tmp_path):
-        out = tmp_path / "shield-badge.json"
+        out = tmp_path / "sonar-badge.json"
         make_badge(12, out)
         assert json.loads(out.read_text(encoding="utf-8"))["color"] == "red"
 
 
 class TestScoreFromResult:
     def _real_checks(self):
-        from claude_shield.analyze import analyze_snapshot
+        from claude_sonar.analyze import analyze_snapshot
 
         return analyze_snapshot({"System": {"ComputerName": "test-host"}})
 
@@ -77,7 +77,7 @@ class TestScoreFromResult:
 
     def test_make_badge_from_result(self, tmp_path):
         result = {"checks": self._real_checks()}
-        out = tmp_path / "shield-badge.json"
+        out = tmp_path / "sonar-badge.json"
         payload = make_badge_from_result(result, out)
         assert out.exists()
         assert payload["message"].endswith("/100")
@@ -89,7 +89,7 @@ class TestScoreFromResult:
 
 class TestBadgeUrl:
     def test_markdown_url_shape(self):
-        raw = "https://example.com/user/repo/raw/main/shield-badge.json"
+        raw = "https://example.com/user/repo/raw/main/sonar-badge.json"
         url = make_badge_markdown(shield_json_url=raw)
         assert url.startswith("https://img.shields.io/badge/dynamic/json?url=")
         assert "query=$.message" in url
@@ -99,15 +99,15 @@ class TestBadgeUrl:
     def test_default_json_url_from_metadata(self):
         url = default_shield_json_url()
         assert url.startswith("https://github.com/")
-        assert url.endswith("/raw/main/shield-badge.json")
+        assert url.endswith("/raw/main/sonar-badge.json")
 
     def test_md_link_wraps_url(self):
-        raw = "https://example.com/user/repo/raw/main/shield-badge.json"
+        raw = "https://example.com/user/repo/raw/main/sonar-badge.json"
         link = make_badge_md_link(shield_json_url=raw)
-        assert link.startswith("[![claude-shield](https://img.shields.io/badge/dynamic/json?")
+        assert link.startswith("[![claude-sonar](https://img.shields.io/badge/dynamic/json?")
         assert "(https://img.shields.io" in link
 
     def test_default_badge_path_in_project_root(self):
         path = default_badge_path()
-        assert path.name == "shield-badge.json"
+        assert path.name == "sonar-badge.json"
         assert (path.parent / "pyproject.toml").exists() or (path.parent / "static" / "panel.html").exists()

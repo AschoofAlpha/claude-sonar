@@ -3,7 +3,7 @@
 Read-only environment inspection; no network contact. The blacklist is
 third-party risk intelligence (CACEB001/Claude-Shield, ``main`` branch) that
 is shipped as plain data in
-``claude_shield/resources/known_baseurl_blacklist.txt``. The upstream data is
+``claude_sonar/resources/known_baseurl_blacklist.txt``. The upstream data is
 stored upstream as a base64 + XOR-91 blob; :func:`decode_xor91_blob` implements
 that public decoding step in pure Python for reproducibility and testing.
 
@@ -67,7 +67,7 @@ def load_blacklist() -> List[str]:
     ``source`` companion function).
     """
     try:
-        path = resource_path("claude_shield", "resources", "known_baseurl_blacklist.txt")
+        path = resource_path("claude_sonar", "resources", "known_baseurl_blacklist.txt")
         entries = [
             line.strip().lower()
             for line in path.read_text(encoding="utf-8").splitlines()
@@ -83,7 +83,7 @@ def load_blacklist() -> List[str]:
 def blacklist_source() -> str:
     """Human-readable provenance of the loaded blacklist."""
     try:
-        resource_path("claude_shield", "resources", "known_baseurl_blacklist.txt")
+        resource_path("claude_sonar", "resources", "known_baseurl_blacklist.txt")
         return _BLACKLIST_SOURCE
     except Exception:  # pragma: no cover - degraded install
         return _FALLBACK_SOURCE
@@ -109,7 +109,7 @@ def load_labwords() -> List[str]:
     install): the keyword check then simply reports no hit.
     """
     try:
-        path = resource_path("claude_shield", "resources", "known_baseurl_labwords.txt")
+        path = resource_path("claude_sonar", "resources", "known_baseurl_labwords.txt")
         words = [
             line.strip().lower()
             for line in path.read_text(encoding="utf-8").splitlines()
@@ -125,7 +125,7 @@ def load_labwords() -> List[str]:
 def labwords_source() -> str:
     """Human-readable provenance of the loaded lab-keyword list."""
     try:
-        resource_path("claude_shield", "resources", "known_baseurl_labwords.txt")
+        resource_path("claude_sonar", "resources", "known_baseurl_labwords.txt")
         return _LABWORDS_SOURCE
     except Exception:  # pragma: no cover - degraded install
         return _FALLBACK_SOURCE

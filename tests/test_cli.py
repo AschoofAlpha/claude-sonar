@@ -1,4 +1,4 @@
-"""CLI tests for python -m claude_shield (1.4.0)."""
+"""CLI tests for python -m claude_sonar (1.4.0)."""
 
 import io
 import json
@@ -12,11 +12,11 @@ from unittest import mock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from claude_shield import __version__
-from claude_shield.__main__ import build_parser, main
-from claude_shield.diff import diff_reports, format_diff_markdown
-from claude_shield.models import AuditCheck, AuditReport, PlatformInfo, PrivacyMetadata
-from claude_shield.report import format_report, group_checks
+from claude_sonar import __version__
+from claude_sonar.__main__ import build_parser, main
+from claude_sonar.diff import diff_reports, format_diff_markdown
+from claude_sonar.models import AuditCheck, AuditReport, PlatformInfo, PrivacyMetadata
+from claude_sonar.report import format_report, group_checks
 
 
 def _fake_audit_result(**overrides):
@@ -146,13 +146,13 @@ class TestCliParser(unittest.TestCase):
 class TestCliMain(unittest.TestCase):
     def test_markdown_default_offline(self):
         fake = _fake_audit_result()
-        with mock.patch("claude_shield.analyze.run_full_audit", return_value=fake) as mocked:
+        with mock.patch("claude_sonar.analyze.run_full_audit", return_value=fake) as mocked:
             buf = io.StringIO()
             with redirect_stdout(buf):
                 code = main([])
             self.assertEqual(code, 0)
             out = buf.getvalue()
-            self.assertIn("Claude Shield Audit Report", out)
+            self.assertIn("Claude Sonar Audit Report", out)
             self.assertIn("network.mode", out)
             self.assertIn("Must fix", out)
             kwargs = mocked.call_args.kwargs
@@ -163,7 +163,7 @@ class TestCliMain(unittest.TestCase):
 
     def test_json_output(self):
         fake = _fake_audit_result()
-        with mock.patch("claude_shield.analyze.run_full_audit", return_value=fake):
+        with mock.patch("claude_sonar.analyze.run_full_audit", return_value=fake):
             buf = io.StringIO()
             with redirect_stdout(buf):
                 code = main(["--json"])
@@ -175,7 +175,7 @@ class TestCliMain(unittest.TestCase):
 
     def test_online_flag_forwarded(self):
         fake = _fake_audit_result()
-        with mock.patch("claude_shield.analyze.run_full_audit", return_value=fake) as mocked:
+        with mock.patch("claude_sonar.analyze.run_full_audit", return_value=fake) as mocked:
             buf = io.StringIO()
             with redirect_stdout(buf):
                 code = main(["--online", "--timeout", "3", "--intended-region", "US"])
@@ -187,7 +187,7 @@ class TestCliMain(unittest.TestCase):
 
     def test_intended_mode_and_lang_forwarded(self):
         fake = _fake_audit_result()
-        with mock.patch("claude_shield.analyze.run_full_audit", return_value=fake) as mocked:
+        with mock.patch("claude_sonar.analyze.run_full_audit", return_value=fake) as mocked:
             with redirect_stdout(io.StringIO()):
                 code = main(["--intended-mode", "system_proxy", "--lang", "en"])
             self.assertEqual(code, 0)
@@ -197,7 +197,7 @@ class TestCliMain(unittest.TestCase):
 
     def test_compact_skips_full_sections(self):
         fake = _fake_audit_result()
-        with mock.patch("claude_shield.analyze.run_full_audit", return_value=fake):
+        with mock.patch("claude_sonar.analyze.run_full_audit", return_value=fake):
             buf = io.StringIO()
             with redirect_stdout(buf):
                 code = main(["--compact", "--lang", "en"])
@@ -209,7 +209,7 @@ class TestCliMain(unittest.TestCase):
 
     def test_full_overrides_compact(self):
         fake = _fake_audit_result()
-        with mock.patch("claude_shield.analyze.run_full_audit", return_value=fake):
+        with mock.patch("claude_sonar.analyze.run_full_audit", return_value=fake):
             buf = io.StringIO()
             with redirect_stdout(buf):
                 code = main(["--compact", "--full", "--lang", "en"])
@@ -222,21 +222,21 @@ class TestCliMain(unittest.TestCase):
         fake = _fake_audit_result()
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "report.md")
-            with mock.patch("claude_shield.analyze.run_full_audit", return_value=fake):
+            with mock.patch("claude_sonar.analyze.run_full_audit", return_value=fake):
                 buf = io.StringIO()
                 with redirect_stdout(buf):
                     code = main(["--out", path, "--lang", "en"])
                 self.assertEqual(code, 0)
-                self.assertIn("Claude Shield Audit Report", buf.getvalue())
+                self.assertIn("Claude Sonar Audit Report", buf.getvalue())
                 written = Path(path).read_text(encoding="utf-8")
-                self.assertIn("Claude Shield Audit Report", written)
+                self.assertIn("Claude Sonar Audit Report", written)
                 self.assertIn("Must fix", written)
 
     def test_out_json(self):
         fake = _fake_audit_result()
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "report.json")
-            with mock.patch("claude_shield.analyze.run_full_audit", return_value=fake):
+            with mock.patch("claude_sonar.analyze.run_full_audit", return_value=fake):
                 buf = io.StringIO()
                 with redirect_stdout(buf):
                     code = main(["--json", "--out", path])
@@ -258,7 +258,7 @@ class TestCliMain(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             prev_path = os.path.join(tmp, "prev.json")
             Path(prev_path).write_text(json.dumps(previous), encoding="utf-8")
-            with mock.patch("claude_shield.analyze.run_full_audit", return_value=fake):
+            with mock.patch("claude_sonar.analyze.run_full_audit", return_value=fake):
                 buf = io.StringIO()
                 with redirect_stdout(buf):
                     code = main(["--diff", prev_path, "--lang", "en"])
@@ -279,7 +279,7 @@ class TestCliMain(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             prev_path = os.path.join(tmp, "prev.json")
             Path(prev_path).write_text(json.dumps(previous), encoding="utf-8")
-            with mock.patch("claude_shield.analyze.run_full_audit", return_value=fake):
+            with mock.patch("claude_sonar.analyze.run_full_audit", return_value=fake):
                 buf = io.StringIO()
                 with redirect_stdout(buf):
                     code = main(["--json", "--diff", prev_path])
@@ -291,16 +291,16 @@ class TestCliMain(unittest.TestCase):
     def test_never_online_by_default(self):
         """Regression: invoking with no args must not enable online probes."""
         fake = _fake_audit_result()
-        with mock.patch("claude_shield.analyze.run_full_audit", return_value=fake) as mocked:
+        with mock.patch("claude_sonar.analyze.run_full_audit", return_value=fake) as mocked:
             with redirect_stdout(io.StringIO()):
                 main([])
             self.assertFalse(mocked.call_args.kwargs.get("online", True))
 
     def test_collector_error_exit_code(self):
-        from claude_shield.analyze import CollectorError
+        from claude_sonar.analyze import CollectorError
 
         with mock.patch(
-            "claude_shield.analyze.run_full_audit",
+            "claude_sonar.analyze.run_full_audit",
             side_effect=CollectorError("boom"),
         ):
             err = io.StringIO()
@@ -310,7 +310,7 @@ class TestCliMain(unittest.TestCase):
             self.assertIn("collector error", err.getvalue())
 
     def test_module_version(self):
-        self.assertEqual(__version__, "1.4.9")
+        self.assertEqual(__version__, "0.7")
 
 
 class TestDiffHelpers(unittest.TestCase):

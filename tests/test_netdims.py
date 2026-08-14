@@ -12,14 +12,14 @@ import hashlib
 
 import pytest
 
-from claude_shield.probes import baseurl_probe, dns_egress_probe, ja4_probe
-from claude_shield.probes.baseurl_probe import (
+from claude_sonar.probes import baseurl_probe, dns_egress_probe, ja4_probe
+from claude_sonar.probes.baseurl_probe import (
     check_anthropic_baseurl,
     decode_xor91_blob,
     find_blacklist_hit,
 )
-from claude_shield.probes.dns_egress_probe import check_dns_egress_consistency
-from claude_shield.probes.ja4_probe import (
+from claude_sonar.probes.dns_egress_probe import check_dns_egress_consistency
+from claude_sonar.probes.ja4_probe import (
     _ja4_cipher_hash,
     _ja4_extension_hash,
     _u8_pair_list,
@@ -91,7 +91,7 @@ def test_baseurl_unparseable_is_warning(monkeypatch):
 
 
 def test_find_labword_hit_substring():
-    from claude_shield.probes.baseurl_probe import find_labword_hit
+    from claude_sonar.probes.baseurl_probe import find_labword_hit
 
     words = ["deepseek", "zhipu"]
     assert find_labword_hit("api.deepseek-relay.com", words) == "deepseek"
@@ -117,7 +117,7 @@ def test_baseurl_blacklist_takes_priority_over_labword(monkeypatch):
 
 
 def test_baseurl_tcp_not_configured(monkeypatch):
-    from claude_shield.probes.baseurl_probe import check_anthropic_baseurl_tcp
+    from claude_sonar.probes.baseurl_probe import check_anthropic_baseurl_tcp
 
     monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
     check = check_anthropic_baseurl_tcp(timeout=1)
@@ -127,7 +127,7 @@ def test_baseurl_tcp_not_configured(monkeypatch):
 
 
 def test_baseurl_tcp_reachable(monkeypatch):
-    from claude_shield.probes import baseurl_probe as bp
+    from claude_sonar.probes import baseurl_probe as bp
 
     monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://relay.example.com")
     monkeypatch.setattr(bp, "_tcp_connect", lambda host, port, timeout: True)
@@ -138,7 +138,7 @@ def test_baseurl_tcp_reachable(monkeypatch):
 
 
 def test_baseurl_tcp_unreachable_is_low_warning(monkeypatch):
-    from claude_shield.probes import baseurl_probe as bp
+    from claude_sonar.probes import baseurl_probe as bp
 
     monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://relay.example.com")
     monkeypatch.setattr(bp, "_tcp_connect", lambda host, port, timeout: False)

@@ -1,4 +1,4 @@
-"""One-off generator: build claude_shield/resources/known_baseurl_blacklist.txt.
+"""One-off generator: build claude_sonar/resources/known_baseurl_blacklist.txt.
 
 Fetches the upstream risk-intel lists from CACEB001/Claude-Shield (main branch):
   - src/domains.rs  : plaintext DOMAIN_BLACKLIST (147 entries)
@@ -36,7 +36,7 @@ def _fetch(url: str) -> str:
 
 
 def main() -> int:
-    out = Path(__file__).resolve().parent.parent / "claude_shield" / "resources" / "known_baseurl_blacklist.txt"
+    out = Path(__file__).resolve().parent.parent / "claude_sonar" / "resources" / "known_baseurl_blacklist.txt"
 
     blob_src = _fetch(f"{REPO}/src/blobs.rs")
     dom_src = _fetch(f"{REPO}/src/domains.rs")

@@ -8,7 +8,7 @@ def resource_path(*parts: str) -> Path:
     if source_path.exists():
         return source_path
 
-    installed_path = Path(sysconfig.get_path("data")) / "share" / "claude-shield"
+    installed_path = Path(sysconfig.get_path("data")) / "share" / "claude-sonar"
     installed_path = installed_path.joinpath(*parts)
     if installed_path.exists():
         return installed_path

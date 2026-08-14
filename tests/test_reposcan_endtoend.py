@@ -9,10 +9,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from claude_shield.reposcan import scanner as scanner_mod
-from claude_shield.reposcan import tools as tools_mod
-from claude_shield.reposcan.scanner import result_to_report, run_repo_scan
-from claude_shield.reposcan.rules import rules_dir
+from claude_sonar.reposcan import scanner as scanner_mod
+from claude_sonar.reposcan import tools as tools_mod
+from claude_sonar.reposcan.scanner import result_to_report, run_repo_scan
+from claude_sonar.reposcan.rules import rules_dir
 
 
 def _fake_proc(stdout="", stderr="", returncode=0):

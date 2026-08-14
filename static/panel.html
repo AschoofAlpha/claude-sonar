@@ -27,7 +27,7 @@
     line-height: 1.6;
     font-size: 15px;
   }
-  .wrap { max-width: 980px; margin: 0 auto; padding: 24px 20px 60px; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 20px 60px; }
   header h1 { font-size: 22px; margin: 0 0 4px; }
   header h1 .ver { font-size: 13px; color: var(--muted); font-weight: normal; margin-left: 8px; }
   header p.sub { margin: 0; color: var(--muted); font-size: 13px; }
@@ -71,11 +71,13 @@
     border-radius: 8px; padding: 10px 14px; margin-top: 12px; font-size: 13.5px;
     white-space: pre-wrap; word-break: break-all;
   }
-  .score-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-  .score-big { font-size: 52px; font-weight: 700; line-height: 1; color: var(--accent); }
+
+  /* ---- score + progress bar ---- */
+  .score-area { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+  .score-big { font-size: 56px; font-weight: 800; line-height: 1; color: var(--accent); }
   .score-big small { font-size: 20px; color: var(--muted); font-weight: 400; }
   .grade-chip {
-    padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 15px;
+    padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 15px;
     background: var(--chip-bg); border: 1px solid var(--border);
   }
   .grade-a { color: var(--green); border-color: var(--green); }
@@ -83,23 +85,62 @@
   .grade-c { color: var(--yellow); border-color: var(--yellow); }
   .grade-d { color: var(--red); border-color: var(--red); }
   .score-meta { color: var(--muted); font-size: 13px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-  .chip {
-    background: var(--chip-bg); border: 1px solid var(--border);
-    border-radius: 20px; padding: 3px 12px; font-size: 12.5px; color: var(--text);
+  .progress-track {
+    width: 100%; height: 10px; border-radius: 5px;
+    background: linear-gradient(90deg, var(--red) 0%, var(--yellow) 50%, var(--green) 100%);
+    margin: 12px 0 4px; position: relative;
   }
-  .chip b { margin-left: 2px; }
-  .sev-critical { color: var(--red); } .sev-high { color: #ff9b52; }
-  .sev-medium { color: var(--yellow); } .sev-low { color: var(--accent); } .sev-info { color: var(--muted); }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
-  th { color: var(--muted); font-weight: 600; white-space: nowrap; }
-  td.id-col { color: var(--muted); font-family: ui-monospace, Consolas, monospace; font-size: 12px; word-break: break-all; }
-  .status { border-radius: 5px; padding: 1px 8px; font-size: 12px; white-space: nowrap; }
+  .progress-marker {
+    position: absolute; top: -3px; width: 4px; height: 16px;
+    background: #fff; border-radius: 2px; box-shadow: 0 0 4px rgba(0,0,0,.5);
+    transition: left .3s ease;
+  }
+  .progress-ticks { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
+  .score-breakdown { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+
+  /* ---- summary pills ---- */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .pill {
+    border-radius: 20px; padding: 4px 14px; font-size: 13px; font-weight: 600;
+    border: 1px solid var(--border); display: inline-flex; align-items: center; gap: 6px;
+  }
+  .pill b { font-size: 16px; }
+  .pill-sev-critical, .pill-sev-high { background: #2a1618; color: var(--red); border-color: #54242a; }
+  .pill-sev-medium { background: #2b2413; color: var(--yellow); border-color: #544820; }
+  .pill-sev-low { background: #14202b; color: var(--accent); border-color: #1d3a5f; }
+  .pill-sev-info { background: var(--chip-bg); color: var(--muted); }
+
+  /* ---- egress overview cards ---- */
+  .card-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px; margin-bottom: 18px;
+  }
+  .egress-card {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .egress-card .card-title { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  .egress-card .card-value { font-size: 15px; font-weight: 600; }
+  .egress-card .card-sub { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+  .egress-card .card-pill { margin-top: 8px; }
+
+  /* ---- status pills (inline) ---- */
+  .status { border-radius: 5px; padding: 1px 8px; font-size: 12px; white-space: nowrap; font-weight: 600; }
   .st-pass { background: #14261b; color: var(--green); }
   .st-fail { background: #2a1618; color: var(--red); }
   .st-warning { background: #2b2413; color: var(--yellow); }
   .st-unknown, .st-skipped { background: var(--chip-bg); color: var(--muted); }
+
+  /* mini pill for egress cards */
+  .mini-pill { border-radius: 20px; padding: 3px 12px; font-size: 12px; font-weight: 600; display: inline-block; }
+  .mini-pass { background: #14261b; color: var(--green); border: 1px solid #1f3d2c; }
+  .mini-warn { background: #2b2413; color: var(--yellow); border: 1px solid #544820; }
+  .mini-unknown { background: var(--chip-bg); color: var(--muted); border: 1px solid var(--border); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
+  th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+  td.id-col { color: var(--muted); font-family: ui-monospace, Consolas, monospace; font-size: 12px; word-break: break-all; }
   .group-head { margin: 14px 0 6px; font-size: 14px; font-weight: 600; display: flex; align-items: baseline; gap: 8px; }
   .group-head .cnt { font-size: 12px; color: var(--muted); font-weight: 400; }
   .group-head .desc { font-size: 12px; color: var(--muted); font-weight: 400; }
@@ -111,16 +152,6 @@
     padding: 12px; overflow-x: auto; font-size: 12px; max-height: 420px; overflow-y: auto;
     font-family: ui-monospace, Consolas, monospace;
   }
-  ul.plain { list-style: none; margin: 0; padding: 0; }
-  ul.plain li { padding: 3px 0; font-size: 13.5px; }
-  ul.plain code, .tzbox code, .webrtc-box code {
-    background: var(--chip-bg); border: 1px solid var(--border);
-    border-radius: 5px; padding: 1px 6px; font-size: 12.5px;
-    font-family: ui-monospace, Consolas, monospace; word-break: break-all;
-  }
-  .note { color: var(--muted); font-size: 12px; margin-top: 8px; }
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
   .badge-result { margin-top: 12px; display: none; }
   .badge-preview { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
   .badge-preview span.lbl, .badge-preview span.msg {
@@ -128,6 +159,8 @@
   }
   .badge-preview span.lbl { background: #555; border-radius: 4px 0 0 4px; }
   .badge-preview span.msg { border-radius: 0 4px 4px 0; }
+  .badge-preview { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .note { color: var(--muted); font-size: 12px; margin-top: 8px; }
   #status-line { font-size: 12.5px; color: var(--muted); margin-top: 14px; }
   footer { margin-top: 30px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
 </style>
@@ -157,19 +190,33 @@
       </div>
       <button class="secondary" id="btn-badge">生成 badge</button>
     </div>
-    <p class="toggle-hint">开启「在线探测」后，审计会发起少量出站探测请求（DNS、出口地址、站点连通性、TLS 指纹等）以对照本地配置；可手动关闭。</p>
+    <p class="toggle-hint">开启「在线探测」后，审计会发起少量出站探测请求（域名查询、出口地址、站点连通性、TLS 指纹等）以对照本地配置；可手动关闭。</p>
     <div class="error-box" id="error-box"></div>
   </div>
 
   <div class="panel" id="report-panel" style="display:none">
     <h2>审计结果 <span class="hint" id="report-meta"></span></h2>
-    <div class="score-row">
+
+    <!-- Score + progress bar -->
+    <div class="score-area">
       <div class="score-big" id="score-value">—<small>/100</small></div>
       <div class="grade-chip" id="grade-chip">—</div>
-      <div class="score-meta" id="score-meta"></div>
     </div>
+    <div class="progress-track">
+      <div class="progress-marker" id="progress-marker" style="left:0%"></div>
+    </div>
+    <div class="progress-ticks">
+      <span>0 高危</span><span>25</span><span>50</span><span>75</span><span>100 可信</span>
+    </div>
+    <div class="score-breakdown" id="score-meta"></div>
+
+    <!-- Summary pills -->
     <div class="chips" id="summary-chips"></div>
 
+    <!-- Egress overview cards -->
+    <div class="card-grid" id="egress-cards"></div>
+
+    <!-- Check group tables -->
     <div id="groups"></div>
 
     <details>
@@ -178,24 +225,10 @@
     </details>
   </div>
 
-  <div class="panel">
-    <h2>浏览器运行时检测 <span class="hint">纯前端检测，不发送任何数据到网络</span></h2>
-    <div class="grid2">
-      <div>
-        <h2 style="margin-top:0">WebRTC 本地候选地址</h2>
-        <div class="webrtc-box">
-          <ul class="plain" id="webrtc-list"><li class="empty">正在检测…</li></ul>
-        </div>
-        <p class="note">以上是浏览器当前会暴露给网页的本地候选地址（仅在本页展示，不会发送到任何服务器）。如出现与本机代理/虚拟网卡不符的地址，说明浏览器可能向站点暴露真实内网地址，可自行留意。</p>
-      </div>
-      <div>
-        <h2 style="margin-top:0">时区 / 语言</h2>
-        <div class="tzbox">
-          <ul class="plain" id="tz-info"><li class="empty">正在检测…</li></ul>
-        </div>
-        <p class="note">浏览器直接暴露给网页的时区与语言信息，可与代理出口信息对照自查。仅展示，不修改任何设置。</p>
-      </div>
-    </div>
+  <!-- Hidden but functional: WebRTC + timezone detection (results surface in egress cards) -->
+  <div style="display:none">
+    <ul class="plain" id="webrtc-list"><li class="empty">正在检测…</li></ul>
+    <ul class="plain" id="tz-info"><li class="empty">正在检测…</li></ul>
   </div>
 
   <div class="panel">
@@ -206,12 +239,8 @@
       <div class="badge-preview">
         <span class="lbl" id="badge-label">配置自洽分</span><span class="msg" id="badge-message">—</span>
       </div>
-      <ul class="plain">
-        <li>保存位置：<code id="badge-path">—</code></li>
-        <li>徽章 URL：<code id="badge-url">—</code></li>
-        <li>Markdown：<code id="badge-md">—</code></li>
-      </ul>
-      <p class="note" id="badge-note">将 shield-badge.json 提交并推送到仓库后，徽章会自动生效（shields.io 按需抓取该 JSON）。</p>
+      <p class="note" id="badge-url-line"></p>
+      <p class="note" id="badge-path-line"></p>
     </div>
   </div>
 
@@ -219,13 +248,12 @@
 
   <footer>
     claude-shield 本地面板 · 只读审计 · 无外部资源加载 · 无数据上传<br>
-    本工具不提供伪装、规避或“防封”建议；自洽分衡量的是配置一致性，不是匿名程度。
+    本工具不提供伪装、规避或"防封"建议；自洽分衡量的是配置一致性，不是匿名程度。
   </footer>
 </div>
 
 <script>
 "use strict";
-/* ---------- tiny safe helpers ---------- */
 var pick = function (obj, path, fallback) {
   if (fallback === undefined) fallback = "—";
   var cur = obj;
@@ -246,11 +274,7 @@ var esc = function (s) {
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 };
 var $ = function (id) { return document.getElementById(id); };
-var showError = function (msg) {
-  var box = $("error-box");
-  box.style.display = "block";
-  box.textContent = msg;
-};
+var showError = function (msg) { var box = $("error-box"); box.style.display = "block"; box.textContent = msg; };
 var clearError = function () { $("error-box").style.display = "none"; };
 
 var STATUS_ZH = { pass: "通过", fail: "未通过", warning: "警告", unknown: "未知", skipped: "跳过" };
@@ -271,9 +295,7 @@ function loadStatus() {
     if (data.cached && data.cached_score) {
       var s = data.cached_score;
       line += " · 上次审计缓存：" + pick(s, "score") + "/100 " + pick(s, "grade") + "（" + pick(s, "label_zh") + "）";
-    } else {
-      line += " · 尚无审计缓存";
-    }
+    } else { line += " · 尚无审计缓存"; }
     $("status-line").textContent = line;
   }).catch(function () { $("status-line").textContent = "无法连接本地服务（127.0.0.1）"; });
 }
@@ -282,15 +304,21 @@ function loadStatus() {
 function setBusy(busy) {
   var btn = $("btn-audit");
   btn.disabled = busy;
-  btn.textContent = busy ? "审计中（约 3–10 秒）…" : "开始本地审计";
+  btn.textContent = busy ? "审计中（约 3–10 秒）…" : "重新审计";
 }
 function statusChip(status) {
   var s = String(status || "");
   return '<span class="status st-' + esc(s) + '">' + esc(STATUS_ZH[s] || s || "—") + "</span>";
 }
-function sevChip(severity) {
+function sevPill(severity, count) {
   var s = String(severity || "");
-  return '<span class="chip sev-' + esc(s) + '">' + esc(SEV_ZH[s] || s || "—") + "</span>";
+  return '<span class="pill pill-sev-' + esc(s) + '">' + esc(SEV_ZH[s] || s || "—") + " <b>" + esc(count) + "</b></span>";
+}
+function miniPill(status) {
+  var s = String(status || "unknown");
+  var cls = s === "pass" ? "mini-pass" : s === "warning" ? "mini-warn" : "mini-unknown";
+  var zh = s === "pass" ? "未检测到泄漏" : s === "warning" ? "疑似泄漏" : s === "unknown" ? "未探测" : s;
+  return '<span class="mini-pill ' + cls + '">' + esc(zh) + '</span>';
 }
 function renderGroups(groups) {
   var html = "";
@@ -300,10 +328,7 @@ function renderGroups(groups) {
     html += '<div class="group-head">' + esc(meta.zh) +
       ' <span class="cnt">' + items.length + " 项</span>" +
       ' <span class="desc">' + esc(meta.desc) + "</span></div>";
-    if (items.length === 0) {
-      html += '<div class="empty">无相关检查项。</div>';
-      continue;
-    }
+    if (items.length === 0) { html += '<div class="empty">无相关检查项。</div>'; continue; }
     html += "<table><thead><tr><th>检查项</th><th>状态</th><th>严重度</th><th>说明</th><th>建议</th></tr></thead><tbody>";
     for (var i = 0; i < items.length; i++) {
       var c = items[i] || {};
@@ -315,7 +340,7 @@ function renderGroups(groups) {
       html += "<tr>" +
         "<td><span class='id-col'>" + esc(pick(c, "id")) + "</span><br>" + esc(title) + "</td>" +
         "<td>" + statusChip(pick(c, "status")) + "</td>" +
-        "<td>" + sevChip(pick(c, "severity")) + "</td>" +
+        "<td>" + esc(SEV_ZH[String(c.severity||"")] || c.severity || "—") + "</td>" +
         "<td>" + esc(explanation) + "</td>" +
         "<td>" + esc(recommendation) + "</td>" +
         "</tr>";
@@ -325,27 +350,49 @@ function renderGroups(groups) {
   $("groups").innerHTML = html;
 }
 function renderSummary(summary) {
-  var order = [
-    ["critical", "严重"], ["high", "高"], ["medium", "中"], ["low", "低"], ["info", "提示"]
-  ];
+  var order = [["critical","严重"],["high","高"],["medium","中"],["low","低"],["info","提示"]];
   var html = "";
   for (var i = 0; i < order.length; i++) {
     var key = order[i][0];
     var n = (summary && typeof summary[key] === "number") ? summary[key] : "—";
-    html += '<span class="chip sev-' + key + '">' + esc(order[i][1]) + " <b>" + esc(n) + "</b></span>";
+    html += sevPill(key, n);
   }
   $("summary-chips").innerHTML = html;
+}
+function renderEgressCards(data) {
+  var eg = data.egress_summary || {};
+  var online = !!data.online;
+  var html = "";
+  // Card 1: egress IP
+  var ipLabel = (eg.available && online) ? (eg.egress_country || "—") : "离线未探测";
+  var ipSub = (eg.available && online) ? (eg.egress_asn ? "ASN: " + esc(eg.egress_asn) : "") + (eg.egress_org ? " · " + esc(eg.egress_org) : "") : "开启在线探测后显示";
+  html += '<div class="egress-card"><div class="card-title">🌐 出口 IP</div><div class="card-value">' + esc(ipLabel) + '</div><div class="card-sub">' + ipSub + '</div></div>';
+  // Card 2: DNS leak
+  var dnsS = (eg.available && online) ? (eg.dns_egress_status || "unknown") : "unknown";
+  html += '<div class="egress-card"><div class="card-title">🔍 域名查询泄漏</div><div class="card-pill">' + miniPill(dnsS) + '</div><div class="card-sub">DNS 出口 vs HTTP 出口一致性</div></div>';
+  // Card 3: WebRTC leak (from browser detection)
+  var webrtcS = webrtc检测结果;
+  html += '<div class="egress-card"><div class="card-title">📡 WebRTC 泄漏</div><div class="card-pill">' + miniPill(webrtcS) + '</div><div class="card-sub">浏览器端本地地址暴露检测</div></div>';
+  // Card 4: TLS fingerprint
+  var tlsS = (eg.available && online) ? (eg.tls_status || "unknown") : "unknown";
+  var tlsSub = (eg.tls_fingerprint) ? "JA4: " + esc(eg.tls_fingerprint) : "只读检测，不给伪装建议";
+  html += '<div class="egress-card"><div class="card-title">🔐 TLS 指纹</div><div class="card-pill">' + miniPill(tlsS) + '</div><div class="card-sub">' + tlsSub + '</div></div>';
+  $("egress-cards").innerHTML = html;
 }
 function renderReport(data) {
   clearError();
   $("report-panel").style.display = "block";
   var score = data.score || {};
   var bd = score.breakdown || {};
-  $("score-value").innerHTML = esc(pick(score, "score")) + "<small>/" + esc(pick(score, "max_score", "100")) + "</small>";
+  var scoreNum = pick(score, "score");
+  $("score-value").innerHTML = esc(scoreNum) + "<small>/" + esc(pick(score, "max_score", "100")) + "</small>";
   var grade = pick(score, "grade");
   var gc = $("grade-chip");
   gc.textContent = esc(grade) + " · " + esc(pick(score, "label_zh"));
   gc.className = "grade-chip " + (GRADE_CLS[grade] || "");
+  // progress marker
+  var pct = (typeof scoreNum === "number") ? Math.max(0, Math.min(100, scoreNum)) : 0;
+  $("progress-marker").style.left = pct + "%";
   $("score-meta").innerHTML =
     "必须处理 " + esc(pickNum(bd, "must_fix")) + " 项（扣 " + esc(pickNum(bd, "must_fix_penalty")) + " 分）" +
     " · 可选一致性 " + esc(pickNum(bd, "optional_consistency")) + " 项（扣 " + esc(pickNum(bd, "optional_penalty")) + " 分）" +
@@ -354,6 +401,7 @@ function renderReport(data) {
   if (data.online) meta += " · 含在线探测";
   $("report-meta").textContent = meta;
   renderSummary(data.summary || {});
+  renderEgressCards(data);
   renderGroups(data.groups || {});
   $("report-md").textContent = pick(data, "report_markdown", "（无 Markdown 报告）");
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -383,9 +431,8 @@ function renderBadge(data) {
   msg.textContent = pick(data.badge, "message");
   var color = pick(data.badge, "color");
   msg.style.background = (color === "brightgreen") ? "#4c1" : (color === "yellow") ? "#dfb317" : "#e05d44";
-  $("badge-path").textContent = pick(data, "saved_path");
-  $("badge-url").textContent = pick(data, "shields_url");
-  $("badge-md").textContent = pick(data, "markdown");
+  $("badge-path-line").textContent = "保存位置：" + pick(data, "saved_path");
+  $("badge-url-line").textContent = "徽章 URL：" + pick(data, "shields_url");
 }
 function genBadge() {
   clearError();
@@ -400,10 +447,12 @@ function genBadge() {
     .catch(function (e) { showError("生成 badge 失败：" + e.message); });
 }
 
-/* ---------- browser runtime detection (pure frontend) ---------- */
+/* ---------- browser runtime detection ---------- */
+var webrtc检测结果 = "unknown";
 function detectWebRTC() {
   var out = $("webrtc-list");
   if (!window.RTCPeerConnection) {
+    webrtc检测结果 = "unknown";
     out.innerHTML = '<li class="empty">当前浏览器不支持 WebRTC，无法检测。</li>';
     return;
   }
@@ -412,15 +461,21 @@ function detectWebRTC() {
   var pc;
   var render = function (done) {
     if (order.length === 0) {
-      if (done) out.innerHTML = '<li class="empty">未获取到任何候选地址（浏览器已限制或被扩展拦截）。</li>';
+      if (done) {
+        out.innerHTML = '<li class="empty">未获取到任何候选地址（浏览器已限制或被扩展拦截）。</li>';
+        webrtc检测结果 = "pass";
+      }
       return;
     }
+    var hasReal = false;
     var html = "";
     for (var i = 0; i < order.length; i++) {
       var c = found[order[i]];
-      html += "<li><span class='chip'>" + esc(c.type) + "</span> <code>" + esc(c.address) + "</code></li>";
+      html += "<li><code>" + esc(c.type) + " " + esc(c.address) + "</code></li>";
+      if (c.type === "host") hasReal = true;
     }
     out.innerHTML = html;
+    webrtc检测结果 = hasReal ? "warning" : "pass";
   };
   try {
     pc = new RTCPeerConnection({ iceServers: [] });
@@ -438,20 +493,14 @@ function detectWebRTC() {
     pc.createOffer().then(function (o) { return pc.setLocalDescription(o); }).catch(function () {});
   } catch (err) {
     out.innerHTML = '<li class="empty">WebRTC 初始化失败：' + esc(err && err.message ? err.message : err) + "</li>";
+    webrtc检测结果 = "unknown";
     return;
   }
-  setTimeout(function () {
-    try { pc.close(); } catch (e) {}
-    render(true);
-  }, 3000);
+  setTimeout(function () { try { pc.close(); } catch (e) {} render(true); }, 3000);
 }
 function detectTimezone() {
   var tz = "—", locale = "—", offset = "—", langs = "—";
-  try {
-    var r = Intl.DateTimeFormat().resolvedOptions();
-    tz = r.timeZone || "—";
-    locale = r.locale || "—";
-  } catch (e) {}
+  try { var r = Intl.DateTimeFormat().resolvedOptions(); tz = r.timeZone || "—"; locale = r.locale || "—"; } catch (e) {}
   try { offset = String(new Date().getTimezoneOffset()); } catch (e) {}
   try { langs = (navigator.languages && navigator.languages.length ? navigator.languages.join(", ") : navigator.language) || "—"; } catch (e) {}
   $("tz-info").innerHTML =
@@ -468,11 +517,7 @@ $("btn-badge2").addEventListener("click", genBadge);
 loadStatus();
 detectWebRTC();
 detectTimezone();
-// Auto-run the audit on open (user preference: panel opens straight to a
-// fresh report; online probes default ON via the checked toggle above).
-window.addEventListener("DOMContentLoaded", function () {
-  runAudit();
-});
+window.addEventListener("DOMContentLoaded", function () { runAudit(); });
 </script>
 </body>
 </html>

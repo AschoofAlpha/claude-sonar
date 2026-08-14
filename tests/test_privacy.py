@@ -43,7 +43,7 @@ class TestPrivacy(unittest.TestCase):
         shutil.rmtree(self.fake_home, onerror=remove_readonly)
 
     def test_privacy_leak_scan(self):
-        from claude_shield.redaction import Redactor
+        from claude_sonar.redaction import Redactor
         redactor = Redactor()
         
         raw_data = {

@@ -4,9 +4,9 @@ import sys
 import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from claude_shield.analyze import analyze_snapshot
-from claude_shield.analysis.system import normalize_intended_mode, merge_geo_with_egress
-from claude_shield.models import AuditCheck, Evidence
+from claude_sonar.analyze import analyze_snapshot
+from claude_sonar.analysis.system import normalize_intended_mode, merge_geo_with_egress
+from claude_sonar.models import AuditCheck, Evidence
 
 
 def _ids(checks):

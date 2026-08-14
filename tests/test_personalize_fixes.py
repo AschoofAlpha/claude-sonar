@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from claude_shield.personalize import detect_active_proxy
+from claude_sonar.personalize import detect_active_proxy
 
 
 class TestDetectLabelDedup(unittest.TestCase):
@@ -36,7 +36,7 @@ class TestDetectLabelDedup(unittest.TestCase):
 
 class TestCliRenderPassesSnapshot(unittest.TestCase):
     def test_render_markdown_forwards_snapshot(self):
-        import claude_shield.__main__ as main_mod
+        import claude_sonar.__main__ as main_mod
 
         fake_result = {
             "checks": [],
@@ -50,7 +50,7 @@ class TestCliRenderPassesSnapshot(unittest.TestCase):
             return "ok"
 
         # __main__ imports format_report lazily via `from .report import format_report`
-        import claude_shield.report as report_mod
+        import claude_sonar.report as report_mod
 
         with patch.object(report_mod, "format_report", fake_format):
             out = main_mod._render_markdown(fake_result, lang="zh", compact=False)

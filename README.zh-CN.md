@@ -1,14 +1,14 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AschoofAlpha/claude-shield/main/assets/social-preview.jpg" alt="Claude Shield — 本地隐私与代理一致性审计" width="100%">
+  <img src="https://raw.githubusercontent.com/AschoofAlpha/claude-sonar/main/assets/social-preview.jpg" alt="Claude Sonar — 本地隐私与代理一致性审计" width="100%">
 </p>
 
-<h1 align="center">Claude Shield</h1>
+<h1 align="center">Claude Sonar</h1>
 
 <p align="center"><strong>面向 Codex、Claude Code 和 Agent Skills 宿主的本地隐私与代理一致性审计。</strong></p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/actions/workflow/status/AschoofAlpha/claude-shield/ci.yml?style=flat-square&label=CI" alt="CI">
-  <img src="https://img.shields.io/badge/version-1.4.9-2DD4BF?style=flat-square" alt="v1.4.9">
+  <img src="https://img.shields.io/github/actions/workflow/status/AschoofAlpha/claude-sonar/ci.yml?style=flat-square&label=CI" alt="CI">
+  <img src="https://img.shields.io/badge/version-0.7-2DD4BF?style=flat-square" alt="v0.7">
   <img src="https://img.shields.io/badge/default-read--only-2DD4BF?style=flat-square" alt="默认只读">
   <img src="https://img.shields.io/badge/platform-Windows-4F7CFF?style=flat-square" alt="Windows">
   <img src="https://img.shields.io/badge/license-MIT-64748B?style=flat-square" alt="MIT License">
@@ -35,14 +35,14 @@
 >
 > **这些细节，每一个都在告诉平台"这个人不对劲"。** 账号被风控、被要求验证、甚至被封，很多时候不是内容的问题，是这些细节在暴露你。更麻烦的是：这些隐患平时毫无感觉，等你看到封号页面的时候，一切都晚了。
 >
-> Claude Shield 就是帮你把这些细节查清楚的工具——**一次只读体检，不动你任何配置**：
+> Claude Sonar 就是帮你把这些细节查清楚的工具——**一次只读体检，不动你任何配置**：
 >
-> - **网络出口**：流量到底从哪出去，有没有没走代理的漏网之鱼
-> - **DNS 解析**：查个网址，是不是偷偷经过了不该经过的地方
-> - **代理设置**：节点是不是在自动乱跳，规则有没有失效
-> - **系统状态**：时区、语言、隐私开关，有没有自相矛盾的地方
+> - **流量走向**：你的数据到底从哪出去，有没有没走代理的"漏网之鱼"
+> - **域名查询**：你输入一个网址，查询请求有没有偷偷走了不该走的路
+> - **代理设置**：节点是不是在自动换国家，分流规则还有没有用
+> - **系统状态**：时区、语言、隐私开关，有没有互相打架的地方
 >
-> 体检完，你会拿到一张清清楚楚的**报告**，每一项都标注：**必须处理**（这是真问题）、**可选一致性**（不影响安全但建议统一）、**保持不动**（别瞎折腾）。
+> 体检完，你会拿到一张清清楚楚的**报告**，每一项都标注：**必须处理**（这是真问题）、**可选一致性**（不影响安全但建议统一）、**保持不动**（别瞎折腾）。最上面还会给你一个**配置自洽分**（简单说就是：你的各项设置有没有互相矛盾），一目了然。
 >
 > 然后，改不改、怎么改，**完全由你决定**——没有你的明确批准，它一个字都不会动。
 >
@@ -52,52 +52,52 @@
 > - 不帮你**编造身份**（不捏造地址、账单、个人信息）
 > - 更不会**打包票**说"这样配就永远不会被封"——凡是这么承诺的，都是在骗你。
 >
-> 市面上的"防封神器"教你怎么骗过平台；Claude Shield 只做一件事：**让你看清真相**，把选择权还给你。
+> 市面上的"防封神器"教你怎么骗过平台；Claude Sonar 只做一件事：**让你看清真相**，把选择权还给你。
 >
 > **先体检，再决定。** 你的账号，值得一次诚实的检查。
 
 ## 快速开始
 
 ```bash
-pip install -U claude-shield
+pip install -U claude-sonar
 ```
 
 CLI `--out` / `--diff` / `--compact` / `--intended-mode` 与并行在线探测请使用 **1.4.0+**。  
 说明列、配置自洽分、代理分层检查等报告能力自 **1.3.3+** 起已具备。  
-旧包名 **`anti-claude-check`** 已停用，请只安装 **`claude-shield`**。
+旧包名 **`anti-claude-check`** 已停用，请只安装 **`claude-sonar`**。
 
 
 作为 Agent Skill（Codex / Claude Code）：
 
 ```powershell
-git clone https://github.com/AschoofAlpha/claude-shield.git "$HOME/.codex/skills/claude-shield"
+git clone https://github.com/AschoofAlpha/claude-sonar.git "$HOME/.codex/skills/claude-sonar"
 ```
 
-在 Codex 中调用 `$claude-shield`。Claude Code 用户将同一目录安装到 `~/.claude/skills/claude-shield`，调用 `/claude-shield`。
+在 Codex 中调用 `$claude-sonar`。Claude Code 用户将同一目录安装到 `~/.claude/skills/claude-sonar`，调用 `/claude-sonar`。
 
 ## CLI（1.4）
 
 ```bash
-python -m claude_shield                 # 完整 Markdown 报告（离线）
-python -m claude_shield --compact       # 精简报告（分数 + 必须处理 / 可选一致性）
-python -m claude_shield --json          # 输出 report_dict + summary
-python -m claude_shield --out report.md
-python -m claude_shield --json --out report.json
-python -m claude_shield --diff previous.json
-python -m claude_shield --online --timeout 5
-python -m claude_shield --online --intended-region US
-python -m claude_shield --intended-mode system_proxy   # 或 full_tunnel
-python -m claude_shield --lang en
-python -m claude_shield serve --port 8765  # 只读本地网页面板（仅 127.0.0.1）
-python -m claude_shield repo ./my-project  # 代码仓库安全扫描（SAST/密钥/依赖）
-python -m claude_shield badge              # 从审计结果生成 shield-badge.json
+python -m claude_sonar                 # 完整 Markdown 报告（离线）
+python -m claude_sonar --compact       # 精简报告（分数 + 必须处理 / 可选一致性）
+python -m claude_sonar --json          # 输出 report_dict + summary
+python -m claude_sonar --out report.md
+python -m claude_sonar --json --out report.json
+python -m claude_sonar --diff previous.json
+python -m claude_sonar --online --timeout 5
+python -m claude_sonar --online --intended-region US
+python -m claude_sonar --intended-mode system_proxy   # 或 full_tunnel
+python -m claude_sonar --lang en
+python -m claude_sonar serve --port 8765  # 只读本地网页面板（仅 127.0.0.1）
+python -m claude_sonar repo ./my-project  # 代码仓库安全扫描（SAST/密钥/依赖）
+python -m claude_sonar badge              # 从审计结果生成 sonar-badge.json
 ```
 
-子命令（同一入口 `python -m claude_shield`）：
+子命令（同一入口 `python -m claude_sonar`）：
 
 - **`serve [--port N] [--open]`** — 零依赖本地网页面板，**仅绑定 127.0.0.1**。`/` 渲染审计结果（分数、必须处理/可选一致性/保持不动分组）；`/api/report?online=0` 返回脱敏后的报告 JSON（在线探测默认关闭，需手动打开）；附带浏览器端观察区（WebRTC ICE 候选、本地时区/语言）。只读：POST 返回 405、路径穿越 404、仅接受回环 Host 头。
 - **`repo PATH [--no-tools] [--baseline F] [--json] [--sarif F] [--out F]`** — 代码仓库安全扫描：技术栈识别、semgrep / gitleaks / pip-audit / npm audit / 过期检测（npm outdated、pip list --outdated）编排（工具缺失自动跳过并注明）、内置精简 Semgrep 规则（MIT 来源已注明）、0–100 加权代码安全分、修复建议、基线对比、SARIF 2.1.0 导出。不含渗透测试、不自动建 GitHub issue。
-- **`badge [--out PATH] [--from-report F]`** — 写入 `shield-badge.json`（分数+颜色），供下方 shields.io 动态徽章使用；`--from-report` 可复用上次 `--json` 报告、无需重新审计。
+- **`badge [--out PATH] [--from-report F]`** — 写入 `sonar-badge.json`（分数+颜色），供下方 shields.io 动态徽章使用；`--from-report` 可复用上次 `--json` 报告、无需重新审计。
 
 除非传入 `--online`，否则不会启用在线探测（出口、DNS、IP 声誉、跨站出口、**DNS 与 HTTP 出口一致性**、**JA3/JA4 TLS 指纹**）。启用 `--online` 时，独立探测会并行执行（共享超时）。`ANTHROPIC_BASE_URL` 审计（官方端点 vs 内置公开风控黑名单情报）始终离线运行。
 
@@ -117,7 +117,7 @@ python -m claude_shield badge              # 从审计结果生成 shield-badge.
 | 始终运行 | `ANTHROPIC_BASE_URL` 审计（内置公开中转风险黑名单比对） |
 | 本地面板 | `serve` — 127.0.0.1 只读面板 + 浏览器端 WebRTC/时区观察 |
 | 仓库扫描 | `repo` — SAST / 密钥 / 依赖审计，0–100 代码安全分 |
-| 徽章 | `badge` — `shield-badge.json` 驱动 shields.io 动态徽章 |
+| 徽章 | `badge` — `sonar-badge.json` 驱动 shields.io 动态徽章 |
 | 一致性 | 时区 × 语言 ×（在线）出口地区 |
 | 个性化 | 自动识别你的梯子（Clash Verge / v2rayN / sing-box / …）并按软件给手动步骤 |
 
@@ -127,7 +127,7 @@ python -m claude_shield badge              # 从审计结果生成 shield-badge.
 
 审计结果只是本地证据，不是账号通过审核或避免封禁的预测。
 
-运行 `python -m claude_shield` 即可得到实时 Markdown 报告（`format_report`：证据表 + 必须处理 / 可选一致性 / 保持不动）。仓库不再附带伪造的演示截图。
+运行 `python -m claude_sonar` 即可得到实时 Markdown 报告（`format_report`：证据表 + 必须处理 / 可选一致性 / 保持不动）。仓库不再附带伪造的演示截图。
 
 ## 只读采集
 

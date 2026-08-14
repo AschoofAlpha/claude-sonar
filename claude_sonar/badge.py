@@ -1,6 +1,6 @@
-"""Dynamic shield badge helpers for Claude Shield.
+"""Dynamic sonar badge helpers for Claude Sonar.
 
-Writes ``shield-badge.json`` in the shields.io ``dynamic/json`` schema and
+Writes ``sonar-badge.json`` in the shields.io ``dynamic/json`` schema and
 builds a shields.io badge URL that reads the score straight from that file
 once it is pushed to a public repository. Standard library only.
 """
@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 DEFAULT_LABEL = "配置自洽分"
-DEFAULT_REPO = "https://github.com/AschoofAlpha/claude-shield"
+DEFAULT_REPO = "https://github.com/AschoofAlpha/claude-sonar"
 
 
 def badge_color(score) -> str:
@@ -68,7 +68,7 @@ def score_from_result(result) -> Optional[int]:
 
 
 def make_badge_from_result(result, out_path) -> dict:
-    """Update ``shield-badge.json`` from the latest audit result."""
+    """Update ``sonar-badge.json`` from the latest audit result."""
     score = score_from_result(result)
     if score is None:
         raise ValueError("audit result contains no checks; cannot build badge")
@@ -84,8 +84,8 @@ def project_root() -> Path:
 
 
 def default_badge_path() -> Path:
-    """Where ``shield-badge.json`` lives (project root)."""
-    return project_root() / "shield-badge.json"
+    """Where ``sonar-badge.json`` lives (project root)."""
+    return project_root() / "sonar-badge.json"
 
 
 def default_shield_json_url() -> str:
@@ -94,21 +94,21 @@ def default_shield_json_url() -> str:
     try:
         from importlib.metadata import metadata
 
-        for entry in metadata("claude-shield").get_all("Project-URL") or []:
+        for entry in metadata("claude-sonar").get_all("Project-URL") or []:
             if entry.startswith("Repository,"):
                 repo = entry.split(",", 1)[1].strip()
                 break
     except Exception:  # pragma: no cover - metadata lookup is best-effort
         repo = None
     repo = (repo or DEFAULT_REPO).rstrip("/")
-    return f"{repo}/raw/main/shield-badge.json"
+    return f"{repo}/raw/main/sonar-badge.json"
 
 
 def make_badge_markdown(shield_json_url: Optional[str] = None, label: Optional[str] = None) -> str:
     """Return the shields.io dynamic/json badge URL string.
 
-    The badge reads ``$.message`` (``88/100``) from ``shield-badge.json``
-    served over a public raw URL, e.g. ``https://github.com/<user>/<repo>/raw/main/shield-badge.json``.
+    The badge reads ``$.message`` (``88/100``) from ``sonar-badge.json``
+    served over a public raw URL, e.g. ``https://github.com/<user>/<repo>/raw/main/sonar-badge.json``.
     """
     json_url = shield_json_url or default_shield_json_url()
     label_text = label or DEFAULT_LABEL
@@ -124,7 +124,7 @@ def make_badge_markdown(shield_json_url: Optional[str] = None, label: Optional[s
 def make_badge_md_link(shield_json_url: Optional[str] = None, label: Optional[str] = None) -> str:
     """Convenience: the badge URL wrapped as a markdown image link."""
     shields_url = make_badge_markdown(shield_json_url=shield_json_url, label=label)
-    return f"[![claude-shield]({shields_url})]({shields_url})"
+    return f"[![claude-sonar]({shields_url})]({shields_url})"
 
 
 __all__ = [

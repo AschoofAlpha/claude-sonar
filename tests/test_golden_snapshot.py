@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from claude_shield.analyze import analyze_snapshot
+from claude_sonar.analyze import analyze_snapshot
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "windows_snapshot_min.json"
 

@@ -41,7 +41,7 @@ def check_webrtc_guidance() -> AuditCheck:
 
     explanation = (
         "WebRTC can expose local or physical-network addresses even when HTTP(S) "
-        "egress is proxied. Claude Shield does not auto-change browser settings and "
+        "egress is proxied. Claude Sonar does not auto-change browser settings and "
         "does not run an in-browser WebRTC trial. Manually open a known leak-test page "
         f"({', '.join(_MANUAL_LEAK_TESTS)}) while your intended proxy/TUN path is active, "
         "and confirm that only the intended exit addresses appear. "

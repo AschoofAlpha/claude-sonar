@@ -7,11 +7,11 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from claude_shield.reposcan.baseline import diff_baseline, load_baseline
-from claude_shield.reposcan.models import Finding
-from claude_shield.reposcan.sarif import findings_to_sarif, write_sarif
-from claude_shield.reposcan.scoring import compute_score, grade_of, severity_distribution
-from claude_shield.reposcan.suggest import suggestion_for
+from claude_sonar.reposcan.baseline import diff_baseline, load_baseline
+from claude_sonar.reposcan.models import Finding
+from claude_sonar.reposcan.sarif import findings_to_sarif, write_sarif
+from claude_sonar.reposcan.scoring import compute_score, grade_of, severity_distribution
+from claude_sonar.reposcan.suggest import suggestion_for
 
 
 def _f(tool="semgrep", rule_id="r", severity="medium", path="a.py", line=1,
@@ -118,12 +118,12 @@ class TestSarif(unittest.TestCase):
         return {"findings": [f.to_dict()], "score": 85}
 
     def test_structure_valid_210(self):
-        doc = findings_to_sarif(self._result(), tool_version="1.4.2")
+        doc = findings_to_sarif(self._result(), tool_version="0.7")
         self.assertEqual(doc["version"], "2.1.0")
         self.assertIn("$schema", doc)
         run = doc["runs"][0]
-        self.assertEqual(run["tool"]["driver"]["name"], "claude-shield-reposcan")
-        self.assertEqual(run["tool"]["driver"]["semanticVersion"], "1.4.2")
+        self.assertEqual(run["tool"]["driver"]["name"], "claude-sonar-reposcan")
+        self.assertEqual(run["tool"]["driver"]["semanticVersion"], "0.7")
         self.assertEqual(len(run["results"]), 1)
         r = run["results"][0]
         self.assertEqual(r["ruleId"], "py-sql-injection-format")

@@ -1,4 +1,4 @@
-"""Claude Shield — local privacy and proxy consistency audit library."""
+"""Claude Sonar — local privacy and proxy consistency audit library."""
 
 from .__version__ import __version__
 
@@ -47,8 +47,8 @@ except ImportError:  # pragma: no cover
     load_previous_report = None  # type: ignore[assignment]
 
 # NOTE: import the submodules themselves (not a function named ``serve``) so
-# ``import claude_shield.serve as serve`` keeps working in callers. The entry
-# point lives at ``claude_shield.serve.serve``.
+# ``import claude_sonar.serve as serve`` keeps working in callers. The entry
+# point lives at ``claude_sonar.serve.serve``.
 try:
     from . import badge, serve  # noqa: F401
     from .serve import build_report_payload, create_server

@@ -3,8 +3,8 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "claude-shield"
-version = "1.4.9"
+name = "claude-sonar"
+version = "0.7"
 description = "Local privacy and proxy consistency audit for Claude Code and agent skills"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -24,28 +24,28 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/AschoofAlpha/claude-shield"
-Repository = "https://github.com/AschoofAlpha/claude-shield"
-Issues = "https://github.com/AschoofAlpha/claude-shield/issues"
-Changelog = "https://github.com/AschoofAlpha/claude-shield/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/AschoofAlpha/claude-sonar"
+Repository = "https://github.com/AschoofAlpha/claude-sonar"
+Issues = "https://github.com/AschoofAlpha/claude-sonar/issues"
+Changelog = "https://github.com/AschoofAlpha/claude-sonar/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["claude_shield*"]
+include = ["claude_sonar*"]
 
 [tool.setuptools.package-data]
-claude_shield = ["resources/semgrep_rules/*.yaml", "resources/semgrep_rules/NOTICE.md"]
+claude_sonar = ["resources/semgrep_rules/*.yaml", "resources/semgrep_rules/NOTICE.md"]
 
 [tool.setuptools.data-files]
-"share/claude-shield" = ["SKILL.md", "README.md", "README.zh-CN.md", "LICENSE"]
-"share/claude-shield/assets" = ["assets/social-preview.en.jpg", "assets/social-preview.jpg"]
-"share/claude-shield/static" = ["static/panel.html"]
-"share/claude-shield/scripts" = [
+"share/claude-sonar" = ["SKILL.md", "README.md", "README.zh-CN.md", "LICENSE"]
+"share/claude-sonar/assets" = ["assets/social-preview.en.jpg", "assets/social-preview.jpg"]
+"share/claude-sonar/static" = ["static/panel.html"]
+"share/claude-sonar/scripts" = [
     "scripts/collect_posix_network.py",
     "scripts/collect_windows_network.ps1",
     "scripts/remediate_posix_network.py",
     "scripts/remediate_windows_network.ps1",
 ]
-"share/claude-shield/claude_shield/resources" = [
-    "claude_shield/resources/known_baseurl_blacklist.txt",
+"share/claude-sonar/claude_sonar/resources" = [
+    "claude_sonar/resources/known_baseurl_blacklist.txt",
 ]

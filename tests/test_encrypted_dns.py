@@ -4,8 +4,8 @@ import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from claude_shield.analyze import analyze_snapshot
-from claude_shield.analysis.mihomo import _normalize_encrypted_upstreams
+from claude_sonar.analyze import analyze_snapshot
+from claude_sonar.analysis.mihomo import _normalize_encrypted_upstreams
 
 
 def _ids(checks):

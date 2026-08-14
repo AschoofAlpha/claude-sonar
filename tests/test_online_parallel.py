@@ -11,8 +11,8 @@ from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from claude_shield.probes import base as probes_base
-from claude_shield.probes.base import _run_online_probes_parallel, run_probes
+from claude_sonar.probes import base as probes_base
+from claude_sonar.probes.base import _run_online_probes_parallel, run_probes
 
 
 class TestOnlineParallelHelper(unittest.TestCase):
@@ -71,14 +71,14 @@ class TestOnlineParallelHelper(unittest.TestCase):
 
 
 class TestRunProbesParallelWiring(unittest.TestCase):
-    @patch("claude_shield.probes.base._run_online_probes_parallel")
-    @patch("claude_shield.probes.stability.check_egress_stability")
-    @patch("claude_shield.probes.egress.check_dual_stack_egress")
-    @patch("claude_shield.probes.cross_site.check_cross_site_routing")
-    @patch("claude_shield.probes.reputation.check_ip_reputation")
-    @patch("claude_shield.probes.dns_probe.check_dns_consistency")
-    @patch("claude_shield.probes.egress.check_egress_consistency")
-    @patch("claude_shield.probes.endpoints.get_all_endpoints")
+    @patch("claude_sonar.probes.base._run_online_probes_parallel")
+    @patch("claude_sonar.probes.stability.check_egress_stability")
+    @patch("claude_sonar.probes.egress.check_dual_stack_egress")
+    @patch("claude_sonar.probes.cross_site.check_cross_site_routing")
+    @patch("claude_sonar.probes.reputation.check_ip_reputation")
+    @patch("claude_sonar.probes.dns_probe.check_dns_consistency")
+    @patch("claude_sonar.probes.egress.check_egress_consistency")
+    @patch("claude_sonar.probes.endpoints.get_all_endpoints")
     def test_online_uses_parallel_helper(
         self,
         mock_eps,
@@ -133,16 +133,16 @@ class TestRunProbesParallelWiring(unittest.TestCase):
         mock_dual.assert_called()
         mock_stab.assert_called()
 
-    @patch("claude_shield.probes.base._run_online_probes_parallel")
+    @patch("claude_sonar.probes.base._run_online_probes_parallel")
     def test_offline_does_not_parallelize(self, mock_parallel):
         results = run_probes(online=False)
         self.assertEqual([r.id for r in results], ["browser.webrtc.guidance"])
         mock_parallel.assert_not_called()
 
-    @patch("claude_shield.probes.base._run_online_probes_parallel")
-    @patch("claude_shield.probes.dns_probe.check_dns_consistency")
-    @patch("claude_shield.probes.egress.check_egress_consistency")
-    @patch("claude_shield.probes.safety.validate_url")
+    @patch("claude_sonar.probes.base._run_online_probes_parallel")
+    @patch("claude_sonar.probes.dns_probe.check_dns_consistency")
+    @patch("claude_sonar.probes.egress.check_egress_consistency")
+    @patch("claude_sonar.probes.safety.validate_url")
     def test_custom_endpoint_without_online_skips_parallel(
         self, mock_val, mock_egress, mock_dns, mock_parallel
     ):
@@ -165,13 +165,13 @@ class TestRunProbesParallelWiring(unittest.TestCase):
 class TestParallelIntegrationMocked(unittest.TestCase):
     """End-to-end online path with real parallel helper, mocked probe bodies."""
 
-    @patch("claude_shield.probes.stability.check_egress_stability")
-    @patch("claude_shield.probes.egress.check_dual_stack_egress")
-    @patch("claude_shield.probes.cross_site.check_cross_site_routing")
-    @patch("claude_shield.probes.reputation.check_ip_reputation")
-    @patch("claude_shield.probes.dns_probe.check_dns_consistency")
-    @patch("claude_shield.probes.egress.check_egress_consistency")
-    @patch("claude_shield.probes.endpoints.get_all_endpoints")
+    @patch("claude_sonar.probes.stability.check_egress_stability")
+    @patch("claude_sonar.probes.egress.check_dual_stack_egress")
+    @patch("claude_sonar.probes.cross_site.check_cross_site_routing")
+    @patch("claude_sonar.probes.reputation.check_ip_reputation")
+    @patch("claude_sonar.probes.dns_probe.check_dns_consistency")
+    @patch("claude_sonar.probes.egress.check_egress_consistency")
+    @patch("claude_sonar.probes.endpoints.get_all_endpoints")
     def test_online_result_order(
         self, mock_eps, mock_egress, mock_dns, mock_rep, mock_cross, mock_dual, mock_stab
     ):

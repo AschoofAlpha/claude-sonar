@@ -9,8 +9,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from claude_shield.reposcan import tools as tools_mod
-from claude_shield.reposcan.tools import ToolRunner, _freshness_findings, _semver_tier
+from claude_sonar.reposcan import tools as tools_mod
+from claude_sonar.reposcan.tools import ToolRunner, _freshness_findings, _semver_tier
 
 
 def _fake_proc(stdout="", stderr="", returncode=0):

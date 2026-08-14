@@ -2,7 +2,7 @@
 
 ## Reporting a Vulnerability
 
-Claude Shield is a read-only local audit tool, but the collector and analysis
+Claude Sonar is a read-only local audit tool, but the collector and analysis
 libraries still need to be trustworthy: if an attacker-controlled config file
 or a malicious policy chain could trick the collector into acting outside its
 read-only boundary, that is a security issue.
@@ -11,7 +11,7 @@ read-only boundary, that is a security issue.
 them privately instead:
 
 - Email: `w1586956317@gmail.com` (the repository owner)
-- Or open a [GitHub Security Advisory](https://github.com/AschoofAlpha/claude-shield/security/advisories/new)
+- Or open a [GitHub Security Advisory](https://github.com/AschoofAlpha/claude-sonar/security/advisories/new)
 
 You should receive a response within 48 hours. If you do not, follow up by
 opening a private issue with the `security` label.
@@ -27,7 +27,7 @@ opening a private issue with the `security` label.
 ## What is not a vulnerability
 
 - The tool not predicting or preventing account review/suspension. This is an
-  explicit boundary: Claude Shield produces local evidence and never promises
+  explicit boundary: Claude Sonar produces local evidence and never promises
   to bypass platform review.
 - Third-party detector labels being opinions until corroborated by live routing
   evidence.

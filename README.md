@@ -1,15 +1,15 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AschoofAlpha/claude-shield/main/assets/social-preview.en.jpg" alt="Claude Shield — local-first privacy and proxy audit" width="100%">
+  <img src="https://raw.githubusercontent.com/AschoofAlpha/claude-sonar/main/assets/social-preview.en.jpg" alt="Claude Sonar — local-first privacy and proxy audit" width="100%">
 </p>
 
-<h1 align="center">Claude Shield</h1>
+<h1 align="center">Claude Sonar</h1>
 
 <p align="center"><strong>Local-first privacy and proxy-consistency audit for Claude Code and Agent Skills hosts.</strong></p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/actions/workflow/status/AschoofAlpha/claude-shield/ci.yml?style=flat-square&label=CI" alt="CI">
-  <img src="https://img.shields.io/badge/version-1.4.9-2DD4BF?style=flat-square" alt="v1.4.9">
-  <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FAschoofAlpha%2Fclaude-shield%2Fmain%2Fshield-badge.json&query=%24.message&label=配置自洽分&color=2DD4BF" alt="配置自洽分">
+  <img src="https://img.shields.io/github/actions/workflow/status/AschoofAlpha/claude-sonar/ci.yml?style=flat-square&label=CI" alt="CI">
+  <img src="https://img.shields.io/badge/version-0.7-2DD4BF?style=flat-square" alt="v0.7">
+  <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FAschoofAlpha%2Fclaude-sonar%2Fmain%2Fsonar-badge.json&query=%24.message&label=配置自洽分&color=2DD4BF" alt="配置自洽分">
   <img src="https://img.shields.io/badge/default-read--only-2DD4BF?style=flat-square" alt="Read-only by default">
   <img src="https://img.shields.io/badge/platform-Windows-4F7CFF?style=flat-square" alt="Windows">
   <img src="https://img.shields.io/badge/license-MIT-64748B?style=flat-square" alt="MIT License">
@@ -31,14 +31,14 @@
 >
 > **Every one of these leaks tells the platform "something's off."** Accounts get flagged, challenged, even banned — often not because of what you say, but because of these details exposing you. And the worst part: none of it hurts until the ban screen shows up.
 >
-> Claude Shield is the tool that checks those details for you — **a read-only checkup that touches nothing**:
+> Claude Sonar is the tool that checks those details for you — **a read-only checkup that touches nothing**:
 >
-> - **Network egress**: where does your traffic actually leave from, and is anything bypassing the proxy?
-> - **DNS resolution**: does a simple lookup secretly detour somewhere it shouldn't?
-> - **Proxy setup**: are your nodes auto-hopping, are your rules silently broken?
-> - **System state**: do your timezone, language, and privacy toggles contradict each other?
+> - **Traffic routing**: where does your data actually leave from, and is anything slipping past the proxy?
+> - **Domain lookups**: when you type a URL, does the query secretly take a detour it shouldn't?
+> - **Proxy setup**: are your nodes auto-switching countries, and are your routing rules still working?
+> - **System state**: do your timezone, language, and privacy toggles fight each other?
 >
-> When the checkup finishes, you get a **clear report** — every item labeled: **Must fix** (a real problem), **Optional consistency** (not a risk, but worth aligning), **Leave alone** (don't touch it).
+> When the checkup finishes, you get a **clear report** — every item labeled: **Must fix** (a real problem), **Optional consistency** (not a risk, but worth aligning), **Leave alone** (don't touch it). At the top sits your **configuration self-consistency score** (simply put: do your settings contradict each other), at a glance.
 >
 > Then the decision is **entirely yours** — nothing changes without your explicit approval.
 >
@@ -48,52 +48,52 @@
 > - It won't help you **fabricate identity** (no fake addresses, billing, or personal info)
 > - It will never **guarantee** "this config means you'll never get banned" — anyone who promises that is lying to you.
 >
-> The "anti-ban" tools teach you to fool the platform. Claude Shield does one thing: **show you the truth**, and give you back the choice.
+> The "anti-ban" tools teach you to fool the platform. Claude Sonar does one thing: **show you the truth**, and give you back the choice.
 >
 > **Audit first. Decide after.** Your account deserves one honest check.
 
 ## Install
 
 ```bash
-pip install -U claude-shield
+pip install -U claude-sonar
 ```
 
 Requires **1.4.0+** for CLI `--out` / `--diff` / `--compact` / `--intended-mode` and parallel online probes.  
 **1.3.3+** already includes the plain-language report, consistency score, and proxy-layer checks.  
-Legacy package **`anti-claude-check`** is retired — use **`claude-shield`** only.
+Legacy package **`anti-claude-check`** is retired — use **`claude-sonar`** only.
 
 
 As an agent skill (Codex / Claude Code):
 
 ```powershell
-git clone https://github.com/AschoofAlpha/claude-shield.git "$HOME/.codex/skills/claude-shield"
+git clone https://github.com/AschoofAlpha/claude-sonar.git "$HOME/.codex/skills/claude-sonar"
 ```
 
-Invoke `$claude-shield` in Codex. For Claude Code, install the same folder as `~/.claude/skills/claude-shield` and invoke `/claude-shield`.
+Invoke `$claude-sonar` in Codex. For Claude Code, install the same folder as `~/.claude/skills/claude-sonar` and invoke `/claude-sonar`.
 
 ## CLI (1.4)
 
 ```bash
-python -m claude_shield                 # full markdown report (offline)
-python -m claude_shield --compact       # shorter markdown (score + must-fix / optional)
-python -m claude_shield --json          # report_dict + summary as JSON
-python -m claude_shield --out report.md
-python -m claude_shield --json --out report.json
-python -m claude_shield --diff previous.json
-python -m claude_shield --online --timeout 5
-python -m claude_shield --online --intended-region US
-python -m claude_shield --intended-mode system_proxy   # or full_tunnel
-python -m claude_shield --lang en
-python -m claude_shield serve --port 8765  # read-only local web panel on 127.0.0.1
-python -m claude_shield repo ./my-project  # code security scan (SAST/secrets/deps)
-python -m claude_shield badge              # write shield-badge.json from an audit
+python -m claude_sonar                 # full markdown report (offline)
+python -m claude_sonar --compact       # shorter markdown (score + must-fix / optional)
+python -m claude_sonar --json          # report_dict + summary as JSON
+python -m claude_sonar --out report.md
+python -m claude_sonar --json --out report.json
+python -m claude_sonar --diff previous.json
+python -m claude_sonar --online --timeout 5
+python -m claude_sonar --online --intended-region US
+python -m claude_sonar --intended-mode system_proxy   # or full_tunnel
+python -m claude_sonar --lang en
+python -m claude_sonar serve --port 8765  # read-only local web panel on 127.0.0.1
+python -m claude_sonar repo ./my-project  # code security scan (SAST/secrets/deps)
+python -m claude_sonar badge              # write sonar-badge.json from an audit
 ```
 
-Sub-commands (same `python -m claude_shield` entry point):
+Sub-commands (same `python -m claude_sonar` entry point):
 
 - **`serve [--port N] [--open]`** — zero-dependency local web panel bound to **127.0.0.1 only**. `/` renders the audit (score, Must fix / Optional / Leave alone groups), `/api/report?online=0` returns the redacted report JSON (online probes stay off unless you opt in), plus a browser-side observation block (WebRTC ICE candidates, local timezone/language). Read-only: POST is 405, path traversal is 404, only loopback `Host` headers are accepted.
 - **`repo PATH [--no-tools] [--baseline F] [--json] [--sarif F] [--out F]`** — repository security scan: stack detection, semgrep / gitleaks / pip-audit / npm audit / freshness (npm outdated, pip list --outdated) orchestration with graceful degradation (missing tools are skipped and noted), bundled trimmed Semgrep rules (MIT source noted), weighted 0–100 code-security score, fix suggestions, baseline diff, SARIF 2.1.0 export. No pentesting, no GitHub-issue filing.
-- **`badge [--out PATH] [--from-report F]`** — writes `shield-badge.json` (score + color) for the shields.io dynamic badge below; `--from-report` reuses a previous `--json` report instead of re-auditing.
+- **`badge [--out PATH] [--from-report F]`** — writes `sonar-badge.json` (score + color) for the shields.io dynamic badge below; `--from-report` reuses a previous `--json` report instead of re-auditing.
 
 Online probes (egress, DNS observation, IP reputation, cross-site exits, **DNS-vs-HTTP exit consistency**, **JA3/JA4 TLS fingerprint**) stay **off** unless you pass `--online`. With `--online`, independent probes run in parallel (shared timeout). The `ANTHROPIC_BASE_URL` audit (official endpoint vs a bundled public risk-intel blacklist) always runs offline.
 
@@ -115,7 +115,7 @@ Library defaults: `run_full_audit(include_recommendations=True)` returns `report
 | Always-on | `ANTHROPIC_BASE_URL` audit vs a bundled public relay-risk blacklist |
 | Local panel | `serve` — 127.0.0.1 read-only panel + browser-side WebRTC/timezone observation |
 | Repo scan | `repo` — SAST / secrets / dependency audit with a 0–100 code-security score |
-| Badge | `badge` — `shield-badge.json` driving a shields.io dynamic badge |
+| Badge | `badge` — `sonar-badge.json` driving a shields.io dynamic badge |
 
 Results split into **Must fix**, **Optional consistency**, and **Leave alone**; every check carries a plain-language **说明/meaning** column and the report ends with a **configuration self-consistency** score (not anti-ban) plus a footer of what stays **recommend-only never auto** (fingerprint, timezone-follow-node, env wipe, anti-ban score disguise, DNS/route/TUN).
 
@@ -123,7 +123,7 @@ Optional, reversible privacy environment-variable remediation only. No automatic
 
 The audit is local evidence, not a prediction of account approval or suspension.
 
-Run `python -m claude_shield` for a live markdown report (`format_report`: evidence table + Must fix / Optional consistency / Leave alone). No staged demo screenshot is shipped.
+Run `python -m claude_sonar` for a live markdown report (`format_report`: evidence table + Must fix / Optional consistency / Leave alone). No staged demo screenshot is shipped.
 
 ## Read-only collection
 

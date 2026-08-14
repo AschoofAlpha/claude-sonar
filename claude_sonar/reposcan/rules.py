@@ -1,6 +1,6 @@
 """内置精简 Semgrep 规则集加载器。
 
-规则文件位于 claude_shield/resources/semgrep_rules/（精简自
+规则文件位于 claude_sonar/resources/semgrep_rules/（精简自
 alissonlinneker/shield-claude-skill，MIT，详见同目录 NOTICE.md）。
 semgrep 未安装时，扫描流程会给出 `semgrep --config <规则目录>` 的手动用法提示。
 """

@@ -1,4 +1,4 @@
-"""Integration tests for the local panel server (claude_shield.serve).
+"""Integration tests for the local panel server (claude_sonar.serve).
 
 Starts a real ThreadingHTTPServer on a random high port bound to
 127.0.0.1, then exercises the routes over HTTP.
@@ -16,8 +16,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import claude_shield.serve as serve_mod  # noqa: E402
-from claude_shield import __version__  # noqa: E402
+import claude_sonar.serve as serve_mod  # noqa: E402
+from claude_sonar import __version__  # noqa: E402
 
 
 def _free_port() -> int:
@@ -119,8 +119,8 @@ class TestSecurity:
     def test_path_traversal_404(self, panel):
         for path in (
             "/../analyze.py",
-            "/..%2Fclaude_shield%2F__main__.py",
-            "/static/../claude_shield/__main__.py",
+            "/..%2Fclaude_sonar%2F__main__.py",
+            "/static/../claude_sonar/__main__.py",
             "/%2e%2e/%2e%2e/etc/passwd",
             "/api/../api/status",
             "/api/report/../../x",
@@ -140,7 +140,7 @@ class TestSecurity:
 
 class TestBuildReportPayload:
     def test_redacts_sensitive_values(self):
-        from claude_shield.models import AuditCheck
+        from claude_sonar.models import AuditCheck
 
         checks = [
             AuditCheck(
@@ -158,7 +158,7 @@ class TestBuildReportPayload:
             "checks": checks,
             "summary": {"info": 1},
             "report_dict": {
-                "tool_version": "1.4.2",
+                "tool_version": "0.7",
                 "generated_at": "2026-01-01T00:00:00Z",
                 "platform": {"os": "Windows", "version": "10", "hostname": "my-machine"},
             },
@@ -184,7 +184,7 @@ class TestBuildReportPayload:
 class TestReportApi:
     def test_payload_sorted_and_zh_labels(self, panel, monkeypatch):
         # Groups must be sorted fail→pass→warning→unknown and carry zh labels.
-        from claude_shield.models import AuditCheck
+        from claude_sonar.models import AuditCheck
 
         fake_checks = [
             AuditCheck(id="network.mode", title="t1", category="network",
@@ -326,7 +326,7 @@ class TestServeOpenDelay:
 
 class TestCliOpenDelayFlag:
     def test_serve_subcommand_accepts_open_delay(self):
-        import claude_shield.__main__ as main_mod
+        import claude_sonar.__main__ as main_mod
 
         parser = main_mod.build_parser()
         args = parser.parse_args(["serve", "--port", "18765", "--open", "--open-delay", "8"])
@@ -338,7 +338,7 @@ class TestCliOpenDelayFlag:
 class TestBadgeApi:
     def test_badge_uses_cached_audit(self, panel, tmp_path, monkeypatch):
         # /api/badge should use the audit cached by the previous test and be fast.
-        fake_path = tmp_path / "shield-badge.json"
+        fake_path = tmp_path / "sonar-badge.json"
         monkeypatch.setattr(serve_mod, "default_badge_path", lambda: fake_path)
         import time
 
@@ -355,6 +355,6 @@ class TestBadgeApi:
         assert data["badge"]["color"] in ("brightgreen", "yellow", "red")
         assert data["saved_path"] == str(fake_path)
         assert data["shields_url"].startswith("https://img.shields.io/badge/dynamic/json?")
-        assert data["markdown"].startswith("[![claude-shield](")
+        assert data["markdown"].startswith("[![claude-sonar](")
         assert fake_path.exists()
         assert elapsed < 30, "badge should reuse the cached audit (fast path)"

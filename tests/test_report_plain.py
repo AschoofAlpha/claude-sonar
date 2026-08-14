@@ -6,8 +6,8 @@ import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from claude_shield.models import AuditCheck
-from claude_shield.report import format_report, plain_check, score_checks
+from claude_sonar.models import AuditCheck
+from claude_sonar.report import format_report, plain_check, score_checks
 
 
 def _check(**kwargs):

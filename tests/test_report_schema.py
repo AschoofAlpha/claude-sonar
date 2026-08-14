@@ -4,11 +4,11 @@ import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from claude_shield.analyze import analyze_snapshot, build_audit_report, run_full_audit
-from claude_shield.models import to_dict
-from claude_shield.schema import validate_report
-from claude_shield.redaction import Redactor
-from claude_shield import __version__
+from claude_sonar.analyze import analyze_snapshot, build_audit_report, run_full_audit
+from claude_sonar.models import to_dict
+from claude_sonar.schema import validate_report
+from claude_sonar.redaction import Redactor
+from claude_sonar import __version__
 
 
 class TestReportSchema(unittest.TestCase):

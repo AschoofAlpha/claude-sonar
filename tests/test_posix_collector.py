@@ -4,7 +4,7 @@ import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from claude_shield.collectors.posix import (
+from claude_sonar.collectors.posix import (
     _active_content,
     _active_one,
     _present,
