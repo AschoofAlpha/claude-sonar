@@ -16,3 +16,4 @@ venv/
 reports/
 .claude-shield/
 # END Claude Shield managed rules
+.pypi-token.txt
