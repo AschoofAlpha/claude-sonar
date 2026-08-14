@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>claude-shield · 本地面板</title>
+<title>claude-sonar · 本地面板</title>
 <style>
   :root {
     --bg: #0e1116;
@@ -168,7 +168,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>claude-shield<span class="ver" id="ver-tag">…</span></h1>
+    <h1>claude-sonar<span class="ver" id="ver-tag">…</span></h1>
     <p class="sub">本地隐私与代理一致性审计 · 只读面板</p>
   </header>
 
@@ -233,7 +233,7 @@
 
   <div class="panel">
     <h2>动态 badge <span class="hint">shields.io dynamic/json</span></h2>
-    <p style="font-size:13px;color:var(--muted);margin:0 0 10px">将最近一次审计的自洽分写入项目根目录 <code>shield-badge.json</code>，push 到仓库后即可在 README 展示动态徽章。</p>
+    <p style="font-size:13px;color:var(--muted);margin:0 0 10px">将最近一次审计的自洽分写入项目根目录 <code>sonar-badge.json</code>，push 到仓库后即可在 README 展示动态徽章。</p>
     <button class="secondary" id="btn-badge2">生成 badge</button>
     <div class="badge-result" id="badge-result">
       <div class="badge-preview">
@@ -247,7 +247,7 @@
   <div id="status-line">正在连接服务…</div>
 
   <footer>
-    claude-shield 本地面板 · 只读审计 · 无外部资源加载 · 无数据上传<br>
+    claude-sonar 本地面板 · 只读审计 · 无外部资源加载 · 无数据上传<br>
     本工具不提供伪装、规避或"防封"建议；自洽分衡量的是配置一致性，不是匿名程度。
   </footer>
 </div>

@@ -36,6 +36,5 @@ opening a private issue with the `security` label.
 
 | Version | Supported |
 | ------- | --------- |
-| 1.3.x   | ✅ |
-| 1.2.x   | ✅ |
-| < 1.2.0 | ❌ |
+| 1.0.x   | ✅ |
+| < 1.0.0 | ❌ |

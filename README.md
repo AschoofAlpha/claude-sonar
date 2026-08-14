@@ -58,9 +58,7 @@
 pip install -U claude-sonar
 ```
 
-Requires **1.4.0+** for CLI `--out` / `--diff` / `--compact` / `--intended-mode` and parallel online probes.  
-**1.3.3+** already includes the plain-language report, consistency score, and proxy-layer checks.  
-Legacy package **`anti-claude-check`** is retired — use **`claude-sonar`** only.
+All features are available since **1.0.0** (renamed from `claude-shield`; older `anti-claude-check` uploads are retired).
 
 
 As an agent skill (Codex / Claude Code):

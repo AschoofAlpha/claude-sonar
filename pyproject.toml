@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"
 authors = [
-    {name = "Claude Shield Authors"}
+    {name = "Claude Sonar Authors"}
 ]
 dependencies = []
 keywords = ["claude", "privacy", "proxy", "dns-leak", "mihomo", "audit", "agent-skills"]

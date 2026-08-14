@@ -111,7 +111,7 @@ def cmd_restore(backup: str) -> int:
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description="Claude Shield POSIX privacy-env remediation")
+    parser = argparse.ArgumentParser(description="Claude Sonar POSIX privacy-env remediation")
     parser.add_argument("--apply", action="store_true", help="Write the environment file")
     parser.add_argument("--restore", metavar="BACKUP", help="Restore from a backup under ~/.claude-sonar/backups")
     args = parser.parse_args(argv)

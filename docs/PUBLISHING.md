@@ -36,10 +36,10 @@ If the publisher was only added under the legacy `anti-claude-check` project, ad
 
 ```bash
 git push origin main
-gh release delete v1.2.0 -y || true
-git push origin :refs/tags/v1.2.0 || true
-git tag -d v1.2.0 2>/dev/null || true
-git tag -a v1.2.0 -m "v1.2.0"
-git push origin v1.2.0
-gh release create v1.2.0 --title "v1.2.0 — Claude Sonar on PyPI" --generate-notes
+gh release delete vX.Y.Z -y || true
+git push origin :refs/tags/vX.Y.Z || true
+git tag -d vX.Y.Z 2>/dev/null || true
+git tag -a vX.Y.Z -m "vX.Y.Z"
+git push origin vX.Y.Z
+gh release create vX.Y.Z --title "vX.Y.Z — Claude Sonar on PyPI" --generate-notes
 ```

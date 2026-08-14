@@ -1,5 +1,5 @@
 name: Pull request
-description: Submit changes to Claude Shield
+description: Submit changes to Claude Sonar
 title: ""
 labels: []
 body:

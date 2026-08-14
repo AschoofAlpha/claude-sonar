@@ -62,9 +62,7 @@
 pip install -U claude-sonar
 ```
 
-CLI `--out` / `--diff` / `--compact` / `--intended-mode` 与并行在线探测请使用 **1.4.0+**。  
-说明列、配置自洽分、代理分层检查等报告能力自 **1.3.3+** 起已具备。  
-旧包名 **`anti-claude-check`** 已停用，请只安装 **`claude-sonar`**。
+全部功能自 **1.0.0** 起可用（由 `claude-shield` 更名而来；更早的 `anti-claude-check` 上传已停用）。
 
 
 作为 Agent Skill（Codex / Claude Code）：

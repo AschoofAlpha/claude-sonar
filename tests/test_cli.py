@@ -1,4 +1,4 @@
-"""CLI tests for python -m claude_sonar (1.4.0)."""
+"""CLI tests for python -m claude_sonar (1.0.0)."""
 
 import io
 import json

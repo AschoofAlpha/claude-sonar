@@ -47,8 +47,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: Claude Shield version
-      placeholder: 1.1.0
+      label: Claude Sonar version
+      placeholder: 1.0.0
     validations:
       required: true
   - type: checkboxes

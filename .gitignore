@@ -2,18 +2,18 @@ reports/
 audit-report*.json
 audit-report*.md
 examples/local-*
-.claude-shield/
+.claude-sonar/
 __pycache__/
 *.pyc
 build/
 dist/
 *.egg-info/
 venv/
-# BEGIN Claude Shield managed rules
+# BEGIN Claude Sonar managed rules
 .env
 .env.local
 .env.*.local
 reports/
-.claude-shield/
-# END Claude Shield managed rules
+.claude-sonar/
+# END Claude Sonar managed rules
 .pypi-token.txt

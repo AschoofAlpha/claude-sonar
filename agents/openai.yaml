@@ -1,4 +1,4 @@
 interface:
   display_name: "反 Claude 检查"
   short_description: "本地只读代理、DNS、IPv6 与隐私安全一致性审计"
-  default_prompt: "Use $claude-shield to run a read-only local privacy and proxy-consistency audit. Keep online probes off unless explicitly approved, and separate confirmed fixes from unknown or optional consistency advice."
+  default_prompt: "Use $claude-sonar to run a read-only local privacy and proxy-consistency audit. Keep online probes off unless explicitly approved, and separate confirmed fixes from unknown or optional consistency advice."

@@ -10,7 +10,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - **只读审计 Skill + Python 库 + CLI**：检测 Claude Code / Codex 等 Agent 宿主的本地隐私与代理一致性，不动任何配置
 - **本地面板**（`serve`）：零依赖、仅 127.0.0.1、自动审计 + 渐变进度条分数区 + 出口概览卡片 + DNS/WebRTC/TLS 独立小卡 + pill 式摘要
 - **代码仓库安全扫描**（`repo`）：栈检测 + Semgrep/gitleaks/依赖审计 + 过期检测 + 0-100 评分 + SARIF 导出
-- **动态徽章**（`badge`）：shield-badge.json + shields.io
+- **动态徽章**（`badge`）：sonar-badge.json + shields.io
 
 ### 检测维度
 - Claude Code 三隐私变量 + 补充隐私项
