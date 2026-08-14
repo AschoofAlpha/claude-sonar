@@ -2,9 +2,9 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.7] - 2026-08-14
+## [1.0.0] - 2026-08-14
 
-这是一个全新开始。项目从 `claude-shield` 更名为 `claude-sonar`，版本号重置为 0.7。
+这是一个全新开始。项目从 `claude-shield` 更名为 `claude-sonar`，正式发布 1.0.0。
 
 ### 核心功能
 - **只读审计 Skill + Python 库 + CLI**：检测 Claude Code / Codex 等 Agent 宿主的本地隐私与代理一致性，不动任何配置
@@ -33,5 +33,5 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Changed from previous project
 - 项目名 `claude-shield` → `claude-sonar`
 - Python 包名 `claude_shield` → `claude_sonar`
-- 版本号重置为 0.7
+- 正式发布 1.0.0
 - CHANGELOG 历史已清除
