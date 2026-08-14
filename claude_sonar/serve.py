@@ -348,12 +348,20 @@ class PanelRequestHandler(BaseHTTPRequestHandler):
             timeout = 5.0
 
         with _audit_lock:
+            cached_online = None
+            with _cache_lock:
+                cached_p = _cache["payload"]
+                if cached_p:
+                    cached_online = cached_p.get("online")
+            if cached_p is not None and cached_online == online:
+                self._json(200, cached_p)
+                return
             try:
                 result = _run_audit(online=online, timeout=timeout)
             except CollectorError as exc:
                 self._json(500, {"ok": False, "error": str(exc), "online": online})
                 return
-            except Exception as exc:  # pragma: no cover - defensive
+            except Exception as exc:
                 message = Redactor().scan_and_redact(str(exc))
                 self._json(500, {"ok": False, "error": message, "online": online})
                 return
@@ -362,7 +370,7 @@ class PanelRequestHandler(BaseHTTPRequestHandler):
                 _cache["payload"] = payload
                 _cache["result"] = result
                 _cache["at"] = _utcnow()
-        self._json(200, payload)
+            self._json(200, payload)
 
     def _api_badge(self) -> None:
         with _audit_lock:
@@ -408,17 +416,41 @@ def serve(
     port: int = DEFAULT_PORT,
     open_browser: bool = False,
     open_delay: float = 0.0,
+    pre_audit: bool = True,
+    online: bool = True,
+    timeout: float = 5.0,
+    lang: str = "zh",
 ) -> PanelHTTPServer:
     """Serve the read-only panel on 127.0.0.1 until interrupted.
 
     ``open_browser=True`` opens the panel in the default browser after the
     socket is bound. ``open_delay`` (seconds) waits before opening the
     browser so the user can read the chat tables first.
+
+    ``pre_audit=True`` runs a full audit before opening the browser so the
+    first page load already has a cached report (no waiting/spinning).
     """
     httpd = create_server(port)
-    url = f"http://{HOST}:{httpd.server_address[1]}/"
+    actual_port = httpd.server_address[1]
+    url = f"http://{HOST}:{actual_port}/"
     print(f"claude-sonar panel (read-only) -> {url}", flush=True)
     print("Bound to 127.0.0.1 only. Press Ctrl+C to stop.", flush=True)
+
+    if pre_audit:
+        print(f"[panel] pre-auditing (online={online}, timeout={timeout}s)…", flush=True)
+        try:
+            result = _run_audit(online=online, timeout=timeout)
+            payload = build_report_payload(result, online=online)
+            with _cache_lock:
+                _cache["payload"] = payload
+                _cache["result"] = result
+                _cache["at"] = _utcnow()
+            score = (payload.get("score") or {}).get("score", "—")
+            grade = (payload.get("score") or {}).get("grade", "—")
+            print(f"[panel] pre-audit done: {score}/100 {grade}", flush=True)
+        except Exception as exc:
+            print(f"[panel] pre-audit failed: {exc}", flush=True)
+
     if open_browser:
         try:
             if open_delay and open_delay > 0:

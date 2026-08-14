@@ -30,6 +30,11 @@ def _free_port() -> int:
 
 @pytest.fixture(scope="module")
 def panel():
+    # Reset the module-level audit cache so each test module starts clean.
+    with serve_mod._cache_lock:
+        serve_mod._cache["payload"] = None
+        serve_mod._cache["result"] = None
+        serve_mod._cache["at"] = None
     port = _free_port()
     httpd = serve_mod.create_server(port)
     assert httpd.server_address[0] == "127.0.0.1", "panel must bind loopback only"
@@ -207,6 +212,12 @@ class TestReportApi:
                 assert c.get("title_zh"), f"{key} missing title_zh for {c['id']}"
                 assert "explanation_zh" in c and "recommendation_zh" in c
 
+    def _clear_cache(self):
+        with serve_mod._cache_lock:
+            serve_mod._cache["payload"] = None
+            serve_mod._cache["result"] = None
+            serve_mod._cache["at"] = None
+
     def test_report_default_online_on(self, panel, monkeypatch):
         # User preference: /api/report with no online param defaults to online=1.
         seen = {}
@@ -221,6 +232,7 @@ class TestReportApi:
         assert seen["online"] is True
         data = json.loads(body.decode("utf-8"))
         assert data["online"] is True
+        self._clear_cache()
 
     def test_report_explicit_offline(self, panel, monkeypatch):
         seen = {}
@@ -234,6 +246,7 @@ class TestReportApi:
         assert status == 200
         assert seen["online"] is False
         assert json.loads(body.decode("utf-8"))["online"] is False
+        self._clear_cache()
 
     def test_report_local_offline(self, panel):
         # Full local audit runs the real collector: allow generous time.
@@ -278,7 +291,7 @@ class TestServeOpenDelay:
             lambda x: calls.append(("sleep", x)),
         )
         try:
-            serve_mod.serve(port=12345, open_browser=True, open_delay=5)
+            serve_mod.serve(port=12345, open_browser=True, open_delay=5, pre_audit=False)
         except KeyboardInterrupt:
             pass
         assert calls == [("sleep", 5.0), ("open", "http://127.0.0.1:12345/")]
@@ -298,7 +311,7 @@ class TestServeOpenDelay:
         monkeypatch.setattr(serve_mod.webbrowser, "open", lambda url: None)
         monkeypatch.setattr(serve_mod.time, "sleep", lambda x: calls.append(x))
         try:
-            serve_mod.serve(port=12345, open_browser=True, open_delay=999)
+            serve_mod.serve(port=12345, open_browser=True, open_delay=999, pre_audit=False)
         except KeyboardInterrupt:
             pass
         assert calls == [60.0]
@@ -318,7 +331,7 @@ class TestServeOpenDelay:
         monkeypatch.setattr(serve_mod.webbrowser, "open", lambda url: calls.append("open"))
         monkeypatch.setattr(serve_mod.time, "sleep", lambda x: calls.append("sleep"))
         try:
-            serve_mod.serve(port=12345, open_browser=True)
+            serve_mod.serve(port=12345, open_browser=True, pre_audit=False)
         except KeyboardInterrupt:
             pass
         assert calls == ["open"]
