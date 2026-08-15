@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AschoofAlpha/claude-sonar/main/assets/social-preview.jpg" alt="Claude Sonar — 本地隐私与代理一致性审计" width="100%">
+  <img src="assets/social-preview.jpg" alt="Claude Sonar — 本地隐私与代理一致性审计" width="100%">
 </p>
 
 <h1 align="center">Claude Sonar</h1>
