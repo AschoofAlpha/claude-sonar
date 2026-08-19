@@ -161,6 +161,56 @@ class TestDefaultReportOmitsAllResults(unittest.TestCase):
         self.assertNotIn("No PAC URL", md)
         self.assertNotIn("Treat as incomplete", md)
 
+    def test_zh_route_and_tun_fragments_translated(self):
+        md = format_report([
+            _check(
+                id="network.tun",
+                status="pass",
+                explanation="Observed TunEnabled=False. Matches intended system_proxy mode (TUN off is intentional).",
+            ),
+            _check(
+                id="network.default_route",
+                status="pass",
+                explanation=(
+                    "Default route posture is acceptable for intended system_proxy mode: "
+                    "physical default present; no tunnel default (expected for system_proxy)."
+                ),
+            ),
+            _check(
+                id="network.default_route",
+                status="pass",
+                explanation=(
+                    "Tunnel default route is present and not overridden by a lower-metric "
+                    "physical default; consistent with intended full_tunnel mode."
+                ),
+            ),
+            _check(
+                id="network.ip_reputation",
+                status="unknown",
+                confidence="unknown",
+                explanation=(
+                    "Lightweight public IP reputation lookup did not return usable data. "
+                    "Treat as incomplete evidence — not as a safety pass or account risk."
+                ),
+            ),
+            _check(
+                id="network.egress.dual_stack",
+                status="unknown",
+                confidence="unknown",
+                explanation="IPv4 egress not observed.",
+            ),
+        ], lang="zh")
+        self.assertNotIn("Matches intended", md)
+        self.assertNotIn("Default route posture is acceptable", md)
+        self.assertNotIn("Tunnel default route is present", md)
+        self.assertNotIn("did not return usable data", md)
+        self.assertNotIn("IPv4 egress not observed", md)
+        self.assertIn("与预期的 system_proxy 模式相符", md)
+        self.assertIn("默认路由姿态符合预期的 system_proxy 模式", md)
+        self.assertIn("与预期的 full_tunnel 模式相符", md)
+        self.assertIn("轻量公共 IP 信誉查询未返回可用数据", md)
+        self.assertIn("未观察到 IPv4 出口", md)
+
     def test_supplemental_privacy_collapsed_in_default(self):
         checks = [
             _check(

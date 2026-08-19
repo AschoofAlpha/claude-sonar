@@ -753,9 +753,81 @@ _DETAIL_PHRASE_MAP: Tuple[Tuple[str, str], ...] = (
         "[not_configured] ",
         "[未配置] ",
     ),
+    (
+        "Matches intended full_tunnel mode.",
+        "与预期的 full_tunnel 模式相符。",
+    ),
+    (
+        "Matches intended system_proxy mode (TUN off is intentional).",
+        "与预期的 system_proxy 模式相符（TUN 关闭是有意的）。",
+    ),
+    (
+        "Matches intended mode system_proxy.",
+        "与预期的 system_proxy 模式相符。",
+    ),
+    (
+        "System proxy loopback is fine alongside full_tunnel when TUN owns the default route.",
+        "TUN 已拥有默认路由时，系统代理回环与 full_tunnel 并存没有问题。",
+    ),
+    (
+        "Tunnel default route is present and not overridden by a lower-metric physical default; consistent with intended full_tunnel mode.",
+        "存在隧道默认路由且未被低跃点物理默认路由覆盖，与预期的 full_tunnel 模式相符。",
+    ),
+    (
+        "Tunnel default exists but a physical default has a lower metric; full_tunnel mode may not own the preferred default route.",
+        "存在隧道默认路由，但物理默认路由跃点更低；full_tunnel 可能未掌控首选默认路由。",
+    ),
+    (
+        "No tunnel default route observed while intended mode is full_tunnel; traffic may use the physical uplink.",
+        "未观察到隧道默认路由，但预期为 full_tunnel；流量可能走了物理上行。",
+    ),
+    (
+        "Default route posture is acceptable for intended system_proxy mode",
+        "默认路由姿态符合预期的 system_proxy 模式",
+    ),
+    (
+        "physical default present",
+        "存在物理默认路由",
+    ),
+    (
+        "no tunnel default (expected for system_proxy)",
+        "无隧道默认路由（符合 system_proxy 预期）",
+    ),
+    (
+        "Tunnel default route is present (intended mode not declared; soft pass).",
+        "存在隧道默认路由（未声明目标模式；软通过）。",
+    ),
+    (
+        "IPv4 egress not observed.",
+        "未观察到 IPv4 出口。",
+    ),
+    (
+        "Lightweight public IP reputation lookup did not return usable data.",
+        "轻量公共 IP 信誉查询未返回可用数据。",
+    ),
+    (
+        "Treat as incomplete evidence — not as a safety pass or account risk.",
+        "证据不足——既不算安全通过，也不代表账户风险。",
+    ),
 )
 
 _RECOMMENDATION_PHRASE_MAP: Tuple[Tuple[str, str], ...] = (
+    (
+        "Enable TUN / full-tunnel routing if that is the intended mode, then re-check default routes.",
+        "若预期为 full_tunnel，请开启 TUN / 全隧道路由，然后重新检查默认路由。",
+    ),
+    (
+        "Consider confirming TUN/strict-route owns the default route when full_tunnel is intended.",
+        "若预期为 full_tunnel，请确认 TUN/strict-route 掌控了默认路由。",
+    ),
+    (
+        "Consider re-running the Windows collector with route permissions.",
+        "建议以路由读取权限重新运行 Windows 采集器。",
+    ),
+    (
+        "Optional: pass intended_mode=full_tunnel or system_proxy on analyze/run_full_audit.",
+        "可选：在 analyze/run_full_audit 上传入 intended_mode=full_tunnel 或 system_proxy。",
+    ),
     (
         "OPTIONAL RECOMMENDATION ONLY — never auto-applied by this tool or its remediation scripts:",
         "【仅可选建议 — 本工具及其修复脚本绝不会自动执行】：",
