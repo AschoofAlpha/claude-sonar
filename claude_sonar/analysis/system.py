@@ -19,6 +19,52 @@ def normalize_intended_mode(intended_mode):
     return None
 
 
+def infer_intended_mode(snapshot):
+    """Infer system_proxy / full_tunnel from a collector snapshot.
+
+    Explicit caller intent should still win. Inference is conservative:
+    TUN on → full_tunnel; system-proxy loopback + TUN off → system_proxy.
+    TUN off without a loopback system proxy stays unknown.
+    """
+    if not isinstance(snapshot, dict):
+        return None
+    mihomo = snapshot.get("Mihomo") if isinstance(snapshot.get("Mihomo"), dict) else {}
+    system = snapshot.get("System") if isinstance(snapshot.get("System"), dict) else {}
+    proxy = system.get("SystemProxy") if isinstance(system.get("SystemProxy"), dict) else {}
+    tun = mihomo.get("TunEnabled")
+    tun_on = None
+    if tun is not None:
+        tun_on = str(tun).strip().lower() in ("true", "1", "yes")
+    if tun_on is True:
+        return "full_tunnel"
+    loopback = proxy.get("Enabled") is True and proxy.get("PointsToLoopback") is True
+    if loopback and tun_on is False:
+        return "system_proxy"
+    return None
+
+
+def _plausible_en_zh_tag(tag):
+    text = str(tag or "").replace("_", "-").strip().lower()
+    if not text:
+        return False
+    if text == "en" or text.startswith("en-"):
+        return True
+    if text in ("zh", "zh-cn", "zh-sg", "zh-hans"):
+        return True
+    if text.startswith("zh-hans") or text.startswith("zh-cn") or text.startswith("zh-sg"):
+        return True
+    return False
+
+
+def _plausible_en_zh_bilingual(locale_set, langs):
+    tags = [str(item) for item in (locale_set or set()) if item]
+    if isinstance(langs, list):
+        tags.extend(str(item) for item in langs if item)
+    if not tags:
+        return False
+    return all(_plausible_en_zh_tag(tag) for tag in tags)
+
+
 def merge_geo_with_egress(checks):
     """Best-effort: if online reputation evidence has a country, enrich geo_stack.
 
@@ -893,7 +939,7 @@ def collect_system_checks(data, builder, intended_mode=None):
                 if running else "",
             )
 
-        # Windows locale consistency — bilingual setups stay warning (optional consistency only)
+        # Windows locale consistency — en-* plus zh-Hans/zh-CN is a normal bilingual stack.
         culture = system.get("Culture")
         ui_culture = system.get("UICulture")
         sys_locale = system.get("SystemLocale")
@@ -901,9 +947,14 @@ def collect_system_checks(data, builder, intended_mode=None):
         primary_lang = langs[0] if isinstance(langs, list) and langs else None
         locale_set = {c for c in (culture, ui_culture, sys_locale) if c}
         mismatches = []
-        if len(locale_set) > 1:
+        if len(locale_set) > 1 and not _plausible_en_zh_bilingual(locale_set, langs):
             mismatches.append("Culture/UICulture/SystemLocale differ")
-        if primary_lang and culture and not primary_lang.lower().startswith(culture.split("-")[0].lower()):
+        if (
+            primary_lang
+            and culture
+            and not primary_lang.lower().startswith(culture.split("-")[0].lower())
+            and not _plausible_en_zh_bilingual(locale_set, langs)
+        ):
             mismatches.append("primary user language differs from culture")
         locale_evidence = [evidence(
             "locale",

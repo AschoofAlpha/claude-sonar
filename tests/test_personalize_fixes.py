@@ -45,7 +45,7 @@ class TestCliRenderPassesSnapshot(unittest.TestCase):
         }
         seen = {}
 
-        def fake_format(checks, summary=None, lang="zh", compact=False, snapshot=None):
+        def fake_format(checks, summary=None, lang="zh", compact=False, snapshot=None, include_all_results=False):
             seen["snapshot"] = snapshot
             return "ok"
 

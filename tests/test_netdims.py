@@ -51,12 +51,13 @@ def test_find_blacklist_hit_suffix_matching():
     assert find_blacklist_hit("evil.com", entries) is None
 
 
-def test_baseurl_unset_is_not_configured(monkeypatch):
+def test_baseurl_unset_is_official_default(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
     check = check_anthropic_baseurl()
     assert check.id == "network.anthropic_baseurl"
     assert check.status == "pass"
-    assert "[not_configured]" in check.explanation
+    assert "[not_configured]" not in check.explanation
+    assert "官方" in check.explanation or "official" in check.explanation.lower()
 
 
 def test_baseurl_official_is_pass(monkeypatch):
@@ -116,14 +117,14 @@ def test_baseurl_blacklist_takes_priority_over_labword(monkeypatch):
     assert check.severity == "high"  # 黑名单命中优先于关键词
 
 
-def test_baseurl_tcp_not_configured(monkeypatch):
+def test_baseurl_tcp_unset_is_official_default(monkeypatch):
     from claude_sonar.probes.baseurl_probe import check_anthropic_baseurl_tcp
 
     monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
     check = check_anthropic_baseurl_tcp(timeout=1)
     assert check.id == "network.anthropic_baseurl_tcp"
     assert check.status == "pass"
-    assert "[not_configured]" in check.explanation
+    assert "[not_configured]" not in check.explanation
 
 
 def test_baseurl_tcp_reachable(monkeypatch):
@@ -302,7 +303,7 @@ def test_tls_success_path(monkeypatch):
         lambda bin_, host, timeout: (True, text),
     )
     check = check_tls_fingerprint(timeout=1)
-    assert check.status == "unknown"  # neutral: an observed fingerprint is never a verdict
+    assert check.status == "pass"  # observed fingerprint is a successful observation
     assert check.confidence == "possible"
     data = check.evidence[0].data
     assert data["ja4"].startswith("t12d0203h2_")

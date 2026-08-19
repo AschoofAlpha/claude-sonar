@@ -145,7 +145,7 @@ def _write_out(path: str, text: str) -> None:
     target.write_text(text, encoding="utf-8")
 
 
-def _render_markdown(result, lang: str, compact: bool) -> str:
+def _render_markdown(result, lang: str, compact: bool, include_all_results: bool = False) -> str:
     from .report import format_report
 
     checks = result.get("checks") or []
@@ -155,7 +155,12 @@ def _render_markdown(result, lang: str, compact: bool) -> str:
     snapshot = result.get("snapshot")
     try:
         return format_report(
-            checks, summary=summary, lang=lang, compact=compact, snapshot=snapshot
+            checks,
+            summary=summary,
+            lang=lang,
+            compact=compact,
+            snapshot=snapshot,
+            include_all_results=include_all_results,
         )
     except TypeError:
         # Older format_report without compact= / snapshot=
@@ -360,7 +365,9 @@ def main(argv=None) -> int:
 
     # Markdown path — always re-render with the requested plain-language layer.
     try:
-        markdown = _render_markdown(result, lang=args.lang, compact=compact)
+        markdown = _render_markdown(
+            result, lang=args.lang, compact=compact, include_all_results=bool(args.full)
+        )
     except Exception:
         markdown = result.get("report_markdown") or (
             "# Claude Sonar Audit Report\n\n(report unavailable)\n"

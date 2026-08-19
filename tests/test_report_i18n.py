@@ -154,10 +154,18 @@ class TestCompactFormat(unittest.TestCase):
         checks = [
             _check(id="network.mode", status="pass", explanation="Observed Mode='Rule'."),
         ]
-        md = format_report(checks, lang="zh", compact=False)
+        md = format_report(checks, lang="zh", compact=False, include_all_results=True)
         self.assertIn("## 全部结果", md)
         self.assertIn("## 保持不动", md)
         self.assertIn("## 名词解释", md)
+
+    def test_default_omits_all_results(self):
+        checks = [
+            _check(id="network.mode", status="pass", explanation="Observed Mode='Rule'."),
+        ]
+        md = format_report(checks, lang="zh", compact=False)
+        self.assertNotIn("## 全部结果", md)
+        self.assertIn("## 保持不动", md)
 
     def test_compact_en(self):
         md = format_report(

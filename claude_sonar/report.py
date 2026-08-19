@@ -12,6 +12,8 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
+from .models import AuditCheck
+
 # Checks that indicate routing/DNS leak risk when not passing.
 _LEAKISH_IDS = frozenset({
     "network.allow_lan",
@@ -46,6 +48,12 @@ _OPTIONAL_IDS = frozenset({
     "privacy.local_device_id",
     "privacy.telemetry_cache",
     "privacy.browser_fingerprint",
+})
+
+# Presence of local Claude dirs is normal after use — not a consistency gap.
+_PRESENCE_ONLY_IDS = frozenset({
+    "privacy.local_device_id",
+    "privacy.telemetry_cache",
 })
 
 _ACTION_ORDER = ("must_fix", "optional_consistency", "leave_alone")
@@ -516,6 +524,34 @@ _DETAIL_PHRASE_MAP: Tuple[Tuple[str, str], ...] = (
     (
         "hijacking is enabled; static configuration cannot prove a leak.",
         "劫持已启用；静态配置不能证明泄漏。",
+    ),
+    (
+        "Fewer than two sites returned a usable egress token.",
+        "可用的出口样本不足两个，证据不够，不算泄漏也不算通过。",
+    ),
+    (
+        "Treat as incomplete evidence, not as a leak or pass.",
+        "证据不够，不算泄漏也不算通过。",
+    ),
+    (
+        "Fewer than two samples returned comparable country/ASN class labels.",
+        "可比的国家/ASN 样本不足两次，证据不够。",
+    ),
+    (
+        "No PAC URL; registry AutoDetect missing (typically off).",
+        "没有 PAC 地址；自动检测未开启。",
+    ),
+    (
+        "No PAC URL;",
+        "没有 PAC 地址；",
+    ),
+    (
+        "typically off",
+        "通常视为关闭",
+    ),
+    (
+        "Country class (default path):",
+        "默认路径国家分类：",
     ),
     (
         "Online reputation observed country code US (informational only — do not auto-follow proxy/node country).",
@@ -1224,6 +1260,9 @@ def classify_action(check: Any) -> str:
     explanation = str(_field(check, "explanation", "") or "")
     reason = status_reason(check)
 
+    if check_id in _PRESENCE_ONLY_IDS:
+        return "leave_alone"
+
     if status == "fail":
         return "must_fix"
     if status == "warning" and severity in _SEVERITY_MUST:
@@ -1271,6 +1310,67 @@ def group_checks(checks: Iterable[Any]) -> Dict[str, List[Any]]:
             action = "leave_alone"
         groups[action].append(check)
     return groups
+
+
+_SUPPLEMENTAL_PRIVACY_IDS = (
+    "privacy.prompt_history",
+    "privacy.subprocess_scrub",
+    "privacy.otel_user_prompts",
+    "privacy.otel_tool_content",
+    "privacy.otel_tool_details",
+    "privacy.otel_raw_api",
+)
+_WEBRTC_BUNDLE_IDS = (
+    "browser.webrtc.chrome",
+    "browser.webrtc.edge",
+    "browser.webrtc.firefox",
+    "browser.webrtc.guidance",
+)
+
+
+def _collapse_display_checks(checks: Sequence[Any]) -> List[Any]:
+    """Fold noisy same-meaning rows for the default chat tables."""
+    items = list(checks or [])
+    present = {str(_field(check, "id", "") or "") for check in items}
+    out: List[Any] = []
+    seen_supp = False
+    seen_rtc = False
+    for check in items:
+        cid = str(_field(check, "id", "") or "")
+        if cid in _SUPPLEMENTAL_PRIVACY_IDS:
+            if not seen_supp:
+                seen_supp = True
+                count = sum(1 for key in _SUPPLEMENTAL_PRIVACY_IDS if key in present)
+                out.append(AuditCheck(
+                    id="privacy.supplemental",
+                    title="补充隐私项",
+                    category="privacy",
+                    status="unknown",
+                    severity="info",
+                    confidence="unknown",
+                    explanation=(
+                        f"[folded_optional] {count} 项补充隐私开关未配置"
+                        "（OTEL / 本地历史等），不等于泄漏。"
+                    ),
+                ))
+            continue
+        if cid in _WEBRTC_BUNDLE_IDS:
+            if not seen_rtc:
+                seen_rtc = True
+                out.append(AuditCheck(
+                    id="browser.webrtc",
+                    title="浏览器 WebRTC",
+                    category="browser",
+                    status="unknown",
+                    severity="info",
+                    confidence="unknown",
+                    explanation=(
+                        "浏览器 WebRTC 未做网页实测；策略层存在性不能证明运行时是否泄漏。"
+                    ),
+                ))
+            continue
+        out.append(check)
+    return out
 
 
 
@@ -1503,6 +1603,7 @@ def format_report(
     snapshot: Optional[Mapping[str, Any]] = None,
     intended_mode: Optional[str] = None,
     intended_region: Optional[str] = None,
+    include_all_results: bool = False,
     **_kwargs: Any,
 ) -> str:
     """Render checks as markdown tables for AI/chat display.
@@ -1517,10 +1618,11 @@ def format_report(
     """
     lang = _norm_lang(lang)
     checks = list(checks or [])
+    display = checks if include_all_results else _collapse_display_checks(checks)
     lines: List[str] = ["# Claude Sonar Audit Report", ""]
     lines.extend(_intro_lines(lang))
 
-    groups = group_checks(checks)
+    groups = group_checks(display)
     scored = score_checks(checks)
     if lang == "zh":
         lines.extend([
@@ -1555,8 +1657,8 @@ def format_report(
             "",
         ])
 
-    # Full report includes the all-results table; compact skips it.
-    if not compact:
+    # Opt-in full dump; default chat report is the three action groups only.
+    if include_all_results and not compact:
         if lang == "zh":
             lines.extend(
                 [

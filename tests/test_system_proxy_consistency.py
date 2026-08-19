@@ -172,21 +172,16 @@ class TestGeoStack(unittest.TestCase):
         # Must not push node-country following
         self.assertIn("do not auto-follow", blob)
 
-    def test_geo_stack_warning_when_locale_mismatched(self):
+    def test_geo_stack_pass_for_plausible_en_zh_bilingual(self):
+        # en-US + zh-CN / zh-Hans-SG is a normal bilingual stack, not a mismatch.
         checks = analyze_snapshot(_base_system(
             Culture="en-US",
             UICulture="zh-CN",
             SystemLocale="zh-CN",
         ))
         ids = _ids(checks)
-        self.assertEqual(ids["system.locale"].status, "warning")
-        self.assertEqual(ids["consistency.geo_stack"].status, "warning")
-        rec = (ids["consistency.geo_stack"].recommendation or "").lower()
-        self.assertTrue(
-            "consider" in rec or "optional" in rec or "truthful" in rec,
-            msg=f"recommendation not advisory: {rec!r}",
-        )
-        self.assertNotIn("will change", rec)
+        self.assertEqual(ids["system.locale"].status, "pass")
+        self.assertEqual(ids["consistency.geo_stack"].status, "pass")
 
     def test_geo_stack_partial_unknown(self):
         checks = analyze_snapshot({"System": {

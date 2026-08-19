@@ -72,7 +72,8 @@ Invoke `$claude-sonar` in Codex. For Claude Code, install the same folder as `~/
 ## CLI (1.4)
 
 ```bash
-python -m claude_sonar                 # full markdown report (offline)
+python -m claude_sonar                 # markdown report (offline; three groups: Must fix / Optional / Leave alone)
+python -m claude_sonar --full          # add the All-results master table
 python -m claude_sonar --compact       # shorter markdown (score + must-fix / optional)
 python -m claude_sonar --json          # report_dict + summary as JSON
 python -m claude_sonar --out report.md

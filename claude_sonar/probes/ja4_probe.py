@@ -343,7 +343,7 @@ def check_tls_fingerprint(timeout: int = 5) -> AuditCheck:
         )
 
     return AuditCheck(
-        status="unknown",
+        status="pass",
         severity="info",
         confidence="possible",
         evidence=[Evidence(
@@ -353,7 +353,7 @@ def check_tls_fingerprint(timeout: int = 5) -> AuditCheck:
         )],
         explanation=(
             f"只读检测：本机 openssl 连接 {_ANTHROPIC_HOST} 的 TLS ClientHello 指纹为 "
-            f"JA3={ja3}、JA4={ja4}（未知指纹：指纹本身不代表异常，仅供观察）。"
+            f"JA3={ja3}、JA4={ja4}（只读观察：指纹本身不代表异常）。"
             "本工具不提供指纹伪装、拟合或修改建议。"
         ),
         **base_kwargs,

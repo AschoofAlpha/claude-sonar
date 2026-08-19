@@ -22,7 +22,7 @@ import ipaddress
 import json
 import ssl
 import urllib.request
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Sequence
 
 from ..models import AuditCheck, Evidence
 from ..redaction import Redactor
@@ -75,8 +75,44 @@ def check_dns_egress_consistency(
     timeout: int = 5,
     *,
     redactor: Optional[Redactor] = None,
+    existing_checks: Optional[Sequence[Any]] = None,
 ) -> AuditCheck:
     """Compare DoH-resolved exit with HTTP egress; read-only observation."""
+    # fake-IP + port-53 hijacking already routes DNS through the tunnel:
+    # the DoH comparison adds nothing and dns.google is commonly blocked.
+    if existing_checks:
+        by_id = {}
+        for check in existing_checks:
+            cid = getattr(check, "id", None)
+            if cid:
+                by_id[cid] = check
+        fakeip = by_id.get("network.dns_mode")
+        hijack = by_id.get("network.dns_hijack")
+        def _st(check):
+            return str(getattr(check, "status", "") or "").lower()
+        if (
+            fakeip is not None and _st(fakeip) == "pass"
+            and "fake-ip" in str(getattr(fakeip, "explanation", "") or "").lower()
+            and hijack is not None and _st(hijack) == "pass"
+        ):
+            return AuditCheck(
+                id="network.dns.egress_consistency",
+                title="DNS egress consistency (DoH vs HTTP, read-only)",
+                category="network",
+                status="pass",
+                severity="info",
+                confidence="confirmed",
+                evidence=[Evidence(
+                    type="dns_egress_consistency",
+                    description="DNS routed via fake-IP + port-53 hijacking (DoH comparison skipped)",
+                    data={"skipped_reason": "fakeip_and_hijack", "raw_value_persisted": False},
+                )],
+                explanation=(
+                    "fake-IP 与 53 端口劫持已开启，DNS 查询走代理隧道；"
+                    "跳过 DoH 对照（dns.google 常被代理拦截，不影响结论）。"
+                ),
+            )
+
     redactor = redactor or Redactor()
     per = max(1, min(int(timeout) or 1, 5))
 

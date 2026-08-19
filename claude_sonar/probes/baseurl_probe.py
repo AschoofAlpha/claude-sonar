@@ -169,7 +169,7 @@ def check_anthropic_baseurl() -> AuditCheck:
                 data=evidence_data,
             )],
             explanation=(
-                "[not_configured] 未检测到 ANTHROPIC_BASE_URL 环境变量："
+                "未检测到 ANTHROPIC_BASE_URL 环境变量："
                 "Claude 默认连接官方端点 api.anthropic.com。"
             ),
         )
@@ -313,7 +313,7 @@ def check_anthropic_baseurl_tcp(timeout: int = 5) -> AuditCheck:
             severity="info",
             confidence="confirmed",
             explanation=(
-                "[not_configured] 未设置 ANTHROPIC_BASE_URL，"
+                "未设置 ANTHROPIC_BASE_URL，"
                 "无需定点连通测试（默认连接官方端点）。"
             ),
             **base_kwargs,

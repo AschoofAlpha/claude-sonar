@@ -280,7 +280,10 @@ def build_personal_guidance(
 
     # CLI coding agents (Claude Code / Codex / …) often ignore the OS system
     # proxy — recommend global + TUN/virtual-adapter capture, app-named.
-    if cli_agent:
+    # Skip the push when proxy env vars already cover CLI traffic (network.env_proxy pass).
+    env_proxy = by_id.get("network.env_proxy")
+    env_proxy_ok = str(_field(env_proxy, "status", "") or "") == "pass"
+    if cli_agent and not env_proxy_ok:
         add_action(
             "cli_tun",
             (

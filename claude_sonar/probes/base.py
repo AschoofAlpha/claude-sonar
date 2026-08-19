@@ -2,6 +2,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from typing import Callable, Iterable, List, Optional, Sequence, Tuple
 
+from ..models import AuditCheck
+
 
 @dataclass
 class ProbeEndpoint:
@@ -145,6 +147,22 @@ def run_probes(
 
     # Independent online probes — parallel with ordered merge.
     dns_timeout = min(timeout, 5)
+    # Reuse already-collected egress tokens so cross-site does not re-fetch.
+    reused: List[dict] = []
+    for res in results:
+        if not isinstance(res, AuditCheck):
+            continue
+        for item in res.evidence or []:
+            data = item.data if isinstance(item.data, dict) else {}
+            if data.get("observed_address") and item.type in ("runtime_egress",):
+                reused.append({
+                    "site": str(data.get("endpoint") or "egress"),
+                    "observed_address": data.get("observed_address"),
+                    "address_family": data.get("address_family"),
+                })
+    cross_site_kwargs = {}
+    if len({o["observed_address"] for o in reused}) >= 1:
+        cross_site_kwargs["observations"] = reused
     jobs: List[Tuple[str, Callable[[], object]]] = [
         (
             "dns",
@@ -162,6 +180,7 @@ def run_probes(
             lambda: check_cross_site_routing(
                 urls=cross_site_urls,
                 timeout=timeout,
+                **cross_site_kwargs,
             ),
         ),
         (

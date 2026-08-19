@@ -24,7 +24,7 @@ from .analysis import (
     mihomo_protects_dns,
     redact_checks,
 )
-from .analysis.system import merge_geo_with_egress, normalize_intended_mode
+from .analysis.system import infer_intended_mode, merge_geo_with_egress, normalize_intended_mode
 from .models import AuditCheck, AuditReport, PlatformInfo, PrivacyMetadata, to_dict
 from .redaction import Redactor
 from .resources import resource_path
@@ -96,6 +96,8 @@ def analyze_snapshot(data, include_recommendations=True, redactor=None, intended
         raise TypeError("snapshot must be a dictionary")
 
     mode = normalize_intended_mode(intended_mode)
+    if mode is None:
+        mode = infer_intended_mode(data)
     builder = CheckBuilder(include_recommendations=include_recommendations)
     # intended_mode is a coordination stub for analysis collectors; pass only
     # when the callee accepts it so older analysis modules keep working.
@@ -243,7 +245,10 @@ def run_full_audit(
             from .probes.dns_egress_probe import check_dns_egress_consistency
 
             checks.extend(redact_checks(
-                [check_dns_egress_consistency(timeout=probe_timeout)], redactor
+                [check_dns_egress_consistency(
+                    timeout=probe_timeout,
+                    existing_checks=checks,
+                )], redactor
             ))
         except Exception as exc:  # pragma: no cover - best-effort
             checks.extend(redact_checks([AuditCheck(

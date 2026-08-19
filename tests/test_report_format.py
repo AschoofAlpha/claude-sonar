@@ -102,6 +102,16 @@ class TestReportFormat(unittest.TestCase):
             "leave_alone",
         )
 
+    def test_classify_unset_baseurl_pass_leave_alone(self):
+        self.assertEqual(
+            classify_action(_check(
+                id="network.anthropic_baseurl",
+                status="pass",
+                explanation="未检测到 ANTHROPIC_BASE_URL 环境变量：Claude 默认连接官方端点 api.anthropic.com。",
+            )),
+            "leave_alone",
+        )
+
     def test_status_reason_from_prefix(self):
         self.assertEqual(
             status_reason(_check(
@@ -150,8 +160,9 @@ class TestReportFormat(unittest.TestCase):
         self.assertIn("## 可选一致性", md)
         self.assertIn("## 保持不动", md)
         self.assertIn("network.dns_hijack", md)
-        self.assertIn("## 全部结果", md)
         self.assertIn("名词解释", md)
+        md_full = format_report(checks, lang="zh", include_all_results=True)
+        self.assertIn("## 全部结果", md_full)
         self.assertNotIn("人话", md)
         self.assertNotIn("plain:", md)
         self.assertIn("通过", md)
@@ -160,7 +171,7 @@ class TestReportFormat(unittest.TestCase):
         md = format_report([
             _check(id="network.tun", status="unknown", confidence="unknown",
                    explanation="Observed TunEnabled=False."),
-        ], lang="en")
+        ], lang="en", include_all_results=True)
         self.assertIn("## All results", md)
         self.assertIn("| check | status | severity | meaning | recommendation |", md)
         self.assertIn("Glossary", md)

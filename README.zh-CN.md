@@ -76,7 +76,8 @@ git clone https://github.com/AschoofAlpha/claude-sonar.git "$HOME/.codex/skills/
 ## CLI（1.4）
 
 ```bash
-python -m claude_sonar                 # 完整 Markdown 报告（离线）
+python -m claude_sonar                 # Markdown 报告（离线；默认三分组：必须处理/可选一致性/保持不动）
+python -m claude_sonar --full          # 附加「全部结果」总表
 python -m claude_sonar --compact       # 精简报告（分数 + 必须处理 / 可选一致性）
 python -m claude_sonar --json          # 输出 report_dict + summary
 python -m claude_sonar --out report.md
