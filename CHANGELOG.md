@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-08-19
+
+实机体检后的一轮报告与探测修正（不改变检测边界）：
+
+### 报告
+- 聊天默认只贴三分组（必须处理/可选一致性/保持不动）；「全部结果」改为 `--full` / `include_all_results=True` 选入
+- 6 项补充隐私（OTEL×4、本地历史、子进程擦除）折叠为一行「补充隐私项」；4 项浏览器 WebRTC 折叠为一行
+- `lang=zh` 补齐中文词条（跨站、PAC、双栈、稳定性等不再漏英文句子）
+
+### 误判修正
+- 未设置 `ANTHROPIC_BASE_URL` = 官方端点，不再标 `[not_configured]`、不再扣分
+- 本机 Claude 目录/遥测缓存存在 = 用过即有，归入「保持不动」，不扣分
+- en-* + zh-Hans/zh-CN 双语 locale = 正常，不再警告
+- 成功抓到 TLS 指纹 = 观察成功（通过），不再标未知
+
+### 探测
+- 未声明模式时自动推断 `intended_mode`（系统代理回环+TUN关 → system_proxy；TUN开 → full_tunnel）
+- 跨站路由复用同一次运行的出口 token（共享同一 Redactor，避免脱敏盐不一致误报）
+- fake-IP + 53 劫持通过时跳过 DoH 对照（dns.google 常被代理拦截）
+- 环境变量代理已通过时，不再劝 CLI 用户开全局+TUN
+
 ## [1.0.0] - 2026-08-14
 
 这是一个全新开始。项目从 `claude-shield` 更名为 `claude-sonar`，正式发布 1.0.0。

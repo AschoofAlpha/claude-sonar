@@ -2,12 +2,17 @@
 import hashlib
 import os
 import sys
+import tomllib
 
 import requests
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOKEN = open(os.path.join(ROOT, ".pypi-token.txt"), encoding="utf-8").read().strip()
 assert TOKEN.startswith("pypi-"), "token format"
+
+VERSION = tomllib.load(
+    open(os.path.join(ROOT, "pyproject.toml"), "rb")
+)["project"]["version"]
 
 DIST = os.path.join(ROOT, "dist")
 PROXIES = {"http": "http://127.0.0.1:7897", "https": "http://127.0.0.1:7897"}
@@ -22,7 +27,7 @@ for fname in sorted(os.listdir(DIST)):
         ":action": "file_upload",
         "protocol_version": "1",
         "name": "claude-sonar",
-        "version": "1.0.0",
+        "version": VERSION,
         "filetype": ftype,
         "pyversion": "py3" if ftype == "bdist_wheel" else "source",
         "metadata_version": "2.4",
