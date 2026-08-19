@@ -2,6 +2,7 @@
 import os
 import sys
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -192,6 +193,40 @@ class TestCrossSiteReuse(unittest.TestCase):
         )
         self.assertEqual(check.status, "pass")
         self.assertIn("一致", check.explanation)
+
+    def test_shared_redactor_makes_endpoint_tokens_comparable(self):
+        from claude_sonar.probes import egress as egress_probes
+        from claude_sonar.probes.base import ProbeContext, ProbeEndpoint
+        from claude_sonar.redaction import Redactor
+
+        ep = ProbeEndpoint(
+            id="t1",
+            purpose="test",
+            url="https://example.com",
+            enabled=True,
+            supports_ipv4=True,
+            supports_ipv6=True,
+            expected_content_type="text/plain",
+            maximum_response_bytes=16384,
+        )
+        ctx = ProbeContext(timeout=2, endpoint=ep)
+        shared = Redactor()
+        results = []
+        with mock.patch.object(
+            egress_probes, "run_python_probe", return_value=("ip=203.0.113.50\n", "direct_pinned")
+        ), mock.patch.object(
+            egress_probes, "run_curl_probe", return_value=("ip=203.0.113.50\n", "direct_pinned")
+        ):
+            for cid in ("a", "b"):
+                ctx.endpoint.id = cid
+                results.append(egress_probes.check_egress_consistency(ctx, redactor=shared))
+        toks = [
+            item.data["observed_address"]
+            for res in results
+            for item in (res.evidence or [])
+            if item.type == "runtime_egress"
+        ]
+        self.assertEqual(len(set(toks)), 1, toks)
 
 
 class TestPersonalizeEnvProxy(unittest.TestCase):

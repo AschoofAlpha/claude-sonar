@@ -550,6 +550,14 @@ _DETAIL_PHRASE_MAP: Tuple[Tuple[str, str], ...] = (
         "通常视为关闭",
     ),
     (
+        "Treat as incomplete routing evidence",
+        "证据不够，不算路由稳定性结论",
+    ),
+    (
+        "not as stability pass or ban risk",
+        "也不代表封号风险",
+    ),
+    (
         "Country class (default path):",
         "默认路径国家分类：",
     ),

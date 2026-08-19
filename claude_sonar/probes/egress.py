@@ -137,8 +137,9 @@ def _reputation_classes(timeout: int) -> Tuple[Optional[str], Optional[str], Opt
     return country, asn, None
 
 
-def check_egress_consistency(ctx: ProbeContext, is_custom: bool = False):
+def check_egress_consistency(ctx: ProbeContext, is_custom: bool = False, redactor: Optional[Redactor] = None):
     # Compare Python stdlib and curl egress when both are available.
+    # Shared redactor (caller-provided) keeps tokens comparable across endpoints.
 
     # Python stdlib
     py_text = run_python_probe(ctx.endpoint.url, ctx.timeout, is_custom=is_custom)
@@ -146,7 +147,7 @@ def check_egress_consistency(ctx: ProbeContext, is_custom: bool = False):
     curl_text = run_curl_probe(ctx.endpoint.url, ctx.timeout)
 
     # Memory-only IP pseudonymization; raw addresses are not persisted.
-    redactor = Redactor()
+    redactor = redactor or Redactor()
 
     def process_result(runtime, probe_result):
         if not probe_result:

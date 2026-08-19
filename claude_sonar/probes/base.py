@@ -129,9 +129,15 @@ def run_probes(
         eps = [ProbeEndpoint(**e) for e in eps]
 
     # Egress-per-endpoint stays sequential (shared endpoint list, ordered).
+    # One redactor instance for all endpoints so redacted tokens are comparable.
+    from ..redaction import Redactor
+
+    shared_redactor = Redactor()
     for ep in eps:
         ctx = ProbeContext(timeout=timeout, endpoint=ep)
-        res = check_egress_consistency(ctx, is_custom=custom_endpoint is not None)
+        res = check_egress_consistency(
+            ctx, is_custom=custom_endpoint is not None, redactor=shared_redactor
+        )
         results.append(res)
 
     # custom_endpoint-only (online=False): dns only, sequential — preserve prior
