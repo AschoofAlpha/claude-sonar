@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-08-19
+
+版本号统一升级，将之前本地/远程的 1.0.1 进度收口到 1.0.3（跳过 1.0.2）。
+
+### 修正
+- 中文报告剩余英文句子全部译完：路由/TUN/信誉查询/双栈 IPv4 等
+- 373 项测试全绿
+
+## [1.0.2] - 未发布
+
+缺叧。
+
 ## [1.0.1] - 2026-08-19
 
 实机体检后的一轮报告与探测修正（不改变检测边界）：

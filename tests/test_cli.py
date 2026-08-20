@@ -310,7 +310,7 @@ class TestCliMain(unittest.TestCase):
             self.assertIn("collector error", err.getvalue())
 
     def test_module_version(self):
-        self.assertEqual(__version__, "1.0.1")
+        self.assertEqual(__version__, "1.0.3")
 
 
 class TestDiffHelpers(unittest.TestCase):
