@@ -223,10 +223,10 @@ _GLOSSARY = {
         ("pass / 通过", "这项看起来正常。"),
         ("fail / 失败", "确认有问题，应处理。"),
         ("warning / 警告", "有风险或不一致，需要你看一眼。"),
-        ("unknown / 未知", "证据不够，不能当成「安全」也不能当成「泄漏」。"),
+        ("unknown / 未知", "证据不够，不能当成「安全」也不能当成「泄漏」。出现在「保持不动」里时不是问题，不用改。"),
         ("Must fix / 必须处理", "已确认的问题或高风险项。"),
         ("Optional consistency / 可选一致性", "不影响「有没有漏」，只是风格/习惯是否统一。"),
-        ("Leave alone / 保持不动", "正常，或改了也没好处。"),
+        ("Leave alone / 保持不动", "正常，证据不足，或改了也没好处。"),
         ("Mihomo / Clash", "常见代理核心/客户端（如 Clash Verge 用的引擎）。"),
         ("系统代理 (system proxy)", "让软件走系统里填的代理地址（通常是 127.0.0.1:端口）。"),
         ("TUN / 全隧道", "虚拟网卡模式，更多流量强制进代理；比「仅系统代理」覆盖面更大。"),
@@ -244,10 +244,10 @@ _GLOSSARY = {
         ("pass", "Looks healthy for this check."),
         ("fail", "Confirmed problem — act on it."),
         ("warning", "Risk or mismatch — review it."),
-        ("unknown", "Not enough evidence; neither safe nor a proven leak."),
+        ("unknown", "Not enough evidence; neither safe nor a proven leak. In Leave alone it is not a problem."),
         ("Must fix", "Confirmed issues or high-risk items."),
         ("Optional consistency", "Not a leak; tidy only if you want consistency."),
-        ("Leave alone", "Fine as-is, or changing it does not help."),
+        ("Leave alone", "Fine as-is, insufficient evidence, or changing it does not help."),
         ("Mihomo / Clash", "Common proxy engine/client stack."),
         ("System proxy", "Apps use the OS proxy address (usually 127.0.0.1:port)."),
         ("TUN", "Virtual-adapter full-tunnel mode; broader capture than system proxy alone."),
@@ -1211,9 +1211,11 @@ def translate_recommendation(text: str, lang: str = "zh") -> str:
     return out
 
 
-def plain_status(status: str, lang: str = "zh") -> str:
+def plain_status(status: str, lang: str = "zh", action: Optional[str] = None) -> str:
     lang = _norm_lang(lang)
     key = str(status or "").lower()
+    if action == "leave_alone" and key == "unknown":
+        return "证据不足，不是问题" if lang == "zh" else "insufficient evidence, not a problem"
     return _STATUS_PLAIN.get(lang, _STATUS_PLAIN["zh"]).get(key, str(status or ""))
 
 
@@ -1665,7 +1667,7 @@ def _row_cells(check: Any, lang: str) -> Dict[str, str]:
     severity = _SEVERITY_ZH.get(sev_raw, sev_raw or "—") if lang == "zh" else (sev_raw or "—")
     return {
         "item": _signal_label(check),
-        "status": f"{plain_status(status, lang)} ({status})" if status else "—",
+        "status": f"{plain_status(status, lang, action=action)} ({status})" if status else "—",
         "severity": severity,
         "meaning": plain_check(check_id, lang),
         "detail": explanation or "—",

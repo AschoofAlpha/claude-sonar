@@ -230,6 +230,53 @@ class TestReportFormat(unittest.TestCase):
         self.assertIn("/ 100", md)
         self.assertNotIn("## 防封", md)
 
+    def test_leave_alone_unknown_status_is_not_a_problem_zh(self):
+        check = _check(
+            id="network.dns_physical_resolver",
+            status="unknown",
+            confidence="unknown",
+            explanation="Physical adapter DNS is configured; fake-IP plus port-53 hijack is on.",
+        )
+        self.assertEqual(classify_action(check), "leave_alone")
+        md = format_report([check], lang="zh")
+        leave = md.split("## 保持不动", 1)[1].split("## ", 1)[0]
+        self.assertIn("证据不足，不是问题", leave)
+        self.assertIn("(unknown)", leave)
+        self.assertNotIn("未知/未验证", leave)
+
+    def test_optional_unknown_status_stays_unverified_zh(self):
+        check = _check(
+            id="system.timezone",
+            status="unknown",
+            confidence="unknown",
+            explanation="TimeZone information is missing.",
+        )
+        self.assertEqual(classify_action(check), "optional_consistency")
+        md = format_report([check], lang="zh")
+        opt = md.split("## 可选一致性", 1)[1].split("## ", 1)[0]
+        self.assertIn("未知/未验证", opt)
+        self.assertNotIn("证据不足，不是问题", opt)
+
+    def test_leave_alone_unknown_status_en(self):
+        check = _check(
+            id="network.dns_physical_resolver",
+            status="unknown",
+            confidence="unknown",
+            explanation="Physical adapter DNS is configured.",
+        )
+        md = format_report([check], lang="en")
+        leave = md.split("## Leave alone", 1)[1].split("## ", 1)[0]
+        self.assertIn("insufficient evidence, not a problem", leave)
+        self.assertNotIn("unknown / not verified", leave)
+
+    def test_glossary_unknown_in_leave_alone_is_not_a_problem(self):
+        md = format_report([_check(id="network.mode", status="pass")], lang="zh")
+        gloss = md.split("## 名词解释", 1)[1]
+        unknown_row = next(ln for ln in gloss.splitlines() if ln.startswith("| unknown"))
+        self.assertIn("不是问题", unknown_row)
+        leave_row = next(ln for ln in gloss.splitlines() if "Leave alone / 保持不动" in ln)
+        self.assertIn("证据不足", leave_row)
+
 
 if __name__ == "__main__":
     unittest.main()

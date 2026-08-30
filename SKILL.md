@@ -315,7 +315,9 @@ State uncertainty explicitly. Reputation scores, TCP/IP inference, and RTT are n
 
 ## Verification
 
-After explicit approval, re-run controlled public tests after a node, network, or configuration change. Use a fresh unique hostname for DNS so cached answers do not hide the active resolver path. A healthy result is internally consistent and free of confirmed bypasses; it does not need every heuristic detector to show green. Do not mark the audit complete while any required item is `unknown` or `ManualCheckRequired`.
+After explicit approval, re-run controlled public tests after a node, network, or configuration change. Use a fresh unique hostname for DNS so cached answers do not hide the active resolver path. A healthy result is internally consistent and free of confirmed bypasses; it does not need every heuristic detector to show green.
+
+Do **not** treat `unknown` / `ManualCheckRequired` in **Leave alone / 保持不动** as incomplete — that bucket means “not a problem, no action.” Only block calling the audit complete when a **Must fix / 必须处理** item is still `unknown` or `ManualCheckRequired` (evidence was required and is still missing). Optional-consistency unknowns may stay unknown; say so, do not convert them into a pass.
 
 
 ## Local identity / cache / fingerprint recommendations

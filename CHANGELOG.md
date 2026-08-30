@@ -8,6 +8,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - HTTP 探测 User-Agent 从 `Claude-Shield` 改为 `Claude-Sonar`
 - 中文 README 补上配置自洽分徽章；去掉易混淆的「CLI 1.4」标题
 - CHANGELOG `[1.0.2]` 错字；Issue 模板版本占位改为 1.0.3
+- 「保持不动」里的 `unknown` 状态改标「证据不足，不是问题」；名词解释同步。不把 unknown 改成 pass
+- SKILL：只有「必须处理」仍 unknown 才算体检未完成；保持不动里的 unknown 不算没做完
 
 ## [1.0.3] - 2026-08-19
 
