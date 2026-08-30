@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 修正
+- HTTP 探测 User-Agent 从 `Claude-Shield` 改为 `Claude-Sonar`
+- 中文 README 补上配置自洽分徽章；去掉易混淆的「CLI 1.4」标题
+- CHANGELOG `[1.0.2]` 错字；Issue 模板版本占位改为 1.0.3
+
 ## [1.0.3] - 2026-08-19
 
 版本号统一升级，将之前本地/远程的 1.0.1 进度收口到 1.0.3（跳过 1.0.2）。
@@ -12,7 +19,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [1.0.2] - 未发布
 
-缺叧。
+跳号，未单独发布。
 
 ## [1.0.1] - 2026-08-19
 

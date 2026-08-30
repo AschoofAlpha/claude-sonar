@@ -9,6 +9,7 @@
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/AschoofAlpha/claude-sonar/ci.yml?style=flat-square&label=CI" alt="CI">
   <img src="https://img.shields.io/badge/version-1.0.3-2DD4BF?style=flat-square" alt="v1.0.3">
+  <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FAschoofAlpha%2Fclaude-sonar%2Fmain%2Fsonar-badge.json&query=%24.message&label=配置自洽分&color=2DD4BF" alt="配置自洽分">
   <img src="https://img.shields.io/badge/default-read--only-2DD4BF?style=flat-square" alt="默认只读">
   <img src="https://img.shields.io/badge/platform-Windows-4F7CFF?style=flat-square" alt="Windows">
   <img src="https://img.shields.io/badge/license-MIT-64748B?style=flat-square" alt="MIT License">
@@ -73,7 +74,7 @@ git clone https://github.com/AschoofAlpha/claude-sonar.git "$HOME/.codex/skills/
 
 在 Codex 中调用 `$claude-sonar`。Claude Code 用户将同一目录安装到 `~/.claude/skills/claude-sonar`，调用 `/claude-sonar`。
 
-## CLI（1.4）
+## CLI
 
 ```bash
 python -m claude_sonar                 # Markdown 报告（离线；默认三分组：必须处理/可选一致性/保持不动）

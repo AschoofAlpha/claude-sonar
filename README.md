@@ -69,7 +69,7 @@ git clone https://github.com/AschoofAlpha/claude-sonar.git "$HOME/.codex/skills/
 
 Invoke `$claude-sonar` in Codex. For Claude Code, install the same folder as `~/.claude/skills/claude-sonar` and invoke `/claude-sonar`.
 
-## CLI (1.4)
+## CLI
 
 ```bash
 python -m claude_sonar                 # markdown report (offline; three groups: Must fix / Optional / Leave alone)

@@ -86,7 +86,7 @@ def fetch_http(url: str, timeout: int = 5, max_bytes: int = 16384, is_custom: bo
 
     req = urllib.request.Request(
         url,
-        headers={'User-Agent': f'Claude-Shield/{__version__}'}
+        headers={'User-Agent': f'Claude-Sonar/{__version__}'}
     )
     
     try:
