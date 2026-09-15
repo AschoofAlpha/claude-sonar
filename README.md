@@ -52,6 +52,10 @@
 >
 > **Audit first. Decide after.** Your account deserves one honest check.
 
+## Try it in your browser
+
+No install, no backend: open [`static/demo.html`](static/demo.html) (or visit the hosted copy after the repo is public) for a read-only browser observation — WebRTC ICE candidates, timezone/language, a read-only canvas hash, and your egress IP with third-party labels. Observation only; it never changes anything and never spoofs a fingerprint. The deep local audit (proxy/DNS/TUN/privacy settings) still requires the installed tool below.
+
 ## Install
 
 ```bash

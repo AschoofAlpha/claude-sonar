@@ -10,6 +10,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - CHANGELOG `[1.0.2]` 错字；Issue 模板版本占位改为 1.0.3
 - 「保持不动」里的 `unknown` 状态改标「证据不足，不是问题」；名词解释同步。不把 unknown 改成 pass
 - SKILL：只有「必须处理」仍 unknown 才算体检未完成；保持不动里的 unknown 不算没做完
+- 新增 `static/demo.html`：零后端、零第三方脚本的即开即用浏览器观测页（WebRTC 候选、时区/语言、canvas 只读哈希、出口 IP 第三方标签），不伪装、不改设置；README 与打包清单同步
 
 ## [1.0.3] - 2026-08-19
 

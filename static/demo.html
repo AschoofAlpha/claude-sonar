@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Sonar · 浏览器观测（即开即用）</title>
+<style>
+  :root {
+    --bg: #0e1116; --panel: #161b23; --panel2: #1c232d; --border: #2a3340;
+    --text: #dbe2ea; --muted: #8b96a5; --accent: #5b9dff;
+    --green: #3fb950; --yellow: #d29922; --red: #f85149; --chip-bg: #232b36;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    line-height: 1.6; font-size: 15px;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 28px 20px 60px; }
+  header h1 { font-size: 24px; margin: 0 0 6px; }
+  header h1 .sub { font-size: 14px; color: var(--muted); font-weight: normal; margin-left: 10px; }
+  header p { margin: 0; color: var(--muted); font-size: 13.5px; }
+  .banner {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: #14251c; border: 1px solid #1f3d2c; border-radius: 10px;
+    padding: 12px 14px; margin: 18px 0; font-size: 13.5px; color: #b6e3c5;
+  }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px; margin-bottom: 16px;
+  }
+  .panel h2 { font-size: 16px; margin: 0 0 4px; }
+  .panel .hint { font-size: 12.5px; color: var(--muted); margin: 0 0 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+  td code, li code { background: var(--chip-bg); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; font-size: 12.5px; }
+  .ok { color: var(--green); } .warn { color: var(--yellow); } .bad { color: var(--red); } .mut { color: var(--muted); }
+  ul { margin: 0; padding-left: 20px; }
+  li { margin: 4px 0; }
+  .empty { color: var(--muted); }
+  button {
+    background: var(--accent); color: #08101c; border: none; border-radius: 8px;
+    padding: 9px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  button:hover { filter: brightness(1.1); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .cta { margin-top: 18px; font-size: 14px; }
+  footer { color: var(--muted); font-size: 12.5px; margin-top: 26px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Claude Sonar<span class="sub">浏览器观测 · 即开即用</span></h1>
+  <p>这一页只做一件事：把浏览器自己能看见的东西照给你看。观测只在你的浏览器里发生，不改任何设置。</p>
+</header>
+
+<div class="banner">⚠️ 这是「表层观测」，只观测、不伪装。页面不嵌入任何第三方脚本；出口 IP 只是拿你浏览器自己的请求去问一次公开接口（第三方标签，供参考）。要查本机代理/DNS/隐私配置，装完整工具：<code>pip install -U claude-sonar</code></div>
+
+<div class="panel">
+  <h2>浏览器环境 / Environment</h2>
+  <p class="hint">时区 · 语言 · 平台（浏览器能读到的公开字段）</p>
+  <table>
+    <tr><th>检查项</th><th>观测值</th></tr>
+    <tr><td>时区 / timezone</td><td id="d-tz">…</td></tr>
+    <tr><td>区域设置 / locale</td><td id="d-locale">…</td></tr>
+    <tr><td>UTC 偏移（分钟）</td><td id="d-offset">…</td></tr>
+    <tr><td>语言列表 / languages</td><td id="d-langs">…</td></tr>
+    <tr><td>平台 / platform</td><td id="d-platform">…</td></tr>
+    <tr><td>User-Agent</td><td id="d-ua">…</td></tr>
+  </table>
+</div>
+
+<div class="panel">
+  <h2>WebRTC 观测</h2>
+  <p class="hint">本地候选地址。出现 host 类型候选 = 网页能读到你的本地网段地址（常见泄漏点）。只显示，不修改。</p>
+  <ul id="d-webrtc"><li class="empty">检测中…</li></ul>
+  <p id="d-webrtc-verdict" class="mut"></p>
+</div>
+
+<div class="panel">
+  <h2>画布指纹（只读）</h2>
+  <p class="hint">用 canvas 画一遍字、取哈希，看看你的浏览器渲染结果长什么样。只计算、不存储、不伪装。</p>
+  <table>
+    <tr><th>检查项</th><th>观测值</th></tr>
+    <tr><td>canvas 哈希</td><td id="d-canvas">计算中…</td></tr>
+    <tr><td>屏幕 / 视口</td><td id="d-screen">…</td></tr>
+  </table>
+</div>
+
+<div class="panel">
+  <h2>出口 IP（第三方标签）</h2>
+  <p class="hint">用你浏览器自己的请求问公开接口，看到的就是网站眼里的你。标签是第三方数据库的意见，不是判决。</p>
+  <table>
+    <tr><th>检查项</th><th>观测值</th></tr>
+    <tr><td>出口 IPv4</td><td id="d-ip">检测中…</td></tr>
+    <tr><td>国家 / 城市</td><td id="d-geo">…</td></tr>
+    <tr><td>ISP / ASN</td><td id="d-isp">…</td></tr>
+    <tr><td>第三方标签</td><td id="d-flags">…</td></tr>
+  </table>
+</div>
+
+<div class="cta">
+  <strong>这只是浏览器能看到的表层。</strong> 本机代理是否漏 DNS、TUN/规则/隐私开关是否自洽、ANTHROPIC_BASE_URL 是否被中转——这些浏览器看不到，要装完整工具在本地跑：
+  <br><br>
+  <code>pip install -U claude-sonar && python -m claude_sonar</code>
+  <br><br>
+  项目主页：<a href="https://github.com/AschoofAlpha/claude-sonar">github.com/AschoofAlpha/claude-sonar</a> · 只读体检，改不改由你决定。
+</div>
+
+<footer>本页不嵌入第三方脚本、不存任何数据、不伪装指纹、不保证「这样配置就不会被封」。观测结果仅供参考。</footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  /* ---- environment ---- */
+  try {
+    var r = Intl.DateTimeFormat().resolvedOptions();
+    $("d-tz").innerHTML = "<code>" + esc(r.timeZone || "—") + "</code>";
+    $("d-locale").innerHTML = "<code>" + esc(r.locale || "—") + "</code>";
+  } catch (e) { $("d-tz").textContent = "读取失败"; }
+  $("d-offset").innerHTML = "<code>" + esc(new Date().getTimezoneOffset()) + "</code>";
+  var langs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || "—"]);
+  $("d-langs").innerHTML = "<code>" + esc(langs.join(", ")) + "</code>";
+  $("d-platform").innerHTML = "<code>" + esc(navigator.platform || "—") + "</code>";
+  $("d-ua").innerHTML = "<code>" + esc(navigator.userAgent || "—") + "</code>";
+
+  /* ---- WebRTC observation ---- */
+  (function detectWebRTC() {
+    var out = $("d-webrtc"), verdict = $("d-webrtc-verdict");
+    if (!window.RTCPeerConnection) {
+      out.innerHTML = '<li class="empty">当前浏览器不支持 WebRTC，无法检测。</li>';
+      verdict.textContent = "结果：未知（无法检测）";
+      return;
+    }
+    var found = {}, order = [], pc;
+    function render(done) {
+      if (order.length === 0) {
+        if (done) {
+          out.innerHTML = '<li class="empty">未获取到任何候选地址（浏览器已限制或被扩展拦截）。</li>';
+          verdict.innerHTML = '结果：<span class="ok">未见本地地址候选</span>';
+        }
+        return;
+      }
+      var hasHost = false, html = "";
+      for (var i = 0; i < order.length; i++) {
+        var c = found[order[i]];
+        if (c.type === "host") hasHost = true;
+        html += "<li><code>" + esc(c.type) + " " + esc(c.address) + "</code></li>";
+      }
+      out.innerHTML = html;
+      verdict.innerHTML = hasHost
+        ? '结果：<span class="warn">暴露了本地（host）地址候选——网页可读到你的局域网/本机地址。</span>'
+        : '结果：<span class="ok">只看到远端候选，未见本地地址。</span>';
+    }
+    try {
+      pc = new RTCPeerConnection({ iceServers: [] });
+      pc.createDataChannel("sonar-observation");
+      pc.onicecandidate = function (e) {
+        if (!e || !e.candidate) return;
+        var line = String(e.candidate.candidate || "");
+        var t = (line.match(/typ\s+(\S+)/) || [])[1] || "?";
+        var a = (line.match(/(?:udp|tcp)\s+\S+\s+\S+\s+(\S+)\s+\d+/) || [])[1] || "?";
+        var key = t + "|" + a;
+        if (!found[key]) { found[key] = { type: t, address: a }; order.push(key); render(false); }
+      };
+      pc.createOffer().then(function (o) { return pc.setLocalDescription(o); }).catch(function () {});
+    } catch (err) {
+      out.innerHTML = '<li class="empty">WebRTC 初始化失败：' + esc(err && err.message) + "</li>";
+      verdict.textContent = "结果：未知";
+      return;
+    }
+    setTimeout(function () { try { pc.close(); } catch (e) {} render(true); }, 3000);
+  })();
+
+  /* ---- canvas fingerprint, read-only ---- */
+  (function detectCanvas() {
+    try {
+      var cv = document.createElement("canvas");
+      cv.width = 220; cv.height = 60;
+      var ctx = cv.getContext("2d");
+      ctx.textBaseline = "top";
+      ctx.font = "16px sans-serif";
+      ctx.fillStyle = "#5b9dff";
+      ctx.fillRect(0, 0, 220, 60);
+      ctx.fillStyle = "#0e1116";
+      ctx.fillText("Claude Sonar 观测 " + navigator.language, 8, 8);
+      var data = cv.toDataURL();
+      var hash = 0, i;
+      for (i = 0; i < data.length; i++) { hash = ((hash << 5) - hash + data.charCodeAt(i)) | 0; }
+      $("d-canvas").innerHTML = "<code>" + esc(String(hash >>> 0)) + "</code>";
+    } catch (e) {
+      $("d-canvas").innerHTML = '<span class="empty">无法读取 canvas（可能被浏览器策略禁止）</span>';
+    }
+    $("d-screen").innerHTML = "<code>" + esc(screen.width) + "×" + esc(screen.height) +
+      "</code> · 视口 <code>" + esc(window.innerWidth) + "×" + esc(window.innerHeight) + "</code>";
+  })();
+
+  /* ---- egress IP via CORS-open public endpoints (no key) ---- */
+  (function detectEgress() {
+    fetch("https://api.ipify.org?format=json")
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        $("d-ip").innerHTML = "<code>" + esc(d.ip) + "</code>";
+        return fetch("https://ipwho.is/" + encodeURIComponent(d.ip));
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || d.success !== true) { throw new Error("no data"); }
+        $("d-geo").innerHTML = "<code>" + esc(d.country || "—") + " / " + esc(d.city || "—") + "</code>";
+        $("d-isp").innerHTML = "<code>" + esc(d.connection && d.connection.isp ? d.connection.isp : "—") +
+          " · AS" + esc(d.connection && d.connection.asn ? d.connection.asn : "—") + "</code>";
+        var f = d.connection || {};
+        var flags = [];
+        if (f.is_proxy) flags.push("proxy");
+        if (f.is_vpn) flags.push("vpn");
+        if (f.is_hosting) flags.push("datacenter");
+        if (f.is_tor) flags.push("tor");
+        if (f.is_mobile) flags.push("mobile");
+        if (f.is_crawler) flags.push("crawler");
+        $("d-flags").innerHTML = flags.length
+          ? flags.map(function (x) { return "<code>" + x + "</code>"; }).join(" ")
+          : '<span class="ok">无明显风险标签</span>';
+        $("d-flags").innerHTML += ' <span class="mut">（第三方数据库标签，仅供参考）</span>';
+      })
+      .catch(function (e) {
+        $("d-ip").innerHTML = '<span class="empty">出口探测失败（网络限制或接口限流）</span>';
+        $("d-geo").innerHTML = $("d-isp").innerHTML = $("d-flags").innerHTML = '<span class="empty">—</span>';
+      });
+  })();
+})();
+</script>
+</body>
+</html>

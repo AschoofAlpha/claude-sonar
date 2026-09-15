@@ -39,7 +39,7 @@ claude_sonar = ["resources/semgrep_rules/*.yaml", "resources/semgrep_rules/NOTIC
 [tool.setuptools.data-files]
 "share/claude-sonar" = ["SKILL.md", "README.md", "README.zh-CN.md", "LICENSE"]
 "share/claude-sonar/assets" = ["assets/social-preview.en.jpg", "assets/social-preview.jpg"]
-"share/claude-sonar/static" = ["static/panel.html"]
+"share/claude-sonar/static" = ["static/panel.html", "static/demo.html"]
 "share/claude-sonar/scripts" = [
     "scripts/collect_posix_network.py",
     "scripts/collect_windows_network.ps1",

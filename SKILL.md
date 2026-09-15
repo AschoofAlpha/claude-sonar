@@ -95,6 +95,7 @@ result = run_full_audit(
 - Feed the same `checks` into `format_report` or the Report Format section below. Do not re-derive the checks from raw JSON unless the library cannot run (then label every result `manual check required`).
 - Package CLI: `python -m claude_sonar`. Online stays off without `--online`.
   - `serve [--port N] [--open]` — read-only local web panel, 127.0.0.1 only. `/` renders the audit, `/api/report?online=0` returns the redacted report JSON, `/api/status`, `/api/badge`; the panel includes a browser-side observation block (WebRTC ICE candidates, timezone/language). Never add write endpoints, never bind non-loopback, never embed third-party scripts.
+  - `static/demo.html` — standalone, zero-backend browser observation page (WebRTC candidates, timezone/language, read-only canvas hash, egress IP with third-party labels). Opens from any static host or `file://`; contacts only api.ipify.org / ipwho.is (CORS-open, no key); embeds no third-party scripts; never spoofs or modifies anything.
   - `repo PATH [--no-tools] [--baseline F] [--json] [--sarif F] [--out F]` — repository security scan (stack detection, semgrep/gitleaks/pip-audit/npm audit/freshness with graceful degradation, bundled trimmed Semgrep rules, 0–100 code-security score, fix suggestions, SARIF). No pentesting, no GitHub-issue filing.
   - `badge [--out PATH] [--from-report F]` — writes `sonar-badge.json` for the shields.io dynamic badge. Regenerate after each audited change; the badge reflects the last written score, not a live audit.
 
