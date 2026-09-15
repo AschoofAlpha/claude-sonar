@@ -114,7 +114,7 @@ Library defaults: `run_full_audit(include_recommendations=True)` returns `report
 | Routing | TUN, default route, Teredo, IPv6 bypass |
 | Consistency | timezone × locale × (online) exit region |
 | Personalized | detects your proxy client (Clash Verge / v2rayN / sing-box / …) and gives per-app manual steps |
-| Online (opt-in) | DNS-vs-HTTP exit consistency (DoH), JA3/JA4 TLS client fingerprint (openssl capture) |
+| Online (opt-in) | DNS-vs-HTTP exit consistency (DoH), JA3/JA4 TLS client fingerprint (openssl capture), AI platform connectivity (ChatGPT/Claude/Grok/Perplexity/Gemini/DeepSeek/通义千问/Kimi, reachability only) |
 | Always-on | `ANTHROPIC_BASE_URL` audit vs a bundled public relay-risk blacklist |
 | Local panel | `serve` — 127.0.0.1 read-only panel + browser-side WebRTC/timezone observation |
 | Repo scan | `repo` — SAST / secrets / dependency audit with a 0–100 code-security score |

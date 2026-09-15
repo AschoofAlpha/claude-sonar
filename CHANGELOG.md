@@ -11,6 +11,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - 「保持不动」里的 `unknown` 状态改标「证据不足，不是问题」；名词解释同步。不把 unknown 改成 pass
 - SKILL：只有「必须处理」仍 unknown 才算体检未完成；保持不动里的 unknown 不算没做完
 - 新增 `static/demo.html`：零后端、零第三方脚本的即开即用浏览器观测页（WebRTC 候选、时区/语言、canvas 只读哈希、出口 IP 第三方标签），不伪装、不改设置；README 与打包清单同步
+- demo 页 v2：Client Hints、简繁字体渲染、国旗 emoji 渲染、AI 平台连通性（no-cors 仅测可达）、深浅主题、复制链接、本地历史；GitHub Pages 部署工作流
+- 新增在线探测 `network.ai_connectivity`：多平台 AI 主页可达性（沿代理路径，仅连通性观察，失败算 unknown 不算泄漏）
 
 ## [1.0.3] - 2026-08-19
 

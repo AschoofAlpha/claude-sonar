@@ -292,6 +292,22 @@ def run_full_audit(
                 confidence="unknown",
                 explanation=f"[probe_error] Base URL TCP check could not run: {exc}",
             )], redactor))
+        try:
+            from .probes.ai_status import check_ai_connectivity
+
+            checks.extend(redact_checks(
+                [check_ai_connectivity(timeout=probe_timeout)], redactor
+            ))
+        except Exception as exc:  # pragma: no cover - best-effort
+            checks.extend(redact_checks([AuditCheck(
+                id="network.ai_connectivity",
+                title="AI platform connectivity (read-only)",
+                category="network",
+                status="unknown",
+                severity="info",
+                confidence="unknown",
+                explanation=f"[probe_error] AI connectivity check could not run: {exc}",
+            )], redactor))
 
     report = build_audit_report(checks, snapshot=snapshot, redactor=redactor)
     # Redact platform hostname in report before export

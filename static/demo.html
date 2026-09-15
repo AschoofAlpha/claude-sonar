@@ -10,6 +10,11 @@
     --text: #dbe2ea; --muted: #8b96a5; --accent: #5b9dff;
     --green: #3fb950; --yellow: #d29922; --red: #f85149; --chip-bg: #232b36;
   }
+  [data-theme="light"] {
+    --bg: #f6f8fa; --panel: #ffffff; --panel2: #f0f3f6; --border: #d5dbe3;
+    --text: #1c2128; --muted: #5b6672; --accent: #2f6feb;
+    --green: #1a7f37; --yellow: #9a6700; --red: #cf222e; --chip-bg: #e9edf2;
+  }
   * { box-sizing: border-box; }
   body {
     margin: 0; background: var(--bg); color: var(--text);
@@ -17,14 +22,17 @@
     line-height: 1.6; font-size: 15px;
   }
   .wrap { max-width: 860px; margin: 0 auto; padding: 28px 20px 60px; }
+  header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
   header h1 { font-size: 24px; margin: 0 0 6px; }
   header h1 .sub { font-size: 14px; color: var(--muted); font-weight: normal; margin-left: 10px; }
   header p { margin: 0; color: var(--muted); font-size: 13.5px; }
+  .header-actions { display: flex; gap: 8px; }
   .banner {
     display: flex; gap: 10px; align-items: flex-start;
     background: #14251c; border: 1px solid #1f3d2c; border-radius: 10px;
     padding: 12px 14px; margin: 18px 0; font-size: 13.5px; color: #b6e3c5;
   }
+  [data-theme="light"] .banner { background: #e9f7ef; border-color: #cfe8d9; color: #1a7f37; }
   .panel {
     background: var(--panel); border: 1px solid var(--border);
     border-radius: 12px; padding: 18px; margin-bottom: 16px;
@@ -41,24 +49,33 @@
   .empty { color: var(--muted); }
   button {
     background: var(--accent); color: #08101c; border: none; border-radius: 8px;
-    padding: 9px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+    padding: 8px 16px; font-size: 13.5px; font-weight: 600; cursor: pointer;
   }
   button:hover { filter: brightness(1.1); }
+  button.ghost { background: var(--chip-bg); color: var(--text); border: 1px solid var(--border); }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
   .cta { margin-top: 18px; font-size: 14px; }
   footer { color: var(--muted); font-size: 12.5px; margin-top: 26px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
 <div class="wrap">
 
 <header>
-  <h1>Claude Sonar<span class="sub">浏览器观测 · 即开即用</span></h1>
-  <p>这一页只做一件事：把浏览器自己能看见的东西照给你看。观测只在你的浏览器里发生，不改任何设置。</p>
+  <div>
+    <h1>Claude Sonar<span class="sub">浏览器观测 · 即开即用</span></h1>
+    <p>这一页只做一件事：把浏览器自己能看见的东西照给你看。观测只在你的浏览器里发生，不改任何设置。</p>
+  </div>
+  <div class="header-actions">
+    <button id="btn-copy" class="ghost">复制链接</button>
+    <button id="btn-theme" class="ghost">切换主题</button>
+  </div>
 </header>
 
-<div class="banner">⚠️ 这是「表层观测」，只观测、不伪装。页面不嵌入任何第三方脚本；出口 IP 只是拿你浏览器自己的请求去问一次公开接口（第三方标签，供参考）。要查本机代理/DNS/隐私配置，装完整工具：<code>pip install -U claude-sonar</code></div>
+<div class="banner">⚠️ 这是「表层观测」，只观测、不伪装。页面不嵌入任何第三方脚本；出口 IP 只是拿你浏览器自己的请求去问一次公开接口（第三方标签，供参考）。AI 连通性只测「打不打得开」，不读内容、不碰账号。要查本机代理/DNS/隐私配置，装完整工具：<code>pip install -U claude-sonar</code></div>
 
 <div class="panel">
   <h2>浏览器环境 / Environment</h2>
@@ -92,6 +109,27 @@
 </div>
 
 <div class="panel">
+  <h2>Claude 环境检测（本地观测）</h2>
+  <p class="hint">网页能读到的环境信息：Client Hints、简繁字体渲染、国旗 emoji 渲染。只展示事实，不给评分、不下结论。</p>
+  <table>
+    <tr><th>检查项</th><th>观测值</th></tr>
+    <tr><td>Client Hints</td><td id="d-ch">检测中…</td></tr>
+    <tr><td>简体字体渲染</td><td id="d-font-sc">检测中…</td></tr>
+    <tr><td>繁体字体渲染</td><td id="d-font-tc">检测中…</td></tr>
+    <tr><td>国旗 emoji 渲染</td><td id="d-flag">检测中…</td></tr>
+  </table>
+</div>
+
+<div class="panel">
+  <h2>AI 平台连通性</h2>
+  <p class="hint">用你浏览器自己的请求（no-cors）测这些平台主页打不打得开。打得开≠账号正常；打不开可能是地区限制或平台风控，不是判决。</p>
+  <table>
+    <tr><th>平台</th><th>连通</th><th>耗时</th></tr>
+    <tbody id="d-ai"><tr><td colspan="3" class="empty">检测中…</td></tr></tbody>
+  </table>
+</div>
+
+<div class="panel">
   <h2>出口 IP（第三方标签）</h2>
   <p class="hint">用你浏览器自己的请求问公开接口，看到的就是网站眼里的你。标签是第三方数据库的意见，不是判决。</p>
   <table>
@@ -103,15 +141,22 @@
   </table>
 </div>
 
+<div class="panel">
+  <h2>本次观测历史</h2>
+  <p class="hint">只存在你本浏览器 localStorage，不上传。可随时点清除。</p>
+  <ul id="d-history"><li class="empty">暂无历史。</li></ul>
+  <p><button id="btn-clear-history" class="ghost">清除历史</button></p>
+</div>
+
 <div class="cta">
-  <strong>这只是浏览器能看到的表层。</strong> 本机代理是否漏 DNS、TUN/规则/隐私开关是否自洽、ANTHROPIC_BASE_URL 是否被中转——这些浏览器看不到，要装完整工具在本地跑：
+  <strong>这只是浏览器能看到的表层。</strong> 本机代理是否漏 DNS、TUN/规则/隐私开关是否自洽、ANTHROPIC_BASE_URL 是否被中转、AI 平台沿代理路径的真实连通性——这些浏览器看不到，要装完整工具在本地跑：
   <br><br>
-  <code>pip install -U claude-sonar && python -m claude_sonar</code>
+  <code>pip install -U claude-sonar && python -m claude_sonar --online</code>
   <br><br>
   项目主页：<a href="https://github.com/AschoofAlpha/claude-sonar">github.com/AschoofAlpha/claude-sonar</a> · 只读体检，改不改由你决定。
 </div>
 
-<footer>本页不嵌入第三方脚本、不存任何数据、不伪装指纹、不保证「这样配置就不会被封」。观测结果仅供参考。</footer>
+<footer>本页不嵌入第三方脚本、不存任何数据到服务器、不伪装指纹、不保证「这样配置就不会被封」。观测结果仅供参考。</footer>
 
 </div>
 
@@ -124,6 +169,56 @@
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
     });
   }
+  var HISTORY_KEY = "claude-sonar-demo-history";
+
+  /* ---- theme toggle ---- */
+  (function () {
+    var saved = null;
+    try { saved = localStorage.getItem("claude-sonar-theme"); } catch (e) {}
+    if (saved === "light") document.documentElement.setAttribute("data-theme", "light");
+    $("btn-theme").addEventListener("click", function () {
+      var cur = document.documentElement.getAttribute("data-theme");
+      var next = cur === "light" ? "dark" : "light";
+      if (next === "dark") { document.documentElement.removeAttribute("data-theme"); }
+      else { document.documentElement.setAttribute("data-theme", next); }
+      try { localStorage.setItem("claude-sonar-theme", next); } catch (e) {}
+    });
+  })();
+
+  /* ---- copy link ---- */
+  $("btn-copy").addEventListener("click", function () {
+    var url = location.href;
+    var done = function () {
+      var b = $("btn-copy"); b.textContent = "已复制 ✓";
+      setTimeout(function () { b.textContent = "复制链接"; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, function () { window.prompt("复制链接：", url); });
+    } else { window.prompt("复制链接：", url); }
+  });
+
+  /* ---- history ---- */
+  function renderHistory() {
+    var out = $("d-history"), items = [];
+    try { items = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); } catch (e) { items = []; }
+    if (!items.length) { out.innerHTML = '<li class="empty">暂无历史。</li>'; return; }
+    out.innerHTML = items.map(function (it) {
+      return "<li><code>" + esc(it.t) + "</code> · 出口 " + esc(it.ip) + " · " + esc(it.note) + "</li>";
+    }).join("");
+  }
+  function addHistory(note) {
+    var items = [];
+    try { items = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); } catch (e) {}
+    items.unshift({ t: new Date().toLocaleString(), ip: (window.__obsIp || "—"), note: note });
+    items = items.slice(0, 10);
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(items)); } catch (e) {}
+    renderHistory();
+  }
+  $("btn-clear-history").addEventListener("click", function () {
+    try { localStorage.removeItem(HISTORY_KEY); } catch (e) {}
+    renderHistory();
+  });
+  renderHistory();
 
   /* ---- environment ---- */
   try {
@@ -208,12 +303,112 @@
       "</code> · 视口 <code>" + esc(window.innerWidth) + "×" + esc(window.innerHeight) + "</code>";
   })();
 
+  /* ---- Claude environment observation (local only) ---- */
+  (function detectClaudeEnv() {
+    // Client Hints (Chrome/Edge)
+    var chEl = $("d-ch");
+    if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+      navigator.userAgentData.getHighEntropyValues(["platform", "platformVersion", "model", "architecture", "bitness"])
+        .then(function (h) {
+          chEl.innerHTML = "<code>" + esc(navigator.userAgentData.brands.map(function (b) { return b.brand; }).join(", ")) +
+            "</code> · " + esc(h.platform || "—") + " " + esc(h.platformVersion || "") +
+            " · " + esc(h.architecture || "—") + "/" + esc(h.bitness || "—") +
+            (h.model ? " · " + esc(h.model) : "");
+        })
+        .catch(function () { chEl.innerHTML = '<span class="empty">读取失败</span>'; });
+    } else {
+      chEl.innerHTML = '<span class="empty">此浏览器不提供 Client Hints API</span>';
+    }
+
+    // Font rendering detection: measure glyph widths under different font stacks.
+    function measureWidth(text, fontStack) {
+      var c = document.createElement("canvas");
+      c.width = 400; c.height = 60;
+      var x = c.getContext("2d");
+      x.font = "28px " + fontStack;
+      return Math.round(x.measureText(text).width);
+    }
+    try {
+      var scText = "简体字测试 中文";
+      var scReal = measureWidth(scText, '"Microsoft YaHei", "PingFang SC", sans-serif');
+      var scFallback = measureWidth(scText, "sans-serif");
+      $("d-font-sc").innerHTML = (scReal !== scFallback)
+        ? '<span class="ok">已渲染（宽度 ' + esc(scReal) + 'px，与无衬线兜底不同）</span>'
+        : '<span class="mut">与兜底字体同宽，可能未安装中文字体</span>';
+      var tcText = "繁體字測試";
+      var tcReal = measureWidth(tcText, '"Microsoft YaHei", "PingFang TC", sans-serif');
+      var tcFallback = measureWidth(tcText, "sans-serif");
+      $("d-font-tc").innerHTML = (tcReal !== tcFallback)
+        ? '<span class="ok">已渲染（宽度 ' + esc(tcReal) + 'px）</span>'
+        : '<span class="mut">与兜底字体同宽，可能未安装繁体字体</span>';
+    } catch (e) {
+      $("d-font-sc").innerHTML = $("d-font-tc").innerHTML = '<span class="empty">检测失败</span>';
+    }
+
+    // Flag emoji rendering: draw a flag emoji and check whether pixels are drawn.
+    try {
+      var fcv = document.createElement("canvas");
+      fcv.width = 40; fcv.height = 30;
+      var fx = fcv.getContext("2d");
+      fx.font = "24px sans-serif";
+      fx.fillText("🇨🇳", 4, 24);
+      var px = fx.getImageData(0, 0, 40, 30).data;
+      var colored = 0;
+      for (var i = 0; i < px.length; i += 16) { if (px[i + 3] > 0) colored++; }
+      $("d-flag").innerHTML = (colored > 2)
+        ? '<span class="ok">已渲染（' + esc(colored) + ' 个采样像素）</span>'
+        : '<span class="mut">几乎无像素输出：可能以字母形式显示或字体不支持</span>';
+    } catch (e) {
+      $("d-flag").innerHTML = '<span class="empty">检测失败</span>';
+    }
+  })();
+
+  /* ---- AI platform connectivity (no-cors reachability) ---- */
+  (function detectAiConnectivity() {
+    var targets = [
+      ["ChatGPT", "https://chatgpt.com/"],
+      ["Claude", "https://claude.ai/"],
+      ["Claude.com", "https://claude.com/"],
+      ["Grok", "https://grok.com/"],
+      ["Perplexity", "https://www.perplexity.ai/"],
+      ["Gemini", "https://gemini.google.com/"],
+      ["DeepSeek", "https://chat.deepseek.com/"],
+      ["通义千问", "https://tongyi.aliyun.com/"],
+      ["Kimi", "https://www.kimi.com/"],
+    ];
+    var tbody = $("d-ai");
+    tbody.innerHTML = targets.map(function (t, idx) {
+      return "<tr id='ai-row-" + idx + "'><td>" + esc(t[0]) + "</td><td class='mut'>测</td><td class='mut'>…</td></tr>";
+    }).join("");
+    targets.forEach(function (t, idx) {
+      var row = $("ai-row-" + idx);
+      var started = performance.now();
+      var timer = setTimeout(function () {
+        row.cells[1].innerHTML = '<span class="warn">超时</span>';
+        row.cells[2].textContent = ">10s";
+      }, 10000);
+      fetch(t[1], { mode: "no-cors", cache: "no-store" })
+        .then(function () {
+          clearTimeout(timer);
+          row.cells[1].innerHTML = '<span class="ok">可达</span>';
+          row.cells[2].textContent = Math.round(performance.now() - started) + "ms";
+        })
+        .catch(function () {
+          clearTimeout(timer);
+          row.cells[1].innerHTML = '<span class="bad">不可达</span>';
+          row.cells[2].textContent = Math.round(performance.now() - started) + "ms";
+        });
+    });
+  })();
+
   /* ---- egress IP via CORS-open public endpoints (no key) ---- */
   (function detectEgress() {
     fetch("https://api.ipify.org?format=json")
       .then(function (r) { return r.json(); })
       .then(function (d) {
+        window.__obsIp = d.ip;
         $("d-ip").innerHTML = "<code>" + esc(d.ip) + "</code>";
+        addHistory("出口观测完成");
         return fetch("https://ipwho.is/" + encodeURIComponent(d.ip));
       })
       .then(function (r) { return r.json(); })

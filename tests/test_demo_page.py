@@ -9,10 +9,24 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 _DEMO = os.path.join(os.path.dirname(__file__), "..", "static", "demo.html")
 
-# The demo may fetch from these hosts only (CORS-open, no API key). Observation
-# of the browser's own egress; labeled third-party opinion. Nothing else may be
-# contacted, and no third-party script may be embedded.
-_ALLOWED_HOSTS = frozenset({"api.ipify.org", "ipwho.is"})
+# The demo may contact these hosts only. Observation of the browser's own
+# egress (CORS-open, no API key) plus no-cors reachability checks against AI
+# platform homepages. Nothing else may be contacted, and no third-party
+# script may be embedded.
+_ALLOWED_HOSTS = frozenset({
+    "api.ipify.org",
+    "ipwho.is",
+    # AI platform reachability (no-cors; no body read)
+    "chatgpt.com",
+    "claude.ai",
+    "claude.com",
+    "grok.com",
+    "www.perplexity.ai",
+    "gemini.google.com",
+    "chat.deepseek.com",
+    "tongyi.aliyun.com",
+    "www.kimi.com",
+})
 
 
 def _read():
@@ -71,6 +85,34 @@ class TestDemoPage(unittest.TestCase):
         html = _read()
         self.assertIn("时区", html)
         self.assertIn("timezone", html.lower())
+
+    # ---- v2: AI connectivity + Claude environment observation ----
+    def test_ai_connectivity_no_cors(self):
+        html = _read()
+        self.assertIn("no-cors", html)
+        self.assertIn("claude.ai", html)
+        self.assertIn("chatgpt.com", html)
+        self.assertIn("连通", html)
+
+    def test_client_hints_observation(self):
+        html = _read()
+        self.assertIn("getHighEntropyValues", html)
+        self.assertIn("Client Hints", html)
+
+    def test_font_detection(self):
+        html = _read()
+        self.assertIn("measureText", html)
+        self.assertIn("字体", html)
+
+    def test_canvas_flag_render(self):
+        html = _read()
+        self.assertIn("国旗", html)
+
+    def test_theme_toggle_and_copy_and_history(self):
+        html = _read()
+        self.assertIn("data-theme", html)
+        self.assertIn("clipboard", html)
+        self.assertIn("localStorage", html)
 
 
 if __name__ == "__main__":

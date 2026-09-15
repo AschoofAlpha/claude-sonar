@@ -168,6 +168,7 @@ _CHECK_PLAIN = {
         "network.tls.fingerprint": "在线实测本机 TLS 客户端指纹（JA3/JA4，只读检测，不给伪装建议）",
         "network.anthropic_baseurl": "ANTHROPIC_BASE_URL 指向官方还是第三方中转（含公开风控黑名单情报比对）",
         "network.anthropic_baseurl_tcp": "在线实测：拨测 ANTHROPIC_BASE_URL 指向的中转服务器 443 端口是否存活（只读，不经过本地代理）",
+        "network.ai_connectivity": "在线实测：多个 AI 平台主页从本机是否可达（连通性观察，不判断账号状态）",
     },
     "en": {
         "privacy.telemetry": "Whether Claude metrics telemetry is disabled",
@@ -215,6 +216,7 @@ _CHECK_PLAIN = {
         "network.tls.fingerprint": "Online TLS client fingerprint (JA3/JA4, read-only; no spoofing advice)",
         "network.anthropic_baseurl": "Whether ANTHROPIC_BASE_URL points at the official endpoint or a third-party relay (public risk-intel compare)",
         "network.anthropic_baseurl_tcp": "Online: TCP-443 reachability probe of the configured ANTHROPIC_BASE_URL host (read-only, direct dial, no local proxy)",
+        "network.ai_connectivity": "Online: whether several AI platform homepages are reachable from this machine (connectivity observation, not an account verdict)",
     },
 }
 

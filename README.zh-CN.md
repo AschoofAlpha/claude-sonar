@@ -117,7 +117,7 @@ python -m claude_sonar badge              # 从审计结果生成 sonar-badge.js
 | 代理 | 系统代理 / WinHTTP / 环境变量 / PAC / 其它客户端冲突 |
 | DNS | fake-IP、53 劫持、DoH、物理网卡残留、浏览器 Secure DNS |
 | 路由 | TUN、默认路由、Teredo、IPv6 旁路 |
-| 在线（可选） | DNS 与 HTTP 出口一致性（DoH）、JA3/JA4 TLS 客户端指纹（openssl 抓包） |
+| 在线探测（可选） | DNS 出口一致性（DoH vs HTTP）、JA3/JA4 TLS 指纹（openssl 抓包）、多平台 AI 连通性（ChatGPT/Claude/Grok/Perplexity/Gemini/DeepSeek/通义千问/Kimi，仅测可达性） |
 | 始终运行 | `ANTHROPIC_BASE_URL` 审计（内置公开中转风险黑名单比对） |
 | 本地面板 | `serve` — 127.0.0.1 只读面板 + 浏览器端 WebRTC/时区观察 |
 | 仓库扫描 | `repo` — SAST / 密钥 / 依赖审计，0–100 代码安全分 |
