@@ -48,4 +48,5 @@ claude_sonar = ["resources/semgrep_rules/*.yaml", "resources/semgrep_rules/NOTIC
 ]
 "share/claude-sonar/claude_sonar/resources" = [
     "claude_sonar/resources/known_baseurl_blacklist.txt",
+    "claude_sonar/resources/known_baseurl_labwords.txt",
 ]

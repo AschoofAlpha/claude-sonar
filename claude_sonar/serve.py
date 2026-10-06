@@ -1,9 +1,10 @@
 """Zero-dependency local panel server for Claude Sonar.
 
-Serves the single-file panel (``static/panel.html``) plus a read-only JSON
-API on ``127.0.0.1`` only. Every report payload passes through ``Redactor``
-before it leaves the process. Online probing stays off unless the panel
-explicitly requests ``online=1``.
+Serves the single-file panel (``static/panel.html``) plus a local JSON
+API on ``127.0.0.1`` only. Report payloads pass through ``Redactor``
+before it leaves the process. The normal API default stays offline; the
+Skill/portable panel launch passes ``online=True`` explicitly when its
+automatic first audit should include the approved read-only probes.
 
 Usage::
 
@@ -27,7 +28,9 @@ from urllib.parse import parse_qs, urlparse
 from .__version__ import __version__
 from .analyze import CollectorError, run_full_audit
 from .badge import default_badge_path, make_badge_from_result, make_badge_markdown
+from .dimensions import build_dimension_matrix
 from .models import to_dict
+from .probes.speedtest import measure_speed
 from .redaction import Redactor
 from .report import group_checks, score_checks
 
@@ -46,11 +49,19 @@ def panel_path():
     if _PANEL_PATH is None:
         import sysconfig
 
-        candidates = [
+        candidates = []
+        frozen_root = getattr(sys, "_MEIPASS", None)
+        if frozen_root:
+            candidates.append(
+                Path(frozen_root) / "share" / "claude-sonar" / "static" / "panel.html"
+            )
+        candidates.extend([
             Path(__file__).resolve().parent.parent / "static" / "panel.html",  # source checkout
             Path(__file__).resolve().parent / "static" / "panel.html",  # static/ inside the package
-            Path(sysconfig.get_path("data")) / "share" / "claude-sonar" / "static" / "panel.html",
-        ]
+        ])
+        candidates.append(
+            Path(sysconfig.get_path("data")) / "share" / "claude-sonar" / "static" / "panel.html"
+        )
         _PANEL_PATH = next((p for p in candidates if p.exists()), candidates[0])
     return _PANEL_PATH
 
@@ -205,6 +216,7 @@ def build_report_payload(result: Dict[str, Any], online: bool) -> Dict[str, Any]
         "score": scored,
         "groups": groups_json,
         "egress_summary": egress_summary,
+        "dimensions": result.get("dimension_matrix") or build_dimension_matrix(checks),
         "report_markdown": result.get("report_markdown"),
     }
     # Belt and suspenders: redact the assembled payload once more before it
@@ -274,6 +286,10 @@ class PanelRequestHandler(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.send_header("Content-Length", str(len(data)))
+                self.send_header("X-Content-Type-Options", "nosniff")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Referrer-Policy", "no-referrer")
+                self.send_header("Content-Security-Policy", _CSP)
                 self.end_headers()
             except FileNotFoundError:
                 self._send(404, "panel.html not found", "text/plain; charset=utf-8")
@@ -296,13 +312,20 @@ class PanelRequestHandler(BaseHTTPRequestHandler):
             self._api_status()
         elif path == "/api/report":
             self._api_report(query)
+        elif path == "/api/headers":
+            self._api_headers()
+        elif path == "/api/speedtest":
+            self._api_speedtest(query)
         elif path == "/api/badge":
             self._api_badge()
         else:
             self._json(404, {"ok": False, "error": "not found"})
 
-    def do_POST(self) -> None:  # read-only panel: no mutations via HTTP
-        self._json(405, {"ok": False, "error": "method not allowed; panel is read-only"})
+    def do_POST(self) -> None:  # no state-changing POST routes
+        if not self._host_ok():
+            self._json(403, {"ok": False, "error": "invalid Host header; panel is loopback-only"})
+            return
+        self._json(405, {"ok": False, "error": "method not allowed; no POST mutations"})
 
     # -- endpoints --------------------------------------------------------
 
@@ -337,10 +360,64 @@ class PanelRequestHandler(BaseHTTPRequestHandler):
             "cached_score": cached_score,
         })
 
+    def _api_headers(self) -> None:
+        """Return a small allowlist of headers received by this local server.
+
+        Cookie, authorization, proxy-authentication, and arbitrary headers
+        are intentionally excluded. Values are redacted before serialization.
+        """
+        allowed = (
+            "User-Agent",
+            "Accept",
+            "Accept-Language",
+            "Sec-CH-UA",
+            "Sec-CH-UA-Mobile",
+            "Sec-CH-UA-Platform",
+            "X-Forwarded-For",
+            "X-Real-IP",
+            "Forwarded",
+            "Via",
+        )
+        redactor = Redactor()
+        observed = {}
+        for name in allowed:
+            value = self.headers.get(name)
+            if value:
+                observed[name] = redactor.scan_and_redact(str(value))
+        self._json(200, {
+            "ok": True,
+            "headers": observed,
+            "source": "127.0.0.1 local panel request",
+            "raw_value_persisted": False,
+        })
+
+    def _api_speedtest(self, query: Dict[str, Any]) -> None:
+        """Run one explicit bounded speed observation against fixed endpoints."""
+        mode = str((query.get("mode") or [""])[0]).strip().lower()
+        if mode not in {"latency", "download", "upload"}:
+            self._json(400, {
+                "ok": False,
+                "error": "mode must be latency, download, or upload",
+            })
+            return
+        try:
+            timeout = float((query.get("timeout") or ["5"])[0])
+        except (TypeError, ValueError):
+            timeout = 5.0
+        try:
+            size_bytes = int((query.get("bytes") or [str(256 * 1024)])[0])
+        except (TypeError, ValueError):
+            size_bytes = 256 * 1024
+        try:
+            result = measure_speed(mode, timeout=timeout, size_bytes=size_bytes)
+        except Exception as exc:  # pragma: no cover - defensive route guard
+            self._json(500, {"ok": False, "error": type(exc).__name__})
+            return
+        self._json(200, result)
+
     def _api_report(self, query: Dict[str, Any]) -> None:
-        # Online probes are ON by default in the panel (user preference:
-        # panel = full picture, opt out via online=0).
-        raw_online = (query.get("online") or ["1"])[0].strip().lower()
+        # Online probes are opt-in; the default report must stay local-only.
+        raw_online = (query.get("online") or ["0"])[0].strip().lower()
         online = raw_online not in ("0", "false", "no", "off")
         try:
             timeout = float((query.get("timeout") or ["5"])[0])
@@ -417,11 +494,16 @@ def serve(
     open_browser: bool = False,
     open_delay: float = 0.0,
     pre_audit: bool = True,
-    online: bool = True,
+    online: bool = False,
     timeout: float = 5.0,
     lang: str = "zh",
 ) -> PanelHTTPServer:
-    """Serve the read-only panel on 127.0.0.1 until interrupted.
+    """Serve the local panel on 127.0.0.1 until interrupted.
+
+    Online probes remain disabled by default for the library and normal CLI
+    audit paths. The Skill and portable launcher pass ``online=True`` for
+    the explicit panel flow, which opens the report with its online switch
+    enabled. The API itself still defaults to offline when no query is given.
 
     ``open_browser=True`` opens the panel in the default browser after the
     socket is bound. ``open_delay`` (seconds) waits before opening the
@@ -432,8 +514,9 @@ def serve(
     """
     httpd = create_server(port)
     actual_port = httpd.server_address[1]
-    url = f"http://{HOST}:{actual_port}/"
-    print(f"claude-sonar panel (read-only) -> {url}", flush=True)
+    launch_mode = "online" if online else "offline"
+    url = f"http://{HOST}:{actual_port}/?online={'1' if online else '0'}"
+    print(f"claude-sonar panel (launch {launch_mode}) -> {url}", flush=True)
     print("Bound to 127.0.0.1 only. Press Ctrl+C to stop.", flush=True)
 
     if pre_audit:

@@ -79,15 +79,70 @@ class TestStaticPanel:
             "tz-info",
             "status-line",
             "error-box",
+            "dimensions",
+            "online-status",
+            "report-hero",
+            "score-ring",
+            "section-egress",
+            "section-dimensions",
+            "section-findings",
+            "pulse-hub",
+            "pulse-grid",
+            "module-inspector",
+            "module-title",
+            "module-summary",
+            "module-facts",
+            "module-checks",
+            "btn-speed-latency",
+            "btn-speed-download",
+            "btn-speed-upload",
         ):
             assert f'id="{dom_id}"' in html, f"panel.html missing #{dom_id}"
+        for card_id in (
+            "pulse-card-egress",
+            "pulse-card-ipv6",
+            "pulse-card-fingerprint",
+            "pulse-card-leak",
+            "pulse-card-cloudflare",
+            "pulse-card-routing",
+            "pulse-card-speed",
+            "pulse-card-headers",
+            "pulse-card-ip-info",
+            "pulse-card-tiktok",
+        ):
+            assert card_id in html, f"panel.html missing {card_id}"
         # 零外部资源: 静态页里不允许出现任何外部 URL / CDN 引用
         assert "http://" not in html and "https://" not in html
         assert "<script src" not in html and "<link rel" not in html
-        # 用户偏好: 打开即自动审计 + 在线探测默认开启
+        # The panel is the explicit online exception; its first audit is online.
         assert 'id="toggle-online" checked' in html.replace("\n", " ")
         assert "DOMContentLoaded" in html and "runAudit()" in html
         assert "打开即自动运行" in html
+        assert "在线探测默认开启" in html
+        assert "在线探测默认关闭" not in html
+        assert "查看证据" in html
+        assert "出口与浏览器观察" in html
+        assert "egress_ip" in html
+        assert "六维环境报告" in html
+        assert "逐项检测结果" in html
+        assert "Cloudflare 环境" in html
+        assert "HTTP 请求头" in html
+        assert "网速测试" in html
+        assert "TikTok 环境" in html
+        assert "navigator.webdriver" in html
+        assert "WebGL" in html
+        assert "音频指纹" in html
+
+    def test_panel_module_security_contract(self, panel):
+        status, headers, body = _get(panel["base"] + "/")
+        assert status == 200
+        html = body.decode("utf-8")
+        assert "connect-src 'self'" in headers.get("Content-Security-Policy", "")
+        assert "/api/speedtest?mode=" in html
+        assert "fetch(\"/api/headers\"" in html
+        assert "Turnstile" in html and "未配置" in html
+        assert "network.dns.egress_consistency" in html
+        assert "部分结果未知" in html
 
     def test_panel_security_headers(self, panel):
         status, headers, _ = _get(panel["base"] + "/")
@@ -100,6 +155,9 @@ class TestStaticPanel:
         status, headers, _ = _raw(panel["port"], "HEAD", "/", {"Host": "127.0.0.1"})
         assert status == 200
         assert "text/html" in headers.get("Content-Type", "")
+        assert headers.get("X-Content-Type-Options") == "nosniff"
+        assert headers.get("Cache-Control") == "no-store"
+        assert "default-src 'none'" in headers.get("Content-Security-Policy", "")
 
     def test_favicon_404(self, panel):
         status, _, _ = _raw(panel["port"], "GET", "/favicon.ico", {"Host": "127.0.0.1"})
@@ -142,6 +200,58 @@ class TestSecurity:
         status, _, _ = _raw(panel["port"], "POST", "/api/status", {"Host": "127.0.0.1"})
         assert status == 405
 
+    def test_non_loopback_post_is_forbidden(self, panel):
+        status, _, body = _raw(panel["port"], "POST", "/api/status", {"Host": "evil.example"})
+        assert status == 403
+        assert json.loads(body.decode("utf-8"))["ok"] is False
+
+
+class TestPulseModuleApis:
+    def test_headers_api_is_allowlisted(self, panel):
+        status, headers, body = _get(panel["base"] + "/api/headers")
+        assert status == 200
+        assert "application/json" in headers.get("Content-Type", "")
+        data = json.loads(body.decode("utf-8"))
+        assert data["ok"] is True
+        assert "headers" in data
+        assert "cookie" not in {str(k).lower() for k in data["headers"]}
+        assert "authorization" not in {str(k).lower() for k in data["headers"]}
+
+    def test_speedtest_api_has_fixed_modes(self, panel, monkeypatch):
+        calls = []
+
+        def fake_measure(mode, timeout=5.0, size_bytes=262144):
+            calls.append((mode, timeout, size_bytes))
+            return {
+                "ok": True,
+                "mode": mode,
+                "endpoint": "Cloudflare",
+                "elapsed_ms": 12.0,
+                "mbps": 10.0,
+                "bytes": 262144,
+                "traffic_warning": True,
+            }
+
+        monkeypatch.setattr(serve_mod, "measure_speed", fake_measure)
+        for mode in ("latency", "download", "upload"):
+            status, _, body = _get(panel["base"] + "/api/speedtest?mode=" + mode)
+            assert status == 200
+            data = json.loads(body.decode("utf-8"))
+            assert data["ok"] is True
+            assert data["mode"] == mode
+        assert [item[0] for item in calls] == ["latency", "download", "upload"]
+
+    def test_speedtest_api_rejects_arbitrary_target(self, panel):
+        status, _, body = _raw(
+            panel["port"],
+            "GET",
+            "/api/speedtest?mode=evil",
+            {"Host": "127.0.0.1"},
+        )
+        assert status == 400
+        data = json.loads(body.decode("utf-8"))
+        assert data["ok"] is False
+
 
 class TestBuildReportPayload:
     def test_redacts_sensitive_values(self):
@@ -178,12 +288,14 @@ class TestBuildReportPayload:
         assert payload["ok"] is True
         assert payload["score"]["max_score"] == 100
         assert "must_fix" in payload["groups"]
+        assert len(payload["dimensions"]["dimensions"]) == 6
 
     def test_empty_result_safe(self):
         payload = serve_mod.build_report_payload({}, online=False)
         assert payload["ok"] is True
         assert payload["summary"] == {}
         assert payload["report_markdown"] is None
+        assert len(payload["dimensions"]["dimensions"]) == 6
 
 
 class TestReportApi:
@@ -218,8 +330,8 @@ class TestReportApi:
             serve_mod._cache["result"] = None
             serve_mod._cache["at"] = None
 
-    def test_report_default_online_on(self, panel, monkeypatch):
-        # User preference: /api/report with no online param defaults to online=1.
+    def test_report_default_online_off(self, panel, monkeypatch):
+        # Local-first default: no online parameter must keep probes disabled.
         seen = {}
 
         def fake_run_audit(online: bool, timeout: float):
@@ -229,9 +341,9 @@ class TestReportApi:
         monkeypatch.setattr(serve_mod, "_run_audit", fake_run_audit)
         status, headers, body = _get(panel["base"] + "/api/report", timeout=30)
         assert status == 200
-        assert seen["online"] is True
+        assert seen["online"] is False
         data = json.loads(body.decode("utf-8"))
-        assert data["online"] is True
+        assert data["online"] is False
         self._clear_cache()
 
     def test_report_explicit_offline(self, panel, monkeypatch):
@@ -291,10 +403,16 @@ class TestServeOpenDelay:
             lambda x: calls.append(("sleep", x)),
         )
         try:
-            serve_mod.serve(port=12345, open_browser=True, open_delay=5, pre_audit=False)
+            serve_mod.serve(
+                port=12345,
+                open_browser=True,
+                open_delay=5,
+                pre_audit=False,
+                online=True,
+            )
         except KeyboardInterrupt:
             pass
-        assert calls == [("sleep", 5.0), ("open", "http://127.0.0.1:12345/")]
+        assert calls == [("sleep", 5.0), ("open", "http://127.0.0.1:12345/?online=1")]
 
     def test_open_delay_capped_at_60s(self, monkeypatch):
         class FakeHttpd:
@@ -331,7 +449,7 @@ class TestServeOpenDelay:
         monkeypatch.setattr(serve_mod.webbrowser, "open", lambda url: calls.append("open"))
         monkeypatch.setattr(serve_mod.time, "sleep", lambda x: calls.append("sleep"))
         try:
-            serve_mod.serve(port=12345, open_browser=True, pre_audit=False)
+            serve_mod.serve(port=12345, open_browser=True, pre_audit=False, online=False)
         except KeyboardInterrupt:
             pass
         assert calls == ["open"]
@@ -346,6 +464,14 @@ class TestCliOpenDelayFlag:
         assert args.command == "serve"
         assert args.open is True
         assert args.open_delay == 8.0
+
+    def test_serve_subcommand_accepts_online_flag(self):
+        import claude_sonar.__main__ as main_mod
+
+        parser = main_mod.build_parser()
+        args = parser.parse_args(["serve", "--open", "--online"])
+        assert args.command == "serve"
+        assert args.online is True
 
 
 class TestBadgeApi:

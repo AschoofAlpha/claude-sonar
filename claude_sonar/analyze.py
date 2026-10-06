@@ -178,6 +178,7 @@ def run_full_audit(
     - ``report``: AuditReport dataclass
     - ``report_dict``: schema-validated plain dict (via models.to_dict)
     - ``report_markdown``: markdown string from ``format_report`` when available
+    - ``dimension_matrix``: presentation-only six-dimension status matrix
 
     ``lang`` selects the plain-language layer for ``report_markdown`` (``zh`` or ``en``).
     ``cli_agent`` (bool/None) marks CLI-agent use (Claude Code/Codex) for the personalized
@@ -310,6 +311,11 @@ def run_full_audit(
             )], redactor))
 
     report = build_audit_report(checks, snapshot=snapshot, redactor=redactor)
+    # Presentation-only matrix: reuse the checks already collected. It does
+    # not add probes or change the canonical report schema.
+    from .dimensions import build_dimension_matrix
+
+    dimension_matrix = build_dimension_matrix(checks)
     # Redact platform hostname in report before export
     report.platform.hostname = redactor.scan_and_redact(report.platform.hostname)
     report_dict = to_dict(report)
@@ -349,6 +355,7 @@ def run_full_audit(
         "report": report,
         "report_dict": report_dict,
         "report_markdown": report_markdown,
+        "dimension_matrix": dimension_matrix,
     }
 
 

@@ -54,7 +54,7 @@
 
 ## Try it in your browser
 
-No install, no backend: open [`static/demo.html`](static/demo.html) (or visit the hosted copy after the repo is public) for a read-only browser observation — WebRTC ICE candidates, timezone/language, a read-only canvas hash, and your egress IP with third-party labels. Observation only; it never changes anything and never spoofs a fingerprint. The deep local audit (proxy/DNS/TUN/privacy settings) still requires the installed tool below.
+No install, no backend: open [`static/demo.html`](static/demo.html) (or visit the hosted copy after the repo is public) for a browser observation — WebRTC ICE candidates, timezone/language, a read-only canvas hash, and your egress IP with third-party labels. Observation only; it never changes system settings and never spoofs a fingerprint. The deep local audit (proxy/DNS/TUN/privacy settings) still requires the installed tool below.
 
 ## Install
 
@@ -64,6 +64,16 @@ pip install -U claude-sonar
 
 All features are available since **1.0.0** (renamed from `claude-shield`; older `anti-claude-check` uploads are retired).
 
+## Windows portable build
+
+The repository also ships a one-file local launcher. Build it on Windows with Python and PyInstaller:
+
+```powershell
+python -m pip install pyinstaller
+python scripts/build_portable_windows.py
+```
+
+This produces `dist\\ClaudeSonar.exe` (about 10 MB on the current build). Double-clicking it opens the local panel on a random `127.0.0.1` port; the panel performs the audit locally. It contains no model, browser, or 8 GB data. Online checks are small opt-in HTTP/TCP observations controlled by the panel switch; they do not download a model or dataset. The audit does not modify system settings; the explicit badge action writes `sonar-badge.json` when requested. Keep the console window open while the panel is in use, and press `Ctrl+C` there to stop it. Windows may show an unsigned-app warning because this local build is not code-signed.
 
 As an agent skill (Codex / Claude Code):
 
@@ -88,13 +98,15 @@ python -m claude_sonar --online --intended-region US
 python -m claude_sonar --intended-mode system_proxy   # or full_tunnel
 python -m claude_sonar --lang en
 python -m claude_sonar serve --port 8765  # read-only local web panel on 127.0.0.1
+python -m claude_sonar serve --open --online --open-delay 8  # Skill flow: chat table + auto-open panel
 python -m claude_sonar repo ./my-project  # code security scan (SAST/secrets/deps)
 python -m claude_sonar badge              # write sonar-badge.json from an audit
 ```
 
 Sub-commands (same `python -m claude_sonar` entry point):
 
-- **`serve [--port N] [--open]`** — zero-dependency local web panel bound to **127.0.0.1 only**. `/` renders the audit (score, Must fix / Optional / Leave alone groups), `/api/report?online=0` returns the redacted report JSON (online probes stay off unless you opt in), plus a browser-side observation block (WebRTC ICE candidates, local timezone/language). Read-only: POST is 405, path traversal is 404, only loopback `Host` headers are accepted.
+- **`serve [--port N] [--open] [--online]`** — zero-dependency local web panel bound to **127.0.0.1 only**. The Skill/portable launch passes `--online`, so the panel's first audit includes approved read-only online probes; normal library calls and CLI audits remain offline by default. `/` renders the audit (score, Must fix / Optional / Leave alone groups, six-dimension matrix, status cards, and expandable evidence). Its Pulse-style directory opens My IP, IPv6, fingerprint, leak, Cloudflare, routing, speed, headers, IP information, and TikTok environment modules; `/api/headers` is a fixed local-header allowlist and `/api/speedtest?mode=latency|download|upload` uses only a bounded Cloudflare endpoint. `/api/report?online=0` explicitly returns the offline redacted report JSON, and the panel switch can turn online probes off and rerun. It also includes browser-side observation (WebRTC ICE candidates, local timezone/language). No system-setting mutations: POST is 405, path traversal is 404, and only loopback `Host` headers are accepted. The explicit `/api/badge` action writes `sonar-badge.json`.
+- The panel and `--json` output include a six-dimension status matrix. It reuses existing checks for exit network, leak detection, regional consistency, browser identity, device fingerprint, and platform reachability; it is not an IP-purity, anonymity, or anti-ban score.
 - **`repo PATH [--no-tools] [--baseline F] [--json] [--sarif F] [--out F]`** — repository security scan: stack detection, semgrep / gitleaks / pip-audit / npm audit / freshness (npm outdated, pip list --outdated) orchestration with graceful degradation (missing tools are skipped and noted), bundled trimmed Semgrep rules (MIT source noted), weighted 0–100 code-security score, fix suggestions, baseline diff, SARIF 2.1.0 export. No pentesting, no GitHub-issue filing.
 - **`badge [--out PATH] [--from-report F]`** — writes `sonar-badge.json` (score + color) for the shields.io dynamic badge below; `--from-report` reuses a previous `--json` report instead of re-auditing.
 
@@ -116,7 +128,7 @@ Library defaults: `run_full_audit(include_recommendations=True)` returns `report
 | Personalized | detects your proxy client (Clash Verge / v2rayN / sing-box / …) and gives per-app manual steps |
 | Online (opt-in) | DNS-vs-HTTP exit consistency (DoH), JA3/JA4 TLS client fingerprint (openssl capture), AI platform connectivity (ChatGPT/Claude/Grok/Perplexity/Gemini/DeepSeek/通义千问/Kimi, reachability only) |
 | Always-on | `ANTHROPIC_BASE_URL` audit vs a bundled public relay-risk blacklist |
-| Local panel | `serve` — 127.0.0.1 read-only panel + browser-side WebRTC/timezone observation |
+| Local panel | `serve` — 127.0.0.1 read-only panel + browser-side WebRTC/timezone observation + Pulse-style modules for egress, IPv6, fingerprint, leak, Cloudflare, routing, speed, headers, IP info, and TikTok environment |
 | Repo scan | `repo` — SAST / secrets / dependency audit with a 0–100 code-security score |
 | Badge | `badge` — `sonar-badge.json` driving a shields.io dynamic badge |
 
@@ -128,7 +140,7 @@ The audit is local evidence, not a prediction of account approval or suspension.
 
 Run `python -m claude_sonar` for a live markdown report (`format_report`: evidence table + Must fix / Optional consistency / Leave alone). No staged demo screenshot is shipped.
 
-## Read-only collection
+## Non-mutating collection
 
 Windows PowerShell 7:
 
@@ -152,7 +164,7 @@ Collector output can contain local identifiers. Keep raw output local and let th
 
 ## Report
 
-The Skill returns a compact evidence table (`signal`, `status`, `confidence`, `evidence`, `action`) followed by three short sections: **Must fix**, **Optional consistency**, and **Leave alone**. See `SKILL.md` for the exact report format and interpretation rules.
+The Skill returns a compact evidence table (`signal`, `status`, `confidence`, `evidence`, `action`) and then automatically starts the local panel; the chat table and the panel are two deliverables from the same audit, with the panel opening after about 8 seconds. See `SKILL.md` for the exact report format and interpretation rules.
 
 ## Manual network alternatives (recommend-only)
 

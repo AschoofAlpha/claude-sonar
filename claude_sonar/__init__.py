@@ -12,6 +12,7 @@ try:
         summarize,
     )
     from .models import AuditCheck, AuditReport, Evidence
+    from .dimensions import build_dimension_matrix
     from .redaction import Redactor
 except ImportError:  # pragma: no cover - allow version-only import during packaging edge cases
     pass
@@ -81,6 +82,7 @@ __all__ = [
     "AuditReport",
     "Evidence",
     "Redactor",
+    "build_dimension_matrix",
     "format_report",
     "group_checks",
     "score_checks",

@@ -71,6 +71,14 @@
     border-radius: 8px; padding: 10px 14px; margin-top: 12px; font-size: 13.5px;
     white-space: pre-wrap; word-break: break-all;
   }
+  .online-status {
+    border-radius: 8px; padding: 9px 12px; margin-top: 12px;
+    font-size: 13px; border: 1px solid var(--border); color: var(--muted);
+  }
+  .online-status.status-on { background: #14202b; border-color: #1d3a5f; color: #b9d7ff; }
+  .online-status.status-off { background: var(--chip-bg); }
+  .online-status.status-warning { background: #2b2413; border-color: #544820; color: #f1d58a; }
+  .online-status.status-error { background: #2a1618; border-color: #54242a; color: #ffb3ad; }
 
   /* ---- score + progress bar ---- */
   .score-area { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
@@ -124,6 +132,29 @@
   .egress-card .card-sub { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
   .egress-card .card-pill { margin-top: 8px; }
 
+  /* ---- six-dimension status matrix ---- */
+  .dimension-section { margin-bottom: 18px; }
+  .dimension-heading { display: flex; align-items: baseline; gap: 8px; margin: 2px 0 8px; }
+  .dimension-heading b { font-size: 14px; }
+  .dimension-heading span { color: var(--muted); font-size: 12px; }
+  .dimension-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+    gap: 10px;
+  }
+  .dimension-card {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+  }
+  .dimension-card .dimension-title { display: flex; justify-content: space-between; gap: 8px; font-weight: 650; }
+  .dimension-card .dimension-en { color: var(--muted); font-size: 11px; font-weight: 400; }
+  .dimension-card .dimension-desc { color: var(--muted); font-size: 12px; line-height: 1.45; margin-top: 5px; }
+  .dimension-card .dimension-meta { color: var(--muted); font-size: 11px; margin-top: 7px; }
+  .dimension-card .dimension-rec { color: var(--muted); font-size: 11px; margin-top: 5px; }
+  .dimension-pass { border-color: #1f3d2c; }
+  .dimension-warning { border-color: #544820; }
+  .dimension-fail { border-color: #54242a; }
+  .dimension-unknown { border-color: var(--border); }
+
   /* ---- status pills (inline) ---- */
   .status { border-radius: 5px; padding: 1px 8px; font-size: 12px; white-space: nowrap; font-weight: 600; }
   .st-pass { background: #14261b; color: var(--green); }
@@ -163,24 +194,258 @@
   .note { color: var(--muted); font-size: 12px; margin-top: 8px; }
   #status-line { font-size: 12.5px; color: var(--muted); margin-top: 14px; }
   footer { margin-top: 30px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
+  /* ---- report layout v2: CleanIP-inspired monitor/inspect surface ---- */
+  :root {
+    --bg: #f4f7fb;
+    --panel: #ffffff;
+    --panel2: #f8fafc;
+    --border: #e3e8ef;
+    --text: #172033;
+    --muted: #667085;
+    --accent: #315efb;
+    --accent-soft: #eef2ff;
+    --green: #087f5b;
+    --green-soft: #ecfdf3;
+    --yellow: #b54708;
+    --yellow-soft: #fffaeb;
+    --red: #d92d20;
+    --red-soft: #fef3f2;
+    --chip-bg: #f2f4f7;
+    --shadow: 0 12px 32px rgba(16, 24, 40, .06);
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 24px 64px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+  .brand-lockup { display: flex; align-items: center; gap: 12px; }
+  .brand-mark { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 11px; background: #14213d; color: #fff; font-size: 12px; font-weight: 800; letter-spacing: .04em; }
+  header h1 { font-size: 19px; line-height: 1.1; margin: 0; letter-spacing: -.02em; color: var(--text); }
+  header h1 .ver { color: var(--muted); font-size: 12px; font-weight: 600; margin-left: 7px; }
+  header p.sub { color: var(--muted); font-size: 12px; margin: 3px 0 0; }
+  .topbar-status { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .status-dot { width: 7px; height: 7px; background: var(--green); border-radius: 50%; box-shadow: 0 0 0 4px var(--green-soft); }
+  .banner { display: flex; gap: 11px; align-items: flex-start; background: #f0f5ff; border: 1px solid #d7e3ff; color: #344054; border-radius: 12px; padding: 13px 16px; margin: 0 0 18px; font-size: 13px; }
+  .banner .ico { color: var(--accent); font-size: 16px; flex: 0 0 auto; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 18px; box-shadow: var(--shadow); }
+  .audit-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 20px; align-items: center; }
+  .audit-toolbar h2, .badge-panel h2 { color: var(--text); margin: 2px 0 0; font-size: 17px; letter-spacing: -.01em; }
+  .eyebrow { color: var(--accent); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+  .hint { color: var(--muted); font-size: 12px; font-weight: 400; margin-left: 7px; }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 9px; }
+  button { min-height: 38px; background: var(--accent); color: #fff; border: 0; border-radius: 9px; padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 4px rgba(49,94,251,.18); }
+  button:hover { filter: brightness(.96); transform: translateY(-1px); }
+  button:disabled { opacity: .55; cursor: wait; transform: none; }
+  button.secondary { background: #fff; color: #344054; border: 1px solid var(--border); box-shadow: none; }
+  .switch-row { display: inline-flex; align-items: center; gap: 8px; color: #475467; font-size: 13px; }
+  .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; inset: 0; background: #d0d5dd; border: 1px solid #cfd4dc; border-radius: 22px; transition: .2s; }
+  .slider:before { content: ""; position: absolute; height: 16px; width: 16px; left: 2px; top: 2px; background: #fff; border-radius: 50%; box-shadow: 0 1px 3px rgba(16,24,40,.2); transition: .2s; }
+  .switch input:checked + .slider { background: var(--accent); border-color: var(--accent); }
+  .switch input:checked + .slider:before { transform: translateX(18px); }
+  .toggle-hint, .error-box, .online-status { grid-column: 1 / -1; }
+  .toggle-hint { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+  .error-box { background: var(--red-soft); border: 1px solid #fecdca; color: var(--red); border-radius: 9px; padding: 10px 12px; margin-top: 10px; font-size: 12px; }
+  .online-status { border-radius: 9px; padding: 10px 12px; margin-top: 8px; font-size: 12px; border: 1px solid var(--border); color: var(--muted); }
+  .online-status.status-on { background: #f0f5ff; border-color: #d7e3ff; color: #31538f; }
+  .online-status.status-off { background: var(--chip-bg); }
+  .online-status.status-warning { background: var(--yellow-soft); border-color: #fedf89; color: var(--yellow); }
+  .online-status.status-error { background: var(--red-soft); border-color: #fecdca; color: var(--red); }
+  .report-shell { background: transparent; border: 0; box-shadow: none; padding: 0; margin-top: 24px; }
+  .report-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 0 2px 12px; }
+  .report-heading h2 { color: var(--text); font-size: 22px; letter-spacing: -.03em; margin: 3px 0 0; }
+  .report-badge { border: 1px solid #cfd8ff; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 5px 10px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+  .score-area { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(320px, .95fr); gap: 24px; align-items: center; background: var(--panel); border: 1px solid var(--border); border-radius: 18px; padding: 24px; box-shadow: var(--shadow); }
+  .score-overview { display: flex; align-items: center; gap: 22px; min-width: 0; }
+  .score-ring { --score: 0%; --score-color: var(--accent); flex: 0 0 auto; width: 150px; height: 150px; padding: 9px; border-radius: 50%; background: conic-gradient(var(--score-color) var(--score), #e8edf5 0); display: grid; place-items: center; }
+  .score-ring-inner { width: 100%; height: 100%; display: grid; place-items: center; background: var(--panel); border-radius: 50%; box-shadow: inset 0 0 0 1px var(--border); }
+  .score-big { color: var(--text); font-size: 45px; font-weight: 850; line-height: 1; letter-spacing: -.06em; text-align: center; }
+  .score-big small { color: var(--muted); font-size: 15px; font-weight: 500; letter-spacing: 0; margin-left: 3px; }
+  .score-copy { min-width: 0; }
+  .score-copy .grade-chip { display: inline-flex; margin-top: 8px; }
+  .score-copy p { color: var(--muted); font-size: 12px; line-height: 1.6; max-width: 330px; margin: 11px 0 0; }
+  .grade-chip { padding: 5px 11px; border-radius: 999px; font-weight: 800; font-size: 13px; background: var(--chip-bg); border: 1px solid var(--border); }
+  .grade-a { color: var(--green); background: var(--green-soft); border-color: #abefc6; }
+  .grade-b { color: #175cd3; background: #eff8ff; border-color: #b2ddff; }
+  .grade-c { color: var(--yellow); background: var(--yellow-soft); border-color: #fedf89; }
+  .grade-d { color: var(--red); background: var(--red-soft); border-color: #fecdca; }
+  .score-meter { min-width: 0; }
+  .meter-label { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; margin-bottom: 8px; }
+  .progress-track { width: 100%; height: 9px; border-radius: 99px; background: linear-gradient(90deg, #f97066 0%, #fdb022 48%, #12b76a 100%); margin: 0; position: relative; }
+  .progress-marker { top: -4px; width: 4px; height: 17px; background: var(--text); border-radius: 2px; box-shadow: 0 0 0 3px #fff; transition: left .3s ease; }
+  .progress-ticks { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 7px; }
+  .score-breakdown { color: var(--muted); font-size: 11px; line-height: 1.6; margin-top: 13px; }
+  .section-heading { display: flex; align-items: flex-start; gap: 10px; margin: 26px 2px 11px; }
+  .section-heading .section-index { color: var(--accent); font-size: 11px; font-weight: 850; line-height: 1.6; }
+  .section-heading b { color: var(--text); display: block; font-size: 15px; line-height: 1.35; }
+  .section-heading span { color: var(--muted); display: block; font-size: 11px; margin-top: 2px; }
+  .compact-heading { margin-top: 24px; }
+  .chips { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: 0; }
+  .pill { border-radius: 12px; padding: 11px 13px; border: 1px solid var(--border); background: var(--panel); color: var(--muted); display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; font-weight: 700; }
+  .pill b { color: var(--text); font-size: 19px; line-height: 1; }
+  .pill-sev-critical, .pill-sev-high { background: var(--red-soft); color: var(--red); border-color: #fecdca; }
+  .pill-sev-medium { background: var(--yellow-soft); color: var(--yellow); border-color: #fedf89; }
+  .pill-sev-low { background: #eff8ff; color: #175cd3; border-color: #b2ddff; }
+  .pill-sev-info { background: var(--panel); color: var(--muted); }
+  .card-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 0; }
+  .egress-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 16px; min-height: 118px; box-shadow: 0 4px 12px rgba(16,24,40,.035); }
+  .egress-card .card-title { color: var(--muted); font-size: 11px; font-weight: 700; margin-bottom: 10px; }
+  .egress-card .card-value { color: var(--text); font-size: 17px; font-weight: 800; letter-spacing: -.02em; }
+  .egress-card .card-sub { color: var(--muted); font-size: 11px; line-height: 1.45; margin-top: 6px; }
+  .egress-card .card-pill { margin-top: 7px; }
+  .mini-pill { border-radius: 999px; padding: 4px 9px; font-size: 11px; font-weight: 800; display: inline-block; }
+  .mini-pass { background: var(--green-soft); color: var(--green); border: 1px solid #abefc6; }
+  .mini-warn { background: var(--yellow-soft); color: var(--yellow); border: 1px solid #fedf89; }
+  .mini-unknown { background: var(--chip-bg); color: var(--muted); border: 1px solid var(--border); }
+  .dimension-section { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; padding: 2px 20px 20px; box-shadow: var(--shadow); margin-top: 26px; }
+  .dimension-section .section-heading { margin-top: 18px; }
+  .dimension-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .dimension-card { background: var(--panel2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; min-height: 128px; }
+  .dimension-card .dimension-title { color: var(--text); font-size: 13px; }
+  .dimension-card .dimension-en { color: var(--muted); font-size: 10px; }
+  .dimension-card .dimension-desc, .dimension-card .dimension-meta, .dimension-card .dimension-rec { color: var(--muted); font-size: 11px; line-height: 1.5; }
+  .dimension-pass { border-color: #abefc6; background: #fbfffc; }
+  .dimension-warning { border-color: #fedf89; background: #fffdf7; }
+  .dimension-fail { border-color: #fecdca; background: #fffafa; }
+  .dimension-unknown { border-color: var(--border); }
+  .status { border-radius: 999px; padding: 3px 8px; font-size: 10px; white-space: nowrap; font-weight: 800; }
+  .st-pass { background: var(--green-soft); color: var(--green); }
+  .st-fail { background: var(--red-soft); color: var(--red); }
+  .st-warning { background: var(--yellow-soft); color: var(--yellow); }
+  .st-unknown, .st-skipped { background: var(--chip-bg); color: var(--muted); }
+  #groups { display: grid; gap: 14px; }
+  #groups .group-head { color: var(--text); border-bottom: 1px solid var(--border); margin: 5px 0 0; padding: 12px 2px 8px; font-size: 14px; font-weight: 800; }
+  #groups .group-head .cnt, #groups .group-head .desc { color: var(--muted); font-size: 11px; font-weight: 500; }
+  #groups table { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; font-size: 12px; }
+  #groups th, #groups td { padding: 11px 12px; border-bottom: 1px solid #edf0f4; }
+  #groups tr:last-child td { border-bottom: 0; }
+  #groups th { background: var(--panel2); color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+  #groups td { color: #475467; }
+  #groups td:first-child { color: var(--text); font-weight: 650; }
+  .id-col { color: #98a2b3 !important; font-size: 10px !important; }
+  .row-evidence { margin-top: 8px; }
+  .row-evidence summary, .raw-report summary { color: var(--accent); font-size: 11px; font-weight: 700; }
+  pre { background: #101828; color: #d0d5dd; border: 0; border-radius: 9px; padding: 12px; overflow: auto; font-size: 11px; max-height: 360px; }
+  .raw-report { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-top: 16px; }
+  .note { color: var(--muted); font-size: 11px; line-height: 1.5; margin: 12px 0 0; }
+  .badge-panel { margin-top: 24px; }
+  .badge-panel h2 { margin-bottom: 5px; }
+  .browser-observation { display: none; }
+  /* ---- Pulse-inspired function index ---- */
+  .pulse-hub { margin: 26px 0 20px; }
+  .pulse-heading { align-items: flex-end; justify-content: space-between; }
+  .pulse-heading .pulse-heading-copy { min-width: 0; }
+  .pulse-heading .pulse-heading-note { color: var(--muted); font-size: 11px; text-align: right; }
+  .pulse-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .pulse-card {
+    --pulse-accent: #4f7eea; --pulse-surface: #1c2740;
+    position: relative; display: flex; flex-direction: column; align-items: center;
+    width: 100%; min-height: 210px; padding: 21px 17px 16px; border: 1px solid transparent;
+    border-radius: 18px; background: var(--pulse-surface); color: #f4f7fb; text-align: center;
+    cursor: pointer; box-shadow: none; transition: transform .18s, border-color .18s;
+  }
+  .pulse-card:hover { border-color: var(--pulse-accent); transform: translateY(-2px); filter: none; }
+  .pulse-card:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .pulse-card.tone-teal { --pulse-accent: #52b7ab; --pulse-surface: #1a2d33; }
+  .pulse-card.tone-violet { --pulse-accent: #8767df; --pulse-surface: #28213e; }
+  .pulse-card.tone-red { --pulse-accent: #e25458; --pulse-surface: #332129; }
+  .pulse-card.tone-orange { --pulse-accent: #e27f39; --pulse-surface: #342620; }
+  .pulse-card.tone-green { --pulse-accent: #5eae68; --pulse-surface: #1e302c; }
+  .pulse-card.tone-slate { --pulse-accent: #5b91e8; --pulse-surface: #202d40; }
+  .pulse-icon { display: grid; place-items: center; width: 55px; height: 55px; margin-bottom: 12px; border-radius: 50%; background: var(--pulse-accent); color: #fff; font-size: 22px; font-weight: 850; letter-spacing: -.04em; }
+  .pulse-card h3 { margin: 0 0 7px; color: #f7f9fc; font-size: 17px; line-height: 1.3; }
+  .pulse-card p { min-height: 38px; margin: 0; color: #b9c0cf; font-size: 11px; line-height: 1.55; }
+  .pulse-card .pulse-result { margin-top: auto; padding-top: 12px; color: #d5d9e2; font-size: 11px; }
+  .pulse-card .pulse-result .status { margin-right: 4px; }
+  .pulse-card .pulse-chevron { position: absolute; top: 11px; right: 14px; color: #9ca7b9; font-size: 15px; }
+  .pulse-card .status { background: rgba(255,255,255,.12); color: #dfe6f3; }
+  .pulse-card .st-pass { color: #a4e5b5; }
+  .pulse-card .st-warning { color: #ffd58e; }
+  .pulse-card .st-fail { color: #ffb2b2; }
+  .pulse-card .st-unknown { color: #c4cada; }
+  .pulse-note { margin-top: 10px; }
+  .pulse-inspector { display: none; margin: 0 0 22px; padding: 20px; background: var(--panel); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); scroll-margin-top: 18px; }
+  .pulse-inspector.is-open { display: block; }
+  .pulse-inspector-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+  .pulse-inspector-head h2 { margin: 2px 0 5px; color: var(--text); font-size: 19px; }
+  .pulse-inspector-head p { margin: 0; color: var(--muted); font-size: 12px; }
+  .pulse-inspector-head button { flex: 0 0 auto; }
+  .pulse-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 18px; margin: 0 0 14px; }
+  .pulse-facts div { min-width: 0; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .pulse-facts dt { color: var(--muted); font-size: 10px; }
+  .pulse-facts dd { margin: 3px 0 0; color: var(--text); font-size: 12px; overflow-wrap: anywhere; }
+  .pulse-checks { display: grid; gap: 8px; }
+  .pulse-check { padding: 11px 13px; background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; }
+  .pulse-check h3 { display: flex; justify-content: space-between; gap: 10px; margin: 0 0 4px; color: var(--text); font-size: 12px; }
+  .pulse-check p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+  .pulse-check code { color: var(--text); }
+  .pulse-actions { display: none; gap: 8px; flex-wrap: wrap; margin: 14px 0 0; padding-top: 14px; border-top: 1px solid var(--border); }
+  .pulse-actions.is-speed { display: flex; }
+  .pulse-actions button { min-height: 34px; padding: 7px 11px; font-size: 12px; }
+  .speed-warning { color: var(--yellow); font-size: 11px; margin: 8px 0 0; }
+  .tiktok-target { display: none; align-items: center; gap: 8px; margin: 10px 0 0; color: var(--muted); font-size: 12px; }
+  .tiktok-target.is-visible { display: flex; }
+  .tiktok-target select { min-height: 32px; padding: 4px 8px; color: var(--text); background: var(--panel2); border: 1px solid var(--border); border-radius: 7px; }
+  #status-line { color: var(--muted); font-size: 11px; margin: 16px 2px 0; }
+  footer { color: var(--muted); font-size: 11px; border-top: 1px solid var(--border); padding-top: 15px; margin-top: 25px; line-height: 1.7; }
+  code { background: var(--chip-bg); color: #344054; border-radius: 4px; padding: 1px 4px; }
+  @media (max-width: 900px) {
+    .score-area { grid-template-columns: 1fr; }
+    .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .pulse-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dimension-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 620px) {
+    .wrap { padding: 18px 14px 44px; }
+    .topbar, .report-heading { align-items: flex-start; flex-direction: column; }
+    .topbar-status { align-self: flex-start; }
+    .audit-toolbar { grid-template-columns: 1fr; }
+    .actions { justify-content: flex-start; }
+    .score-overview { align-items: flex-start; flex-direction: column; }
+    .score-ring { width: 128px; height: 128px; }
+    .chips, .card-grid, .pulse-grid, .dimension-grid { grid-template-columns: 1fr; }
+    .pulse-heading { align-items: flex-start; flex-direction: column; gap: 5px; }
+    .pulse-heading .pulse-heading-note { text-align: left; }
+    .pulse-inspector-head { gap: 10px; }
+    .pulse-facts { grid-template-columns: 1fr; }
+    #groups { overflow-x: auto; }
+    #groups table { min-width: 720px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>claude-sonar<span class="ver" id="ver-tag">…</span></h1>
-    <p class="sub">本地隐私与代理一致性审计 · 只读面板</p>
+  <header class="topbar">
+    <div class="brand-lockup">
+      <div class="brand-mark" aria-hidden="true">CS</div>
+      <div>
+        <h1>claude-sonar<span class="ver" id="ver-tag">…</span></h1>
+        <p class="sub">环境一致性检测报告 · 本地只读面板</p>
+      </div>
+    </div>
+    <div class="topbar-status"><span class="status-dot"></span>本机回环服务</div>
   </header>
 
   <div class="banner" id="readonly-banner">
-    <span class="ico">🔒</span>
-    <span><b>只读审计：本工具不会修改任何系统设置。</b>面板仅在本机 127.0.0.1 回环地址运行，所有检查只读取配置并展示结果；不会替你改动代理、DNS、系统或浏览器设置。</span>
+    <span class="ico">◈</span>
+    <span><b>这是一份本机环境报告。</b>只读取代理、DNS、浏览器策略和隐私配置；在线探测只观察公开连通性，不读取账号、密码、Cookie 或本地文件。</span>
   </div>
 
-  <div class="panel">
-    <h2>审计 <span class="hint">打开即自动运行；在线探测默认开启，可手动关闭</span></h2>
+  <div class="panel audit-toolbar">
+    <div>
+      <div class="eyebrow">检测控制台</div>
+      <h2>准备就绪 <span class="hint">打开即自动运行；在线探测默认开启，可随时关闭</span></h2>
+    </div>
     <div class="actions">
-      <button id="btn-audit">重新审计</button>
+      <button id="btn-audit">重新检测</button>
       <div class="switch-row">
         <span>在线探测</span>
         <label class="switch">
@@ -190,48 +455,110 @@
       </div>
       <button class="secondary" id="btn-badge">生成 badge</button>
     </div>
-    <p class="toggle-hint">开启「在线探测」后，审计会发起少量出站探测请求（域名查询、出口地址、站点连通性、TLS 指纹等）以对照本地配置；可手动关闭。</p>
+    <p class="toggle-hint">在线探测默认开启。勾选后，审计才会发起少量出站探测请求（域名查询、出口地址、站点连通性、TLS 指纹等）以对照本地配置；可关闭后重新审计。</p>
     <div class="error-box" id="error-box"></div>
+    <div class="online-status status-on" id="online-status">在线探测状态：准备开始。</div>
   </div>
 
-  <div class="panel" id="report-panel" style="display:none">
-    <h2>审计结果 <span class="hint" id="report-meta"></span></h2>
+  <div class="panel report-shell" id="report-panel" style="display:none">
+    <div class="report-heading">
+      <div>
+        <div class="eyebrow">02 / 总体结论</div>
+        <h2>环境一致性概览 <span class="hint" id="report-meta"></span></h2>
+      </div>
+      <span class="report-badge">只读报告</span>
+    </div>
 
-    <!-- Score + progress bar -->
-    <div class="score-area">
-      <div class="score-big" id="score-value">—<small>/100</small></div>
-      <div class="grade-chip" id="grade-chip">—</div>
-    </div>
-    <div class="progress-track">
-      <div class="progress-marker" id="progress-marker" style="left:0%"></div>
-    </div>
-    <div class="progress-ticks">
-      <span>0 高危</span><span>25</span><span>50</span><span>75</span><span>100 可信</span>
-    </div>
-    <div class="score-breakdown" id="score-meta"></div>
+    <section class="pulse-hub" id="pulse-hub" aria-labelledby="pulse-hub-title">
+      <div class="section-heading pulse-heading">
+        <div class="pulse-heading-copy">
+          <div class="section-index">01</div>
+          <div><b id="pulse-hub-title">检测工具</b><span>把出口、指纹、泄漏、测速和平台环境拆成可打开的检测入口</span></div>
+        </div>
+        <div class="pulse-heading-note">借鉴 CleanIP Pulse 的工具目录层级<br>结果仍以本地证据为准</div>
+      </div>
+      <div class="pulse-grid" id="pulse-grid"></div>
+      <p class="note pulse-note">卡片是功能入口，不是额外评分。测速和浏览器观测需要你主动打开；没有证据的项目会显示“未知”或“未配置”。</p>
+    </section>
 
-    <!-- Summary pills -->
+    <section class="pulse-inspector" id="module-inspector" aria-live="polite" aria-labelledby="module-title">
+      <div class="pulse-inspector-head">
+        <div>
+          <div class="eyebrow">当前检测</div>
+          <h2 id="module-title">选择一个检测工具</h2>
+          <p id="module-summary">点击上方卡片查看已有证据，或启动一次明确的浏览器/网络观测。</p>
+        </div>
+        <button class="secondary" id="module-close" type="button">收起</button>
+      </div>
+      <dl class="pulse-facts" id="module-facts"></dl>
+      <div class="pulse-checks" id="module-checks"></div>
+      <div class="tiktok-target" id="tiktok-target">
+        <label for="tiktok-region">目标市场（可选）</label>
+        <select id="tiktok-region">
+          <option value="">不指定，只看当前环境</option>
+          <option value="US">美国</option>
+          <option value="GB">英国</option>
+          <option value="JP">日本</option>
+          <option value="SG">新加坡</option>
+          <option value="DE">德国</option>
+        </select>
+      </div>
+      <div class="pulse-actions" id="pulse-actions">
+        <button class="secondary" id="btn-speed-latency" type="button">测延迟 / 抖动</button>
+        <button class="secondary" id="btn-speed-download" type="button">测下载（最多 1 MiB）</button>
+        <button class="secondary" id="btn-speed-upload" type="button">测上传（最多 1 MiB）</button>
+      </div>
+      <p class="speed-warning" id="speed-warning" hidden>下载/上传会产生真实流量，只在你点击后执行；结果失败保持未知。</p>
+    </section>
+
+    <div class="score-area" id="report-hero">
+      <div class="score-overview">
+        <div class="score-ring" id="score-ring" aria-label="配置自洽分">
+          <div class="score-ring-inner">
+            <div class="score-big" id="score-value">—<small>/100</small></div>
+          </div>
+        </div>
+        <div class="score-copy">
+          <div class="eyebrow">配置自洽分</div>
+          <div class="grade-chip" id="grade-chip">—</div>
+          <p>分数衡量出口、系统、浏览器和隐私设置之间是否互相矛盾，不代表账号安全或 IP 纯净度。</p>
+        </div>
+      </div>
+      <div class="score-meter">
+        <div class="meter-label"><span>环境一致性</span><span>0 — 100</span></div>
+        <div class="progress-track">
+          <div class="progress-marker" id="progress-marker" style="left:0%"></div>
+        </div>
+        <div class="progress-ticks">
+          <span>0 需处理</span><span>25</span><span>50</span><span>75</span><span>100 自洽</span>
+        </div>
+        <div class="score-breakdown" id="score-meta"></div>
+      </div>
+    </div>
+
+    <div class="section-heading compact-heading"><div class="section-index">03</div><div><b>状态摘要</b><span>按严重度汇总本次检测结果</span></div></div>
     <div class="chips" id="summary-chips"></div>
 
-    <!-- Egress overview cards -->
+    <div class="section-heading" id="section-egress"><div class="section-index">04</div><div><b>出口与浏览器观察</b><span>把公开出口信号与本机浏览器观察放在一起对照</span></div></div>
     <div class="card-grid" id="egress-cards"></div>
 
-    <!-- Check group tables -->
+    <div class="dimension-section" id="section-dimensions">
+      <div class="section-heading"><div class="section-index">05</div><div><b>六维环境报告</b><span>每一维只汇总已有检查；未知表示证据不足</span></div></div>
+      <div class="dimension-grid" id="dimensions"></div>
+      <p class="note">六维状态矩阵不是 IP 纯净度、匿名度或防封禁评分；它只帮助你定位哪一层证据需要继续查看。</p>
+    </div>
+
+    <div class="section-heading" id="section-findings"><div class="section-index">06</div><div><b>逐项检测结果</b><span>展开证据查看每个状态是如何得出的</span></div></div>
     <div id="groups"></div>
 
-    <details>
-      <summary>查看 Markdown 报告</summary>
+    <details class="raw-report">
+      <summary>查看完整 Markdown 报告</summary>
       <pre id="report-md">—</pre>
     </details>
   </div>
 
-  <!-- Hidden but functional: WebRTC + timezone detection (results surface in egress cards) -->
-  <div style="display:none">
-    <ul class="plain" id="webrtc-list"><li class="empty">正在检测…</li></ul>
-    <ul class="plain" id="tz-info"><li class="empty">正在检测…</li></ul>
-  </div>
-
-  <div class="panel">
+  <div class="panel badge-panel">
+    <div class="eyebrow">导出</div>
     <h2>动态 badge <span class="hint">shields.io dynamic/json</span></h2>
     <p style="font-size:13px;color:var(--muted);margin:0 0 10px">将最近一次审计的自洽分写入项目根目录 <code>sonar-badge.json</code>，push 到仓库后即可在 README 展示动态徽章。</p>
     <button class="secondary" id="btn-badge2">生成 badge</button>
@@ -244,10 +571,15 @@
     </div>
   </div>
 
+  <div class="browser-observation" aria-hidden="true">
+    <ul class="plain" id="webrtc-list"><li class="empty">正在检测…</li></ul>
+    <ul class="plain" id="tz-info"><li class="empty">正在检测…</li></ul>
+  </div>
+
   <div id="status-line">正在连接服务…</div>
 
   <footer>
-    claude-sonar 本地面板 · 只读审计 · 无外部资源加载 · 无数据上传<br>
+    claude-sonar 本地面板 · 面板默认在线探测、库和 CLI 默认离线 · 无外部资源加载 · 不修改系统设置（生成 badge 会写入报告文件）<br>
     本工具不提供伪装、规避或"防封"建议；自洽分衡量的是配置一致性，不是匿名程度。
   </footer>
 </div>
@@ -286,6 +618,301 @@ var GROUP_META = [
 ];
 var GRADE_CLS = { A: "grade-a", B: "grade-b", C: "grade-c", D: "grade-d" };
 
+/* ---------- Pulse function index + local browser observations ---------- */
+var currentReportData = null;
+var activePulseModule = "";
+var headerObservation = null;
+var speedObservations = {};
+var browserObservation = { ready: false, data: null, promise: null };
+var PULSE_MODULES = [
+  { id: "egress", card: "pulse-card-egress", tone: "blue", icon: "IP", title: "我的 IP", subtitle: "本机公网 IPv4 / IPv6 与归属", kind: "egress" },
+  { id: "ipv6", card: "pulse-card-ipv6", tone: "teal", icon: "6", title: "IPv6 检测", subtitle: "双栈出口、优先级与旁路", kind: "ipv6" },
+  { id: "fingerprint", card: "pulse-card-fingerprint", tone: "blue", icon: "FX", title: "指纹检测", subtitle: "Canvas / WebGL / Audio / 浏览器", kind: "fingerprint" },
+  { id: "leak", card: "pulse-card-leak", tone: "red", icon: "◈", title: "泄漏检测", subtitle: "DNS / WebRTC / IPv6 旁路", kind: "leak" },
+  { id: "cloudflare", card: "pulse-card-cloudflare", tone: "orange", icon: "CF", title: "Cloudflare 环境", subtitle: "边缘出口与自动化信号", kind: "cloudflare" },
+  { id: "routing", card: "pulse-card-routing", tone: "violet", icon: "↔", title: "出口与分流", subtitle: "出口、代理、DNS 路径一致性", kind: "routing" },
+  { id: "speed", card: "pulse-card-speed", tone: "green", icon: "↯", title: "网速测试", subtitle: "下载 / 上传 / 延迟 / 抖动", kind: "speed" },
+  { id: "headers", card: "pulse-card-headers", tone: "blue", icon: "HTTP", title: "HTTP 请求头", subtitle: "本地服务实际收到的 allowlist", kind: "headers" },
+  { id: "ip-info", card: "pulse-card-ip-info", tone: "green", icon: "ASN", title: "IP 信息卡", subtitle: "地区 / ASN / 组织标签", kind: "ip-info" },
+  { id: "tiktok", card: "pulse-card-tiktok", tone: "violet", icon: "TT", title: "TikTok 环境", subtitle: "区域、时区、语言与泄漏一致性", kind: "tiktok" }
+];
+var pulseStatusLabel = { pass: "已观测", fail: "需处理", warning: "需查看", unknown: "未知" };
+
+function allReportChecks(data) {
+  var out = [];
+  var groups = data && data.groups ? data.groups : {};
+  Object.keys(groups).forEach(function (key) {
+    var items = Array.isArray(groups[key]) ? groups[key] : [];
+    items.forEach(function (item) { if (item) out.push(item); });
+  });
+  return out;
+}
+function findReportCheck(data, id) {
+  var checks = allReportChecks(data);
+  for (var i = 0; i < checks.length; i++) {
+    if (String(checks[i].id || "") === id) return checks[i];
+  }
+  return null;
+}
+function findChecksByPatterns(data, exactIds, prefixes) {
+  var checks = allReportChecks(data), out = [];
+  exactIds = exactIds || []; prefixes = prefixes || [];
+  for (var i = 0; i < checks.length; i++) {
+    var id = String(checks[i].id || "");
+    if (exactIds.indexOf(id) >= 0 || prefixes.some(function (prefix) { return id.indexOf(prefix) === 0; })) out.push(checks[i]);
+  }
+  return out;
+}
+function findDimension(data, id) {
+  var items = data && data.dimensions && Array.isArray(data.dimensions.dimensions) ? data.dimensions.dimensions : [];
+  for (var i = 0; i < items.length; i++) if (String(items[i].id || "") === id) return items[i];
+  return null;
+}
+function aggregatePulseStatus(statuses) {
+  if (!statuses || !statuses.length) return "unknown";
+  if (statuses.indexOf("fail") >= 0) return "fail";
+  if (statuses.indexOf("warning") >= 0) return "warning";
+  if (statuses.indexOf("unknown") >= 0) return "unknown";
+  return "pass";
+}
+function pulseBadge(status, label) {
+  var normalized = ["pass", "fail", "warning", "unknown"].indexOf(status) >= 0 ? status : "unknown";
+  return '<span class="status st-' + normalized + '">' + esc(label || pulseStatusLabel[normalized] || "未知") + '</span>';
+}
+function pulseState(module, data) {
+  var eg = data && data.egress_summary ? data.egress_summary : {};
+  var status = "unknown", detail = "点击查看证据";
+  if (module.kind === "egress" || module.kind === "ip-info") {
+    status = data && data.online && eg.available ? String(eg.egress_status || "unknown") : "unknown";
+    detail = status === "unknown" ? (data && data.online ? "出口证据不足" : "离线未探测") : "出口已观测";
+  } else if (module.kind === "ipv6") {
+    var ipv6Checks = findChecksByPatterns(data, ["network.egress.dual_stack", "network.ipv6_binding", "network.teredo", "network.dns_ipv6"], []);
+    status = aggregatePulseStatus(ipv6Checks.map(function (c) { return String(c.status || "unknown"); }));
+    detail = ipv6Checks.length ? "查看双栈与旁路证据" : "本次未覆盖";
+  } else if (module.kind === "leak") {
+    var leak = findDimension(data, "leak_detection");
+    status = leak ? String(leak.status || "unknown") : "unknown";
+    detail = leak && leak.matched ? "查看 DNS / WebRTC / IPv6" : "等待在线证据";
+  } else if (module.kind === "routing") {
+    var routing = findDimension(data, "exit_network");
+    status = routing ? String(routing.status || "unknown") : "unknown";
+    detail = routing && routing.matched ? "查看出口与规则一致性" : "本次未覆盖";
+  } else if (module.kind === "fingerprint") {
+    status = browserObservation.ready ? "pass" : "unknown";
+    detail = browserObservation.ready ? "本地观测已完成" : "浏览器观测中";
+  } else if (module.kind === "cloudflare") {
+    var cf = findChecksByPatterns(data, ["network.egress.runtime_consistency.cloudflare-trace", "network.ip_reputation"], []);
+    status = aggregatePulseStatus(cf.map(function (c) { return String(c.status || "unknown"); }));
+    detail = "Turnstile / reCAPTCHA 未配置";
+  } else if (module.kind === "speed") {
+    var speed = speedObservations.latency || speedObservations.download || speedObservations.upload;
+    status = speed && speed.ok ? "pass" : "unknown";
+    detail = speed && speed.ok ? "已完成手动测速" : "点击后才会测速";
+  } else if (module.kind === "headers") {
+    status = headerObservation && headerObservation.ok ? "pass" : "unknown";
+    detail = headerObservation && headerObservation.ok ? "已读取 allowlist" : "点击后读取";
+  } else if (module.kind === "tiktok") {
+    var region = document.getElementById("tiktok-region");
+    var target = region ? region.value : "";
+    var country = String(eg.egress_country || "").toUpperCase();
+    if (target && country) {
+      status = target === country ? "pass" : "warning";
+      detail = "目标市场与出口国家" + (target === country ? "一致" : "不一致");
+    } else {
+      var regional = findDimension(data, "regional_consistency");
+      status = regional ? String(regional.status || "unknown") : "unknown";
+      detail = target ? "等待国家标签" : "未指定目标市场";
+    }
+  }
+  return { status: status, detail: detail };
+}
+function renderPulseHub(data) {
+  var root = $("pulse-grid");
+  if (!root) return;
+  var html = "";
+  for (var i = 0; i < PULSE_MODULES.length; i++) {
+    var module = PULSE_MODULES[i];
+    var state = pulseState(module, data || {});
+    html += '<button type="button" class="pulse-card tone-' + esc(module.tone) + '" id="' + esc(module.card) + '" data-module="' + esc(module.id) + '" aria-controls="module-inspector">' +
+      '<span class="pulse-chevron" aria-hidden="true">›</span>' +
+      '<span class="pulse-icon" aria-hidden="true">' + esc(module.icon) + '</span>' +
+      '<h3>' + esc(module.title) + '</h3>' +
+      '<p>' + esc(module.subtitle) + '</p>' +
+      '<div class="pulse-result">' + pulseBadge(state.status) + '<span>' + esc(state.detail) + '</span></div>' +
+      '</button>';
+  }
+  root.innerHTML = html;
+}
+function moduleFact(label, value) {
+  return '<div><dt>' + esc(label) + '</dt><dd>' + esc(value === undefined || value === null || value === "" ? "—" : value) + '</dd></div>';
+}
+function shorten(value, limit) {
+  var text = String(value === undefined || value === null ? "" : value);
+  return text.length > limit ? text.slice(0, limit) + "…" : text;
+}
+function renderModuleChecks(checks) {
+  if (!checks || !checks.length) return '<p class="empty">当前没有可展示的报告检查；未知不代表通过或泄漏。</p>';
+  return checks.slice(0, 12).map(function (check) {
+    var title = pick(check, "title_zh") || pick(check, "title");
+    var explanation = pick(check, "explanation_zh") || pick(check, "explanation", "暂无说明");
+    return '<article class="pulse-check"><h3><span>' + esc(title) + '</span>' + statusChip(pick(check, "status")) + '</h3><p><code>' + esc(pick(check, "id")) + '</code> · ' + esc(shorten(explanation, 360)) + '</p></article>';
+  }).join("");
+}
+function moduleChecks(data, moduleId) {
+  if (moduleId === "egress" || moduleId === "ip-info") return findChecksByPatterns(data, ["network.ip_reputation", "network.egress.dual_stack", "network.egress.runtime_consistency.cloudflare-trace", "network.cross_site.routing"], []);
+  if (moduleId === "ipv6") return findChecksByPatterns(data, ["network.egress.dual_stack", "network.ipv6_binding", "network.teredo", "network.dns_ipv6"], []);
+  if (moduleId === "leak") return findChecksByPatterns(data, ["network.dns.egress_consistency", "network.dns.consistency", "network.ipv6_binding", "network.teredo", "privacy.browser_fingerprint"], ["browser.webrtc."]);
+  if (moduleId === "cloudflare") return findChecksByPatterns(data, ["network.egress.runtime_consistency.cloudflare-trace", "network.ip_reputation", "network.cross_site.routing"], []);
+  if (moduleId === "routing") return findChecksByPatterns(data, ["network.mode", "network.system_proxy", "network.tun", "network.dns", "network.dns_mode", "network.dns_hijack", "network.dns_respect_rules", "network.cross_site.routing"], []);
+  if (moduleId === "fingerprint") return findChecksByPatterns(data, ["privacy.browser_fingerprint", "network.tls.fingerprint"], ["browser.webrtc."]);
+  if (moduleId === "tiktok") return findChecksByPatterns(data, ["network.ip_reputation", "network.dns.egress_consistency", "network.egress.dual_stack", "consistency.geo_stack", "system.timezone", "system.locale", "privacy.browser_fingerprint"], ["browser.webrtc."]);
+  return [];
+}
+function browserFacts() {
+  var d = browserObservation.data || {};
+  return [
+    moduleFact("Canvas", d.canvas || "读取失败"),
+    moduleFact("WebGL", d.webgl || "不支持 / 未读取"),
+    moduleFact("音频指纹", d.audio || "不支持 / 未读取"),
+    moduleFact("navigator.webdriver", d.webdriver ? "true" : "false"),
+    moduleFact("时区", d.timezone || "—"),
+    moduleFact("语言", d.languages || "—"),
+    moduleFact("屏幕 / 视口", d.screen || "—"),
+    moduleFact("硬件提示", d.hardware || "—")
+  ].join("");
+}
+function renderModule(moduleId) {
+  if (!currentReportData) return;
+  var module = PULSE_MODULES.filter(function (item) { return item.id === moduleId; })[0];
+  if (!module) return;
+  var eg = currentReportData.egress_summary || {};
+  var facts = "", summary = "", checks = moduleChecks(currentReportData, moduleId);
+  var actions = $("pulse-actions"), warning = $("speed-warning"), target = $("tiktok-target");
+  actions.className = "pulse-actions";
+  warning.hidden = true;
+  target.className = "tiktok-target";
+  if (moduleId === "egress" || moduleId === "ip-info") {
+    facts = moduleFact("在线模式", currentReportData.online ? "已开启" : "离线审计") + moduleFact("出口地址", currentReportData.online ? (eg.egress_ip || "未知 / 已脱敏") : "未探测") + moduleFact("国家 / 地区", eg.egress_country || "未知") + moduleFact("ASN", eg.egress_asn || "未知") + moduleFact("组织标签", eg.egress_org || "未知") + moduleFact("说明", "地址只在进程内脱敏，不保存原值");
+    summary = moduleId === "ip-info" ? "IP 信息卡只展示分类标签，不把第三方数据库意见当成账号或平台判定。" : "这里对应 CleanIP 的“我的 IP”：展示当前审计已经获得的出口观察，不重复发起探测。";
+  } else if (moduleId === "ipv6") {
+    var dual = findReportCheck(currentReportData, "network.egress.dual_stack");
+    var dualData = dual && dual.evidence && dual.evidence[0] ? dual.evidence[0].data || {} : {};
+    facts = moduleFact("IPv4 出口", dualData.ipv4 && dualData.ipv4.ok ? "已观测（已脱敏）" : "未知") + moduleFact("IPv6 出口", dualData.ipv6 && dualData.ipv6.ok ? "已观测（已脱敏）" : "未知") + moduleFact("在线探测", currentReportData.online ? "已开启" : "未开启") + moduleFact("判断边界", "浏览器/系统旁路仍需结合 WebRTC 与 DNS");
+    summary = "按 IPv4 / IPv6 两族分别观察真实可达性；IPv6 不通是未知，不自动判为故障或泄漏。";
+  } else if (moduleId === "fingerprint") {
+    facts = browserFacts();
+    summary = "指纹检测在当前浏览器本地完成，只展示 Canvas、WebGL、Audio、屏幕与自动化信号，不生成“纯净度”分数。";
+  } else if (moduleId === "leak") {
+    var leakDim = findDimension(currentReportData, "leak_detection");
+    facts = moduleFact("六维状态", leakDim ? (leakDim.status_label_zh || leakDim.status || "未知") : "未知") + moduleFact("DNS 出口", eg.dns_egress_status || "未知") + moduleFact("WebRTC", webrtcDetectionStatus === "warning" ? "发现 host 候选" : webrtcDetectionStatus === "pass" ? "未见 host 候选" : "未知") + moduleFact("IPv6", currentReportData.online ? "见双栈证据" : "离线未探测");
+    summary = "泄漏结论只在证据足够时成立；WebRTC 未返回候选或 DoH 不可达，都保持未知/观察态。";
+  } else if (moduleId === "cloudflare") {
+    var cfCheck = findReportCheck(currentReportData, "network.egress.runtime_consistency.cloudflare-trace");
+    facts = moduleFact("Cloudflare trace", cfCheck ? (STATUS_ZH[cfCheck.status] || cfCheck.status || "未知") : "未知") + moduleFact("Turnstile", "未配置") + moduleFact("reCAPTCHA v3", "未配置") + moduleFact("navigator.webdriver", browserObservation.data && browserObservation.data.webdriver ? "true" : "false") + moduleFact("风险指数", "未计算");
+    summary = "这里借鉴 CleanIP 的 Cloudflare 环境分组，但本地项目不伪造 Turnstile / reCAPTCHA 结果；只展示出口与浏览器可观测信号。";
+  } else if (moduleId === "routing") {
+    var routeDim = findDimension(currentReportData, "exit_network");
+    facts = moduleFact("出口网络维度", routeDim ? (routeDim.status_label_zh || routeDim.status || "未知") : "未知") + moduleFact("DNS 一致性", eg.dns_consistency_status || "未知") + moduleFact("TLS 指纹", eg.tls_status || "未知") + moduleFact("当前模式", currentReportData.online ? "在线对照" : "离线配置");
+    summary = "出口与分流只对照已有配置、DNS、跨站出口和双栈证据，不代替客户端自身的规则日志。";
+  } else if (moduleId === "speed") {
+    actions.className = "pulse-actions is-speed";
+    warning.hidden = false;
+    var speedKeys = Object.keys(speedObservations);
+    facts = moduleFact("测试节点", "Cloudflare speed endpoint") + moduleFact("自动执行", "不会自动测速") + moduleFact("已完成", speedKeys.length ? speedKeys.join(" / ") : "暂无");
+    summary = "测速是显式操作：延迟只发起 3 次极小请求，下载/上传最多各使用 1 MiB 流量。";
+    if (speedKeys.length) {
+      var speedHtml = speedKeys.map(function (key) { var r = speedObservations[key] || {}; return '<article class="pulse-check"><h3><span>' + esc(key) + '</span>' + pulseBadge(r.ok ? "pass" : "unknown", r.ok ? "已完成" : "未知") + '</h3><p>' + esc(r.ok ? (key === "latency" ? ("中位延迟 " + r.latency_ms + " ms · 抖动 " + r.jitter_ms + " ms") : ((r.mbps === null || r.mbps === undefined ? "—" : r.mbps + " Mbps") + " · " + r.bytes + " bytes")) : ("测速失败：" + (r.error || "未返回结果"))) + '</p></article>'; }).join("");
+      checks = [];
+      $("module-checks").innerHTML = speedHtml;
+    }
+  } else if (moduleId === "headers") {
+    if (!headerObservation) loadHeaderObservation();
+    facts = moduleFact("数据来源", "本地回环服务收到的当前请求") + moduleFact("范围", "固定 allowlist") + moduleFact("Cookie / Authorization", "不返回") + moduleFact("当前状态", headerObservation && headerObservation.ok ? "已读取" : "读取中");
+    summary = "HTTP 请求头只读取本地面板服务实际收到的有限字段，不访问第三方回显站点。";
+    if (headerObservation && headerObservation.ok) {
+      checks = Object.keys(headerObservation.headers || {}).map(function (key) { return { id: key, title_zh: key, status: "pass", explanation_zh: headerObservation.headers[key] }; });
+    }
+  } else if (moduleId === "tiktok") {
+    target.className = "tiktok-target is-visible";
+    var selected = $("tiktok-region") ? $("tiktok-region").value : "";
+    var countryCode = String(eg.egress_country || "").toUpperCase();
+    var locale = browserObservation.data && browserObservation.data.locale ? browserObservation.data.locale : "未知";
+    var timezone = browserObservation.data && browserObservation.data.timezone ? browserObservation.data.timezone : "未知";
+    facts = moduleFact("出口国家", countryCode || "未知") + moduleFact("目标市场", selected || "未指定") + moduleFact("浏览器语言", locale) + moduleFact("浏览器时区", timezone) + moduleFact("泄漏状态", webrtcDetectionStatus === "warning" ? "需查看" : "未知/未见") + moduleFact("账号判定", "站外无法观测");
+    summary = selected && countryCode && selected !== countryCode ? "目标市场与出口国家不一致；这只是环境提示，不是账号判决。" : "TikTok 环境只核对网络与浏览器可见信号，不读取账号状态，也不声称能预测运营结果。";
+  }
+  $("module-title").textContent = module.title;
+  $("module-summary").textContent = summary;
+  $("module-facts").innerHTML = facts;
+  if (!(moduleId === "speed" && Object.keys(speedObservations).length)) $("module-checks").innerHTML = renderModuleChecks(checks);
+}
+function openPulseModule(moduleId) {
+  activePulseModule = moduleId;
+  var inspector = $("module-inspector");
+  if (!inspector) return;
+  inspector.classList.add("is-open");
+  renderModule(moduleId);
+  inspector.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function loadHeaderObservation() {
+  headerObservation = { loading: true };
+  fetch("/api/headers").then(function (r) { return r.json(); }).then(function (data) {
+    headerObservation = data && data.ok ? data : { ok: false, error: "本地接口未返回" };
+    if (activePulseModule === "headers") renderModule("headers");
+    if (currentReportData) renderPulseHub(currentReportData);
+  }).catch(function (err) {
+    headerObservation = { ok: false, error: err && err.message ? err.message : "读取失败" };
+    if (activePulseModule === "headers") renderModule("headers");
+  });
+}
+function runSpeedObservation(mode) {
+  var buttons = [$("btn-speed-latency"), $("btn-speed-download"), $("btn-speed-upload")];
+  buttons.forEach(function (button) { if (button) button.disabled = true; });
+  fetch("/api/speedtest?mode=" + encodeURIComponent(mode) + "&bytes=262144")
+    .then(function (r) { return r.json().then(function (data) { return { status: r.status, data: data }; }); })
+    .then(function (result) {
+      if (result.status !== 200) throw new Error(result.data && result.data.error ? result.data.error : "测速请求失败");
+      speedObservations[mode] = result.data;
+      if (activePulseModule === "speed") renderModule("speed");
+      if (currentReportData) renderPulseHub(currentReportData);
+    })
+    .catch(function (err) {
+      speedObservations[mode] = { ok: false, mode: mode, error: err && err.message ? err.message : "未知错误" };
+      if (activePulseModule === "speed") renderModule("speed");
+    })
+    .finally(function () { buttons.forEach(function (button) { if (button) button.disabled = false; }); });
+}
+function hashText(text) {
+  var hash = 0;
+  for (var i = 0; i < text.length; i++) hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+  return String(hash >>> 0);
+}
+function detectLocalFingerprint() {
+  var data = { timezone: "—", locale: "—", languages: "—", platform: "—", screen: "—", hardware: "—", webdriver: !!navigator.webdriver, canvas: "—", webgl: "—", audio: "读取中" };
+  try { var intl = Intl.DateTimeFormat().resolvedOptions(); data.timezone = intl.timeZone || "—"; data.locale = intl.locale || "—"; } catch (e) {}
+  try { data.languages = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || "—"]).join(", "); } catch (e) {}
+  try { data.platform = navigator.platform || "—"; data.screen = screen.width + "×" + screen.height + " · 视口 " + window.innerWidth + "×" + window.innerHeight; data.hardware = (navigator.hardwareConcurrency || "—") + " 核" + (navigator.deviceMemory ? " · " + navigator.deviceMemory + " GiB 提示" : ""); } catch (e) {}
+  try {
+    var canvas = document.createElement("canvas"); canvas.width = 260; canvas.height = 60;
+    var ctx = canvas.getContext("2d"); ctx.textBaseline = "top"; ctx.font = "16px sans-serif"; ctx.fillStyle = "#315efb"; ctx.fillRect(0, 0, 260, 60); ctx.fillStyle = "#fff"; ctx.fillText("claude-sonar " + data.locale, 8, 8);
+    data.canvas = hashText(canvas.toDataURL());
+  } catch (e) { data.canvas = "读取失败"; }
+  try {
+    var glCanvas = document.createElement("canvas");
+    var gl = glCanvas.getContext("webgl") || glCanvas.getContext("experimental-webgl");
+    if (gl) { var debug = gl.getExtension("WEBGL_debug_renderer_info"); var vendor = debug ? gl.getParameter(debug.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR); var renderer = debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER); data.webgl = String(vendor || "—") + " / " + String(renderer || "—"); }
+  } catch (e) { data.webgl = "读取失败"; }
+  var AudioCtor = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (!AudioCtor) { data.audio = "浏览器不支持"; browserObservation.data = data; browserObservation.ready = true; return Promise.resolve(data); }
+  return new Promise(function (resolve) {
+    var done = false;
+    var finish = function (value) { if (done) return; done = true; data.audio = value; browserObservation.data = data; browserObservation.ready = true; if (currentReportData) { renderPulseHub(currentReportData); if (activePulseModule === "fingerprint") renderModule("fingerprint"); } resolve(data); };
+    try {
+      var audio = new AudioCtor(1, 44100, 44100); var oscillator = audio.createOscillator(); var compressor = audio.createDynamicsCompressor(); oscillator.type = "triangle"; oscillator.frequency.value = 10000; oscillator.connect(compressor); compressor.connect(audio.destination); oscillator.start(0); audio.oncomplete = function (event) { var channel = event.renderedBuffer.getChannelData(0); var sample = ""; for (var i = 0; i < channel.length; i += 997) sample += channel[i].toFixed(6); finish(hashText(sample)); }; audio.startRendering(); setTimeout(function () { finish("读取超时"); }, 1800);
+    } catch (e) { finish("读取失败"); }
+  });
+}
+
 /* ---------- server status ---------- */
 function loadStatus() {
   fetch("/api/status").then(function (r) { return r.json(); }).then(function (data) {
@@ -317,8 +944,16 @@ function sevPill(severity, count) {
 function miniPill(status) {
   var s = String(status || "unknown");
   var cls = s === "pass" ? "mini-pass" : s === "warning" ? "mini-warn" : "mini-unknown";
-  var zh = s === "pass" ? "未检测到泄漏" : s === "warning" ? "疑似泄漏" : s === "unknown" ? "未探测" : s;
+  var zh = s === "pass" ? "通过" : s === "warning" ? "需要查看" : s === "unknown" ? "未知/未探测" : s === "fail" ? "未通过" : s;
   return '<span class="mini-pill ' + cls + '">' + esc(zh) + '</span>';
+}
+function renderEvidence(check) {
+  var evidence = Array.isArray(check && check.evidence) ? check.evidence : [];
+  if (!evidence.length) return '<div class="note">无可展示证据</div>';
+  var text;
+  try { text = JSON.stringify(evidence, null, 2); }
+  catch (e) { text = "证据无法展开：" + e; }
+  return '<details class="row-evidence"><summary>查看证据（' + evidence.length + ' 项）</summary><pre>' + esc(text) + '</pre></details>';
 }
 function renderGroups(groups) {
   var html = "";
@@ -341,7 +976,7 @@ function renderGroups(groups) {
         "<td><span class='id-col'>" + esc(pick(c, "id")) + "</span><br>" + esc(title) + "</td>" +
         "<td>" + statusChip(pick(c, "status")) + "</td>" +
         "<td>" + esc(SEV_ZH[String(c.severity||"")] || c.severity || "—") + "</td>" +
-        "<td>" + esc(explanation) + "</td>" +
+        "<td>" + esc(explanation) + renderEvidence(c) + "</td>" +
         "<td>" + esc(recommendation) + "</td>" +
         "</tr>";
     }
@@ -363,21 +998,102 @@ function renderEgressCards(data) {
   var eg = data.egress_summary || {};
   var online = !!data.online;
   var html = "";
-  // Card 1: egress IP
-  var ipLabel = (eg.available && online) ? (eg.egress_country || "—") : "离线未探测";
-  var ipSub = (eg.available && online) ? (eg.egress_asn ? "ASN: " + esc(eg.egress_asn) : "") + (eg.egress_org ? " · " + esc(eg.egress_org) : "") : "开启在线探测后显示";
-  html += '<div class="egress-card"><div class="card-title">🌐 出口 IP</div><div class="card-value">' + esc(ipLabel) + '</div><div class="card-sub">' + ipSub + '</div></div>';
+  // Card 1: egress IP (the API already masks the address when required)
+  var egressIp = (eg.available && online) ? pick(eg, "egress_ip", "") : "";
+  var egressCountry = (eg.available && online) ? pick(eg, "egress_country", "") : "";
+  var ipLabel = egressIp || egressCountry || (online ? "未知" : "离线未探测");
+  var ipParts = [];
+  if (egressCountry) ipParts.push("地区: " + egressCountry);
+  if (eg.egress_asn) ipParts.push("ASN: " + eg.egress_asn);
+  if (eg.egress_org) ipParts.push(eg.egress_org);
+  var ipSub = (eg.available && online) ? (ipParts.join(" · ") || "已完成出口观察") : "开启在线探测后显示";
+  html += '<div class="egress-card"><div class="card-title">出口 IP</div><div class="card-value">' + esc(ipLabel) + '</div><div class="card-sub">' + esc(ipSub) + '</div></div>';
   // Card 2: DNS leak
   var dnsS = (eg.available && online) ? (eg.dns_egress_status || "unknown") : "unknown";
-  html += '<div class="egress-card"><div class="card-title">🔍 域名查询泄漏</div><div class="card-pill">' + miniPill(dnsS) + '</div><div class="card-sub">DNS 出口 vs HTTP 出口一致性</div></div>';
+  html += '<div class="egress-card"><div class="card-title">域名查询一致性</div><div class="card-pill">' + miniPill(dnsS) + '</div><div class="card-sub">DNS 出口 vs HTTP 出口一致性</div></div>';
   // Card 3: WebRTC leak (from browser detection)
-  var webrtcS = webrtc检测结果;
-  html += '<div class="egress-card"><div class="card-title">📡 WebRTC 泄漏</div><div class="card-pill">' + miniPill(webrtcS) + '</div><div class="card-sub">浏览器端本地地址暴露检测</div></div>';
+  var webrtcS = webrtcDetectionStatus;
+  html += '<div class="egress-card"><div class="card-title">WebRTC 地址暴露</div><div class="card-pill">' + miniPill(webrtcS) + '</div><div class="card-sub">浏览器端本地地址暴露检测</div></div>';
   // Card 4: TLS fingerprint
   var tlsS = (eg.available && online) ? (eg.tls_status || "unknown") : "unknown";
-  var tlsSub = (eg.tls_fingerprint) ? "JA4: " + esc(eg.tls_fingerprint) : "只读检测，不给伪装建议";
-  html += '<div class="egress-card"><div class="card-title">🔐 TLS 指纹</div><div class="card-pill">' + miniPill(tlsS) + '</div><div class="card-sub">' + tlsSub + '</div></div>';
+  var tlsSub = (eg.tls_fingerprint) ? "JA4: " + eg.tls_fingerprint : "只读检测，不给伪装建议";
+  html += '<div class="egress-card"><div class="card-title">TLS 指纹</div><div class="card-pill">' + miniPill(tlsS) + '</div><div class="card-sub">' + esc(tlsSub) + '</div></div>';
   $("egress-cards").innerHTML = html;
+}
+function renderDimensions(matrix) {
+  var items = matrix && Array.isArray(matrix.dimensions) ? matrix.dimensions : [];
+  var html = "";
+  for (var i = 0; i < items.length; i++) {
+    var d = items[i] || {};
+    var status = String(d.status || "unknown");
+    var label = pick(d, "status_label_zh", STATUS_ZH[status] || "未知");
+    var matched = typeof d.matched === "number" ? d.matched : 0;
+    var known = typeof d.known === "number" ? d.known : 0;
+    var meta = label + " · " + known + "/" + matched + " 项有结论";
+    if (!matched) meta = label + " · 本次未覆盖";
+    html += '<div class="dimension-card dimension-' + esc(status) + '">' +
+      '<div class="dimension-title"><span>' + esc(pick(d, "label_zh")) + '</span><span class="status st-' + esc(status) + '">' + esc(meta) + '</span></div>' +
+      '<div class="dimension-en">' + esc(pick(d, "label_en")) + '</div>' +
+      '<div class="dimension-desc">' + esc(pick(d, "description_zh")) + '</div>' +
+      '<div class="dimension-meta">覆盖检查：' + esc(matched) + ' · 置信度：' + esc(pick(d, "confidence", "unknown")) + '</div>' +
+      (pick(d, "recommendation", "") ? '<div class="dimension-rec">' + esc(pick(d, "recommendation", "")) + '</div>' : '') +
+      '</div>';
+  }
+  $("dimensions").innerHTML = html || '<div class="empty">暂无矩阵数据。</div>';
+}
+function renderOnlineStatus(data) {
+  var node = $("online-status");
+  if (!node) return;
+  if (!data || !data.online) {
+    node.className = "online-status status-off";
+    node.textContent = "在线探测状态：本次为离线审计，未发起出站探测。";
+    return;
+  }
+  var onlinePrefixes = [
+    "network.egress.probe_error",
+    "network.egress.runtime_consistency.",
+    "network.egress.dual_stack",
+    "network.egress.stability",
+    "network.dns.consistency",
+    "network.dns.egress_consistency",
+    "network.ip_reputation",
+    "network.cross_site.",
+    "network.tls.fingerprint",
+    "network.anthropic_baseurl_tcp",
+    "network.ai_connectivity"
+  ];
+  var isOnlineObservation = function (item) {
+    var id = String(item && item.id || "");
+    for (var i = 0; i < onlinePrefixes.length; i++) {
+      if (id === onlinePrefixes[i] || id.indexOf(onlinePrefixes[i]) === 0) return true;
+    }
+    return false;
+  };
+  var errors = [];
+  var groups = data.groups || {};
+  Object.keys(groups).forEach(function (key) {
+    var items = Array.isArray(groups[key]) ? groups[key] : [];
+    items.forEach(function (item) {
+      if (item && item.status === "unknown" && isOnlineObservation(item)) {
+        errors.push(pick(item, "explanation_zh") || pick(item, "explanation", "在线探测未完整完成"));
+      }
+    });
+  });
+  if (errors.length) {
+    node.className = "online-status status-warning";
+    var detail = errors.slice(0, 3).join("；");
+    if (errors.length > 3) detail += "；另有 " + (errors.length - 3) + " 项未知";
+    node.textContent = "在线探测状态：部分结果未知（" + errors.length + " 项），相关结果保持“未知”。 " + detail;
+  } else {
+    node.className = "online-status status-on";
+    node.textContent = "在线探测状态：已完成只读观测；结果只说明当前连通性和配置证据，不代表账号或平台判定。";
+  }
+}
+function initialOnlineState() {
+  var value = new URLSearchParams(window.location.search).get("online");
+  if (value === null) return true;
+  value = String(value).toLowerCase();
+  return value !== "0" && value !== "false" && value !== "no" && value !== "off";
 }
 function renderReport(data) {
   clearError();
@@ -393,15 +1109,24 @@ function renderReport(data) {
   // progress marker
   var pct = (typeof scoreNum === "number") ? Math.max(0, Math.min(100, scoreNum)) : 0;
   $("progress-marker").style.left = pct + "%";
+  var ring = $("score-ring");
+  if (ring) {
+    ring.style.setProperty("--score", pct + "%");
+    ring.style.setProperty("--score-color", grade === "A" ? "var(--green)" : grade === "B" ? "#175cd3" : grade === "C" ? "var(--yellow)" : "var(--red)");
+  }
   $("score-meta").innerHTML =
-    "必须处理 " + esc(pickNum(bd, "must_fix")) + " 项（扣 " + esc(pickNum(bd, "must_fix_penalty")) + " 分）" +
+    "配置自洽分（不是 IP 纯净度、匿名度或防封分）：必须处理 " + esc(pickNum(bd, "must_fix")) + " 项（扣 " + esc(pickNum(bd, "must_fix_penalty")) + " 分）" +
     " · 可选一致性 " + esc(pickNum(bd, "optional_consistency")) + " 项（扣 " + esc(pickNum(bd, "optional_penalty")) + " 分）" +
     " · 保持不动 " + esc(pickNum(bd, "leave_alone")) + " 项";
   var meta = "版本 " + esc(pick(data, "version")) + " · " + esc(pick(data, "generated_at"));
   if (data.online) meta += " · 含在线探测";
   $("report-meta").textContent = meta;
+  currentReportData = data;
+  renderPulseHub(data);
   renderSummary(data.summary || {});
   renderEgressCards(data);
+  renderDimensions(data.dimensions || {});
+  renderOnlineStatus(data);
   renderGroups(data.groups || {});
   $("report-md").textContent = pick(data, "report_markdown", "（无 Markdown 报告）");
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -448,11 +1173,11 @@ function genBadge() {
 }
 
 /* ---------- browser runtime detection ---------- */
-var webrtc检测结果 = "unknown";
+var webrtcDetectionStatus = "unknown";
 function detectWebRTC() {
   var out = $("webrtc-list");
   if (!window.RTCPeerConnection) {
-    webrtc检测结果 = "unknown";
+    webrtcDetectionStatus = "unknown";
     out.innerHTML = '<li class="empty">当前浏览器不支持 WebRTC，无法检测。</li>';
     return;
   }
@@ -463,7 +1188,7 @@ function detectWebRTC() {
     if (order.length === 0) {
       if (done) {
         out.innerHTML = '<li class="empty">未获取到任何候选地址（浏览器已限制或被扩展拦截）。</li>';
-        webrtc检测结果 = "pass";
+        webrtcDetectionStatus = "pass";
       }
       return;
     }
@@ -475,7 +1200,7 @@ function detectWebRTC() {
       if (c.type === "host") hasReal = true;
     }
     out.innerHTML = html;
-    webrtc检测结果 = hasReal ? "warning" : "pass";
+    webrtcDetectionStatus = hasReal ? "warning" : "pass";
   };
   try {
     pc = new RTCPeerConnection({ iceServers: [] });
@@ -493,7 +1218,7 @@ function detectWebRTC() {
     pc.createOffer().then(function (o) { return pc.setLocalDescription(o); }).catch(function () {});
   } catch (err) {
     out.innerHTML = '<li class="empty">WebRTC 初始化失败：' + esc(err && err.message ? err.message : err) + "</li>";
-    webrtc检测结果 = "unknown";
+    webrtcDetectionStatus = "unknown";
     return;
   }
   setTimeout(function () { try { pc.close(); } catch (e) {} render(true); }, 3000);
@@ -514,9 +1239,31 @@ function detectTimezone() {
 $("btn-audit").addEventListener("click", runAudit);
 $("btn-badge").addEventListener("click", genBadge);
 $("btn-badge2").addEventListener("click", genBadge);
+$("module-close").addEventListener("click", function () {
+  $("module-inspector").classList.remove("is-open");
+  activePulseModule = "";
+});
+document.addEventListener("click", function (event) {
+  var node = event.target;
+  while (node && node !== document) {
+    if (node.getAttribute && node.getAttribute("data-module")) {
+      openPulseModule(node.getAttribute("data-module"));
+      return;
+    }
+    node = node.parentNode;
+  }
+});
+$("btn-speed-latency").addEventListener("click", function () { runSpeedObservation("latency"); });
+$("btn-speed-download").addEventListener("click", function () { runSpeedObservation("download"); });
+$("btn-speed-upload").addEventListener("click", function () { runSpeedObservation("upload"); });
+$("tiktok-region").addEventListener("change", function () {
+  if (activePulseModule === "tiktok") { renderModule("tiktok"); if (currentReportData) renderPulseHub(currentReportData); }
+});
+$("toggle-online").checked = initialOnlineState();
 loadStatus();
 detectWebRTC();
 detectTimezone();
+browserObservation.promise = detectLocalFingerprint();
 window.addEventListener("DOMContentLoaded", function () { runAudit(); });
 </script>
 </body>

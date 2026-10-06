@@ -7,6 +7,7 @@ semgrep 未安装时，扫描流程会给出 `semgrep --config <规则目录>` �
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import List, Optional, Set
 
@@ -30,7 +31,12 @@ _NOTICE = "NOTICE.md"
 
 
 def rules_dir() -> Path:
-    """内置规则目录（源码检出与 wheel 安装下均位于包内）。"""
+    """内置规则目录（源码、wheel 和 PyInstaller 均可用）。"""
+    frozen_root = getattr(sys, "_MEIPASS", None)
+    if frozen_root:
+        frozen_path = Path(frozen_root) / "claude_sonar" / "resources" / "semgrep_rules"
+        if frozen_path.is_dir():
+            return frozen_path
     return Path(__file__).resolve().parent.parent / "resources" / "semgrep_rules"
 
 

@@ -97,6 +97,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Open the panel in the default browser after start.",
     )
     serve_p.add_argument(
+        "--online", action="store_true",
+        help=(
+            "Enable read-only online probes for this panel launch. "
+            "The normal library and CLI audit defaults remain offline."
+        ),
+    )
+    serve_p.add_argument(
         "--open-delay", type=float, default=0.0, metavar="N",
         help="Seconds to wait before opening the browser (default: 0).",
     )
@@ -211,6 +218,7 @@ def _cmd_serve(args) -> int:
             port=port,
             open_browser=bool(args.open),
             open_delay=float(args.open_delay or 0.0),
+            online=bool(args.online),
         )
     except OSError as exc:
         print(f"error: could not start panel on 127.0.0.1:{port}: {exc}", file=sys.stderr)
@@ -347,6 +355,7 @@ def main(argv=None) -> int:
         payload = {
             "report_dict": result.get("report_dict") or to_dict(result.get("report")),
             "summary": result.get("summary") or {},
+            "dimensions": result.get("dimension_matrix"),
         }
         text = json.dumps(payload, ensure_ascii=False, indent=2, default=str)
         if args.diff:

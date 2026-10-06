@@ -36,7 +36,7 @@
 >
 > **这些细节，每一个都在告诉平台"这个人不对劲"。** 账号被风控、被要求验证、甚至被封，很多时候不是内容的问题，是这些细节在暴露你。更麻烦的是：这些隐患平时毫无感觉，等你看到封号页面的时候，一切都晚了。
 >
-> Claude Sonar 就是帮你把这些细节查清楚的工具——**一次只读体检，不动你任何配置**：
+> Claude Sonar 就是帮你把这些细节查清楚的工具——**一次本地配置体检，不修改系统设置**：
 >
 > - **流量走向**：你的数据到底从哪出去，有没有没走代理的"漏网之鱼"
 > - **域名查询**：你输入一个网址，查询请求有没有偷偷走了不该走的路
@@ -59,7 +59,7 @@
 
 ## 浏览器里试试（零安装）
 
-不用装任何东西：打开 [`static/demo.html`](static/demo.html)（解封后也可直接访问托管页），就是一个只读的浏览器观测页——WebRTC 候选地址、时区/语言、canvas 只读哈希、出口 IP 第三方标签。只观测，不改任何设置，不伪装指纹。要查本机代理/DNS/TUN/隐私配置，还是得装完整工具（见下）。
+不用装任何东西：打开 [`static/demo.html`](static/demo.html)（解封后也可直接访问托管页），就是一个浏览器观测页——WebRTC 候选地址、时区/语言、canvas 只读哈希、出口 IP 第三方标签。只观测，不修改系统设置，不伪装指纹。要查本机代理/DNS/TUN/隐私配置，还是得装完整工具（见下）。
 
 ## 快速开始
 
@@ -69,6 +69,16 @@ pip install -U claude-sonar
 
 全部功能自 **1.0.0** 起可用（由 `claude-shield` 更名而来；更早的 `anti-claude-check` 上传已停用）。
 
+## Windows 便携版
+
+仓库附带单文件本地启动器。在 Windows 上只需准备 Python 和 PyInstaller：
+
+```powershell
+python -m pip install pyinstaller
+python scripts/build_portable_windows.py
+```
+
+生成 `dist\\ClaudeSonar.exe`（当前构建约 10 MB）。双击后会在随机 `127.0.0.1` 回环端口打开本地面板，检测在本机完成。面板首次审计默认开启已批准的只读在线探测，可在开关中关闭；带参数运行时仍走普通 CLI，在线探测只有显式传入 `--online` 才启用。不会下载模型或数据集。审计不会修改系统设置；用户主动生成 badge 时会写入 `sonar-badge.json`。使用期间请保持黑色控制台窗口打开，在那里按 `Ctrl+C` 停止。由于本地构建未做代码签名，Windows 可能显示未签名应用提示。
 
 作为 Agent Skill（Codex / Claude Code）：
 
@@ -93,14 +103,16 @@ python -m claude_sonar --online --intended-region US
 python -m claude_sonar --intended-mode system_proxy   # 或 full_tunnel
 python -m claude_sonar --lang en
 python -m claude_sonar serve --port 8765  # 只读本地网页面板（仅 127.0.0.1）
+python -m claude_sonar serve --open --online --open-delay 8  # Skill：聊天表格 + 自动打开面板
 python -m claude_sonar repo ./my-project  # 代码仓库安全扫描（SAST/密钥/依赖）
 python -m claude_sonar badge              # 从审计结果生成 sonar-badge.json
 ```
 
 子命令（同一入口 `python -m claude_sonar`）：
 
-- **`serve [--port N] [--open]`** — 零依赖本地网页面板，**仅绑定 127.0.0.1**。`/` 渲染审计结果（分数、必须处理/可选一致性/保持不动分组）；`/api/report?online=0` 返回脱敏后的报告 JSON（在线探测默认关闭，需手动打开）；附带浏览器端观察区（WebRTC ICE 候选、本地时区/语言）。只读：POST 返回 405、路径穿越 404、仅接受回环 Host 头。
+- **`serve [--port N] [--open] [--online]`** — 零依赖本地网页面板，**仅绑定 127.0.0.1**。Skill/便携版启动时传入 `--online`，因此面板首次审计默认开启已批准的只读在线探测；普通库调用和 CLI 审计仍默认离线。`/` 渲染审计（分数、必须处理/可选一致性/保持不动分组、六维状态矩阵、状态卡和可展开证据）。面板里的 Pulse 风格目录包含我的 IP、IPv6、指纹、泄漏、Cloudflare、出口与分流、网速、HTTP 请求头、IP 信息和 TikTok 环境模块；`/api/headers` 只返回固定本地请求头 allowlist，`/api/speedtest?mode=latency|download|upload` 只使用有流量上限的 Cloudflare 节点。`/api/report?online=0` 明确返回离线脱敏报告 JSON，开关可关闭在线探测并重新审计。附带浏览器端观察区（WebRTC ICE 候选、本地时区/语言）。不修改系统设置：POST 返回 405、路径穿越 404、仅接受回环 Host 头；用户主动点击 `/api/badge` 时会写入 `sonar-badge.json`。
 - **`repo PATH [--no-tools] [--baseline F] [--json] [--sarif F] [--out F]`** — 代码仓库安全扫描：技术栈识别、semgrep / gitleaks / pip-audit / npm audit / 过期检测（npm outdated、pip list --outdated）编排（工具缺失自动跳过并注明）、内置精简 Semgrep 规则（MIT 来源已注明）、0–100 加权代码安全分、修复建议、基线对比、SARIF 2.1.0 导出。不含渗透测试、不自动建 GitHub issue。
+- 面板和 `--json` 输出还会给出六维状态矩阵：出口网络、泄漏检测、区域一致性、浏览器身份、设备指纹、平台可达性。它只复用已有检查；“未知”表示证据不足，不是 IP 纯净度、匿名度或防封分。
 - **`badge [--out PATH] [--from-report F]`** — 写入 `sonar-badge.json`（分数+颜色），供下方 shields.io 动态徽章使用；`--from-report` 可复用上次 `--json` 报告、无需重新审计。
 
 除非传入 `--online`，否则不会启用在线探测（出口、DNS、IP 声誉、跨站出口、**DNS 与 HTTP 出口一致性**、**JA3/JA4 TLS 指纹**）。启用 `--online` 时，独立探测会并行执行（共享超时）。`ANTHROPIC_BASE_URL` 审计（官方端点 vs 内置公开风控黑名单情报）始终离线运行。
@@ -119,7 +131,7 @@ python -m claude_sonar badge              # 从审计结果生成 sonar-badge.js
 | 路由 | TUN、默认路由、Teredo、IPv6 旁路 |
 | 在线探测（可选） | DNS 出口一致性（DoH vs HTTP）、JA3/JA4 TLS 指纹（openssl 抓包）、多平台 AI 连通性（ChatGPT/Claude/Grok/Perplexity/Gemini/DeepSeek/通义千问/Kimi，仅测可达性） |
 | 始终运行 | `ANTHROPIC_BASE_URL` 审计（内置公开中转风险黑名单比对） |
-| 本地面板 | `serve` — 127.0.0.1 只读面板 + 浏览器端 WebRTC/时区观察 |
+| 本地面板 | `serve` — 127.0.0.1 只读面板 + 浏览器端 WebRTC/时区观察 + Pulse 风格模块（出口、IPv6、指纹、泄漏、Cloudflare、分流、测速、请求头、IP 信息、TikTok 环境） |
 | 仓库扫描 | `repo` — SAST / 密钥 / 依赖审计，0–100 代码安全分 |
 | 徽章 | `badge` — `sonar-badge.json` 驱动 shields.io 动态徽章 |
 | 一致性 | 时区 × 语言 ×（在线）出口地区 |
@@ -133,7 +145,7 @@ python -m claude_sonar badge              # 从审计结果生成 sonar-badge.js
 
 运行 `python -m claude_sonar` 即可得到实时 Markdown 报告（`format_report`：证据表 + 必须处理 / 可选一致性 / 保持不动）。仓库不再附带伪造的演示截图。
 
-## 只读采集
+## 不修改系统的采集
 
 Windows PowerShell 7：
 
@@ -157,7 +169,7 @@ python ./scripts/collect_posix_network.py
 
 ## 报告
 
-Skill 会返回一张紧凑的证据表（`signal`、`status`、`confidence`、`evidence`、`action`），后接三个短章节：**必须处理**、**可选一致性**、**保持不动**。完整报告格式与判定规则见 `SKILL.md`。
+Skill 会返回一张紧凑的证据表（`signal`、`status`、`confidence`、`evidence`、`action`），接着自动启动本地面板；表格和面板是同一次检测的两个交付物，面板默认延迟约 8 秒打开。完整报告格式与判定规则见 `SKILL.md`。
 
 ## 手动网络替代方案（仅建议，绝不代改）
 
