@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-10-06
+
 ### 修正
 - HTTP 探测 User-Agent 从 `Claude-Shield` 改为 `Claude-Sonar`
 - 新增六维状态矩阵：复用现有检查呈现出口、泄漏、区域、浏览器、设备与平台可达性；不新增评分，也不把结果解释为 IP 纯净度或反封禁分

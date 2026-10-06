@@ -8,7 +8,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/AschoofAlpha/claude-sonar/ci.yml?style=flat-square&label=CI" alt="CI">
-  <img src="https://img.shields.io/badge/version-1.0.3-2DD4BF?style=flat-square" alt="v1.0.3">
+  <img src="https://img.shields.io/badge/version-1.0.4-2DD4BF?style=flat-square" alt="v1.0.4">
   <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FAschoofAlpha%2Fclaude-sonar%2Fmain%2Fsonar-badge.json&query=%24.message&label=配置自洽分&color=2DD4BF" alt="配置自洽分">
   <img src="https://img.shields.io/badge/default-read--only-2DD4BF?style=flat-square" alt="Read-only by default">
   <img src="https://img.shields.io/badge/platform-Windows-4F7CFF?style=flat-square" alt="Windows">
