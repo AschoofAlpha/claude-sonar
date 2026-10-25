@@ -48,12 +48,17 @@ _OPTIONAL_IDS = frozenset({
     "privacy.local_device_id",
     "privacy.telemetry_cache",
     "privacy.browser_fingerprint",
+    "privacy.settings_deny",
+    "network.policy_chain",
+    "network.node_geo",
+    "system.desktop_locale",
 })
 
 # Presence of local Claude dirs is normal after use — not a consistency gap.
 _PRESENCE_ONLY_IDS = frozenset({
     "privacy.local_device_id",
     "privacy.telemetry_cache",
+    "privacy.residue_inventory",
 })
 
 _ACTION_ORDER = ("must_fix", "optional_consistency", "leave_alone")
@@ -159,6 +164,12 @@ _CHECK_PLAIN = {
         "network.dns_encrypted": "上游 DNS 是否使用加密（如 DoH）",
         "network.tun_stack": "TUN 使用的网络栈类型（如 gvisor），本身不代表泄漏",
         "network.policy_group": "节点是否固定选择，而不是自动测速乱跳",
+        "network.policy_chain": "选择链是否钉在具体节点，而不是停在自动选择/故障转移",
+        "network.node_geo": "节点名字里的国家，是否和实际出口国家一致",
+        "network.anthropic_split": "claude.ai / claude.com / anthropic.com 是否走同一个出口",
+        "privacy.residue_inventory": "本机 Claude 残留按 A缓存/B身份/C会话/D资产 分级盘点（只报体积）",
+        "privacy.settings_deny": "settings.json 里有没有 permissions.deny（只计条数，不读规则）",
+        "system.desktop_locale": "桌面版界面语言跟系统 PreferredUILanguages 是否一致",
         "network.mihomo": "有没有读到 Mihomo/Clash 配置",
         "network.dns.consistency": "在线时观察 DNS 能否解析（不能单独证明泄漏）",
         "network.ip_reputation": "在线时出口 IP 的国家/运营商类标签（第三方看法，不是判决）",
@@ -207,6 +218,12 @@ _CHECK_PLAIN = {
         "network.dns_encrypted": "Whether upstream DNS uses encryption (e.g. DoH)",
         "network.tun_stack": "Which TUN stack is used (informational)",
         "network.policy_group": "Whether the node is pinned instead of auto-switching",
+        "network.policy_chain": "Whether the selection chain ends on a concrete node, not URLTest/fallback",
+        "network.node_geo": "Whether the node display name's country matches the observed exit country",
+        "network.anthropic_split": "Whether claude.ai / claude.com / anthropic.com share one exit",
+        "privacy.residue_inventory": "Local Claude leftovers graded A cache / B identity / C sessions / D assets (sizes only)",
+        "privacy.settings_deny": "Whether settings.json has a permissions.deny list (count only)",
+        "system.desktop_locale": "Whether Claude Desktop locale matches system PreferredUILanguages",
         "network.mihomo": "Whether Mihomo/Clash config was available",
         "network.dns.consistency": "Online DNS resolve observation (not leak proof alone)",
         "network.ip_reputation": "Online exit IP labels from third parties (opinion, not verdict)",

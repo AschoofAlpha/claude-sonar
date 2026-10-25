@@ -165,6 +165,12 @@ def collect_privacy_checks(data, builder):
             "No local cache clear recommended from this scan. (Any future clear would remain optional and manual.)",
         )
 
+    from .residue import collect_residue_check
+    from .settings_locale import collect_settings_deny_check
+
+    collect_residue_check(claude, builder)
+    collect_settings_deny_check(claude, builder)
+
     # Browser fingerprint posture: OPTIONAL policy-level recommendation only; never auto; no anti-detect
     browsers = data.get("Browsers")
     if isinstance(browsers, dict) and browsers:

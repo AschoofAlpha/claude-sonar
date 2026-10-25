@@ -4,6 +4,16 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-10-25
+
+### 新增
+- 选择链叶子检查 `network.policy_chain`：把 `AI服务 → 苏菲家宽 → 自动选择` 整条链写进说明；叶子停在 URLTest/Fallback 记 warning
+- 节点名 vs 出口国家 `network.node_geo`：名字写美国、实际东京这类错标记 warning；在线信誉国家可回填
+- Anthropic 域名分脑 `network.anthropic_split`：claude.ai / claude.com / anthropic.com 出口 token 不一致记 fail
+- 本机残留分级盘点 `privacy.residue_inventory`：A 缓存 / B 身份 / C 会话 / D 资产，只报项数和体积
+- `privacy.settings_deny`：settings.json 是否有 permissions.deny（只计条数）
+- `system.desktop_locale`：Desktop config.json locale 与系统 PreferredUILanguages 是否一致
+
 ## [1.0.4] - 2026-10-06
 
 ### 修正

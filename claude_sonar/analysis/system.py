@@ -1106,3 +1106,7 @@ def collect_system_checks(data, builder, intended_mode=None):
                 geo_recommendation,
                 evidence=geo_evidence,
             )
+
+    from .settings_locale import collect_desktop_locale_check
+
+    collect_desktop_locale_check(data, builder)

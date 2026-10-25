@@ -20,7 +20,7 @@ DIMENSION_DEFINITIONS: Tuple[Dict[str, Any], ...] = (
         "label_en": "Exit network",
         "description_zh": "出口地址、运营商标签、跨站出口和双栈路径是否相互一致。",
         "description_en": "Whether the observed exit, provider labels, site routes, and dual-stack paths agree.",
-        "patterns": ("network.egress.", "network.ip_reputation"),
+        "patterns": ("network.egress.", "network.ip_reputation", "network.anthropic_split", "network.policy_chain"),
     },
     {
         "id": "leak_detection",
@@ -42,7 +42,7 @@ DIMENSION_DEFINITIONS: Tuple[Dict[str, Any], ...] = (
         "label_en": "Regional consistency",
         "description_zh": "系统语言、时区与在线出口区域标签是否互相矛盾。",
         "description_en": "Whether locale, timezone, and observed exit-region labels contradict one another.",
-        "patterns": ("system.locale", "system.timezone", "consistency.geo_stack", "network.ip_reputation"),
+        "patterns": ("system.locale", "system.timezone", "system.desktop_locale", "consistency.geo_stack", "network.ip_reputation", "network.node_geo"),
     },
     {
         "id": "browser_identity",

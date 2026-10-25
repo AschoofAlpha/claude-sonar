@@ -919,7 +919,7 @@ foreach ($cn in $clientNames) {
 
 # Local Claude/telemetry artifacts: presence only (never read file contents / IDs).
 function Get-PathPresence {
-    param([string]$Label, [string]$Path)
+    param([string]$Label, [string]$Path, [string]$Category = '')
     $item = Get-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
     $present = $null -ne $item
     $kind = if (-not $present) { 'missing' } elseif ($item.PSIsContainer) { 'directory' } else { 'file' }
@@ -936,6 +936,7 @@ function Get-PathPresence {
         Label = $Label
         Present = $present
         Kind = $kind
+        Category = $Category
         # Size only — never path contents or identifiers
         SizeBytes = $size
     }
@@ -944,17 +945,27 @@ function Get-PathPresence {
 $homeDir = $env:USERPROFILE
 $localApp = $env:LOCALAPPDATA
 $roamApp = $env:APPDATA
+$claudeHome = Join-Path $homeDir '.claude'
 $deviceIdCandidates = @(
-    (Get-PathPresence -Label 'claude_home_dir' -Path (Join-Path $homeDir '.claude')),
-    (Get-PathPresence -Label 'claude_json' -Path (Join-Path $homeDir '.claude.json')),
-    (Get-PathPresence -Label 'claude_device_id_candidates' -Path (Join-Path $homeDir '.claude\.device_id')),
-    (Get-PathPresence -Label 'claude_statsig_dir' -Path (Join-Path $homeDir '.claude\statsig')),
-    (Get-PathPresence -Label 'claude_telemetry_dir' -Path (Join-Path $homeDir '.claude\telemetry')),
-    (Get-PathPresence -Label 'claude_cache_dir' -Path (Join-Path $homeDir '.claude\cache')),
-    (Get-PathPresence -Label 'claude_settings_json' -Path (Join-Path $homeDir '.claude\settings.json')),
-    (Get-PathPresence -Label 'appdata_claude' -Path (Join-Path $roamApp 'Claude')),
-    (Get-PathPresence -Label 'localappdata_claude' -Path (Join-Path $localApp 'Claude')),
-    (Get-PathPresence -Label 'localappdata_anthropic' -Path (Join-Path $localApp 'Anthropic'))
+    (Get-PathPresence -Label 'claude_home_dir' -Path $claudeHome),
+    (Get-PathPresence -Label 'claude_json' -Path (Join-Path $homeDir '.claude.json') -Category 'B'),
+    (Get-PathPresence -Label 'claude_device_id_candidates' -Path (Join-Path $claudeHome '.device_id') -Category 'B'),
+    (Get-PathPresence -Label 'claude_credentials' -Path (Join-Path $claudeHome '.credentials.json') -Category 'B'),
+    (Get-PathPresence -Label 'claude_statsig_dir' -Path (Join-Path $claudeHome 'statsig') -Category 'A'),
+    (Get-PathPresence -Label 'claude_telemetry_dir' -Path (Join-Path $claudeHome 'telemetry') -Category 'A'),
+    (Get-PathPresence -Label 'claude_cache_dir' -Path (Join-Path $claudeHome 'cache') -Category 'A'),
+    (Get-PathPresence -Label 'claude_file_history' -Path (Join-Path $claudeHome 'file-history') -Category 'C'),
+    (Get-PathPresence -Label 'claude_projects' -Path (Join-Path $claudeHome 'projects') -Category 'C'),
+    (Get-PathPresence -Label 'claude_sessions' -Path (Join-Path $claudeHome 'sessions') -Category 'C'),
+    (Get-PathPresence -Label 'claude_history_jsonl' -Path (Join-Path $claudeHome 'history.jsonl') -Category 'C'),
+    (Get-PathPresence -Label 'claude_skills' -Path (Join-Path $claudeHome 'skills') -Category 'D'),
+    (Get-PathPresence -Label 'claude_plugins' -Path (Join-Path $claudeHome 'plugins') -Category 'D'),
+    (Get-PathPresence -Label 'claude_settings_json' -Path (Join-Path $claudeHome 'settings.json') -Category 'D'),
+    (Get-PathPresence -Label 'appdata_claude' -Path (Join-Path $roamApp 'Claude') -Category 'B'),
+    (Get-PathPresence -Label 'localappdata_claude' -Path (Join-Path $localApp 'Claude') -Category 'A'),
+    (Get-PathPresence -Label 'localappdata_anthropic' -Path (Join-Path $localApp 'Anthropic') -Category 'A'),
+    (Get-PathPresence -Label 'localappdata_anthropicclaude' -Path (Join-Path $localApp 'AnthropicClaude') -Category 'A'),
+    (Get-PathPresence -Label 'localappdata_claude_cli_nodejs' -Path (Join-Path $localApp 'claude-cli-nodejs') -Category 'A')
 )
 $telemetryCachePresent = [bool](@($deviceIdCandidates | Where-Object {
     $_.Present -and ($_.Label -match 'statsig|telemetry|cache')
@@ -965,6 +976,42 @@ $deviceIdArtifactPresent = [bool](@($deviceIdCandidates | Where-Object {
 $settingsJsonPresent = [bool](@($deviceIdCandidates | Where-Object {
     $_.Present -and $_.Label -eq 'claude_settings_json'
 }).Count -gt 0)
+$settingsDenyCount = 0
+$settingsPath = Join-Path $claudeHome 'settings.json'
+if (Test-Path -LiteralPath $settingsPath) {
+    try {
+        $settingsObj = Get-Content -LiteralPath $settingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $deny = $null
+        if ($null -ne $settingsObj.permissions) { $deny = $settingsObj.permissions.deny }
+        if ($null -ne $deny) { $settingsDenyCount = @($deny).Count }
+    } catch { $settingsDenyCount = 0 }
+}
+
+$desktopConfigPath = Join-Path $roamApp 'Claude\config.json'
+$desktopConfigPresent = Test-Path -LiteralPath $desktopConfigPath
+$desktopLocale = $null
+if ($desktopConfigPresent) {
+    try {
+        $desktopCfg = Get-Content -LiteralPath $desktopConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($null -ne $desktopCfg.locale) { $desktopLocale = [string]$desktopCfg.locale }
+    } catch { $desktopLocale = $null }
+}
+
+$preferredUiLanguages = @()
+try {
+    $pref = Get-ItemProperty -LiteralPath 'HKCU:\Control Panel\Desktop' -Name 'PreferredUILanguages' -ErrorAction SilentlyContinue
+    if ($null -ne $pref -and $null -ne $pref.PreferredUILanguages) {
+        $preferredUiLanguages = @($pref.PreferredUILanguages)
+    }
+} catch { $preferredUiLanguages = @() }
+if ($preferredUiLanguages.Count -eq 0) {
+    try {
+        $mui = Get-ItemProperty -LiteralPath 'HKCU:\Control Panel\Desktop\MuiCached' -Name 'MachinePreferredUILanguages' -ErrorAction SilentlyContinue
+        if ($null -ne $mui -and $null -ne $mui.MachinePreferredUILanguages) {
+            $preferredUiLanguages = @($mui.MachinePreferredUILanguages)
+        }
+    } catch { }
+}
 
 $claudeAudit = [ordered]@{
     DisableTelemetryVars = $claudeDisableTelemetry
@@ -989,7 +1036,9 @@ $claudeAudit = [ordered]@{
     DeviceIdArtifactPresent = $deviceIdArtifactPresent
     TelemetryCachePresent = $telemetryCachePresent
     SettingsJsonPresent = $settingsJsonPresent
+    SettingsDenyCount = [int]$settingsDenyCount
 }
+
 
 $dnsHijackAny53 = $combinedConfig -match "(?im)^\s*-\s*['`"]?any:53['`"]?\s*(?:#.*)?$"
 $processRunning = $null -ne (Get-Process -Name 'verge-mihomo','mihomo','clash-meta','clash' -ErrorAction SilentlyContinue | Select-Object -First 1)
@@ -1075,6 +1124,7 @@ $result = [ordered]@{
         UICulture = (Get-UICulture).Name
         UILanguageOverride = $uiLanguageOverride
         UserLanguageList = $userLanguages
+        PreferredUILanguages = @($preferredUiLanguages)
         SystemLocale = $systemLocale
         Teredo = $teredo
         ActiveAdapterIPv6Bindings = $ipv6Bindings
@@ -1099,6 +1149,10 @@ $result = [ordered]@{
         DnsHijackAny53 = $dnsHijackAny53
         EncryptedDnsUpstreams = $dnsUpstreams
         PolicyGroups = $policyAudit
+    }
+    ClaudeDesktop = [ordered]@{
+        ConfigPresent = [bool]$desktopConfigPresent
+        ConfigLocale = $desktopLocale
     }
     Browsers = [ordered]@{
         Chrome = $chromeAudit

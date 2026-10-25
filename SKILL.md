@@ -136,6 +136,12 @@ Use the snapshot and live network tests together:
 | DNS | `respect-rules`, fake-IP, `any:53`, DNS IPv6, local resolvers, encrypted upstream hosts | An approved unique-hostname live test shows no physical-ISP resolver; static settings alone are `unknown` |
 | Browser WebRTC | Installed-browser and managed-policy observations | Settings are local evidence only; runtime behavior requires a controlled browser test or manual verification |
 | Policy group | Rule reference, group type, HTTP or named-pipe controller selection chain | Intended service group is selected and the chain contains no URL-test, fallback, load-balance, smart, or other automatic selector; otherwise verify in the UI |
+| Policy chain leaf | Runtime `SelectionChain` names and leaf type | Chain is printed (`AI → 家宽组 → 具体节点`). A URLTest/Fallback/Selector leaf is a warning |
+| Node name vs exit country | Leaf node display name vs online reputation country | Named region tokens (美国/Japan/US/…) match the observed ISO country; mismatch is optional consistency |
+| Anthropic hostname split | Online Cloudflare trace on claude.ai, claude.com, anthropic.com | Same redacted egress token; a split is must-fix |
+| Local residue inventory | Presence and sizes of Claude home paths, graded A cache / B identity / C sessions / D assets | Report sizes only; do not read credentials or delete files |
+| permissions.deny | Count of `permissions.deny` rules in `settings.json` | Non-zero count is a pass; missing/empty is optional consistency. Do not dump rule text |
+| Desktop locale source | `Claude/config.json` `locale` vs `PreferredUILanguages` | Mismatch means Electron will follow the system list, not config.json |
 | Windows locale | Timezone, culture, UI culture, user language list, system locale | Explain mismatches; only change values that reflect genuine long-term use |
 | Environment proxies | Presence of process, user, or machine `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, or `NO_PROXY` | Explain whether each is intentional; do not reveal its value |
 | IP reputation | Country, ASN, provider type, proxy flags, abuse indicators, and blacklist claims from the supplied report | Separate confirmed routing facts from database opinions; corroborate severe claims when possible |

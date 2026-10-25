@@ -303,4 +303,11 @@ def collect_mihomo_checks(data, builder, intended_mode=None):
                 "Policy group runtime selection is unavailable; verify the selected group in the Clash Verge UI.",
             )
 
+    from .policy_chain import collect_policy_chain_checks
+    from .node_geo import collect_node_geo_check
+
+    leaf = collect_policy_chain_checks(mihomo, builder)
+    if leaf is not None:
+        collect_node_geo_check(builder, leaf, data.get("ObservedEgressCountry"))
+
     return False

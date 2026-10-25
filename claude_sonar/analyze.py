@@ -24,6 +24,7 @@ from .analysis import (
     mihomo_protects_dns,
     redact_checks,
 )
+from .analysis.node_geo import merge_node_geo_with_egress
 from .analysis.system import infer_intended_mode, merge_geo_with_egress, normalize_intended_mode
 from .models import AuditCheck, AuditReport, PlatformInfo, PrivacyMetadata, to_dict
 from .redaction import Redactor
@@ -222,6 +223,7 @@ def run_full_audit(
 
     # Best-effort: fold online reputation country into offline geo_stack message
     checks = merge_geo_with_egress(checks)
+    checks = merge_node_geo_with_egress(checks)
 
     # Offline risk-intel: ANTHROPIC_BASE_URL audit (env var + bundled blacklist
     # data; no network contact). Never fails the audit.
@@ -308,6 +310,22 @@ def run_full_audit(
                 severity="info",
                 confidence="unknown",
                 explanation=f"[probe_error] AI connectivity check could not run: {exc}",
+            )], redactor))
+        try:
+            from .probes.anthropic_split import check_anthropic_split
+
+            checks.extend(redact_checks(
+                [check_anthropic_split(timeout=probe_timeout)], redactor
+            ))
+        except Exception as exc:  # pragma: no cover - best-effort
+            checks.extend(redact_checks([AuditCheck(
+                id="network.anthropic_split",
+                title="Anthropic hostname egress split",
+                category="network",
+                status="unknown",
+                severity="info",
+                confidence="unknown",
+                explanation=f"[probe_error] Anthropic split check could not run: {exc}",
             )], redactor))
 
     report = build_audit_report(checks, snapshot=snapshot, redactor=redactor)
